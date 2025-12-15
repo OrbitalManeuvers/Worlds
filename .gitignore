@@ -1,0 +1,50 @@
+# Delphi build outputs
+*.dcu
+*.dcp
+*.dpu
+*.bpl
+*.bpi
+*.tds
+*.map
+*.hpp
+*.obj
+*.pch
+*.lib
+*.exe
+*.dll
+*.ocx
+*.rsm
+*.stat
+*.local
+*.identcache
+*.dproj.local
+*.groupproj.local
+*.deployproj
+*.deployproj.local
+*.tvsconfig
+*.dsk
+*.~*
+__history/
+__recovery/
+Win32/
+Win64/
+dcu/
+dcp/
+bin/
+
+# Logs and temp
+*.log
+*.tmp
+
+# Jekyll / GitHub Pages
+_site/
+.jekyll-cache/
+.sass-cache/
+vendor/
+vendor/bundle/
+vendor/cache/
+node_modules/
+.bundle/
+
+# VS Code
+.vscode/

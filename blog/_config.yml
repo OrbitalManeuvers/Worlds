@@ -1,0 +1,8 @@
+title: Worlds Dev Blog
+description: Development notes for the Worlds Delphi project.
+baseurl: "/Worlds"
+url: "https://orbitalmaneuvers.github.io"
+theme: minima
+plugins:
+  - jekyll-feed
+markdown: kramdown
