@@ -3,4 +3,4 @@ layout: home
 title: Worlds Dev Blog
 ---
 
-Welcome to the development blog for the Worlds Delphi project. New posts will appear below as they are added to `_posts`.
+The posts are below. Go there. You can marvel at this index file later.
