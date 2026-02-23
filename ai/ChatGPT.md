@@ -152,3 +152,181 @@ Imperfections are fuel for emergence:
 - You need credible consequences.
 
 
+---
+2025-12-17
+Asked about weighted decision trees for short term memory storage, got educated.
+
+This is a good candidate for a cognition gene upgrade to learn from recent interactions. Considering all sorts of interesting things ...
+
+passing onto next gen with super long timeout = inheriting experience
+new experiences should strengthen/weaken existing instances of the same interaction.
+
+
+type
+  TMemoryTag = (
+    mtTrust,
+    mtThreat,
+    mtAffinity,
+    mtCompetence
+  );
+
+  TMemoryEntry = record
+    Tag       : TMemoryTag;
+    Value     : Double;   // positive or negative
+    Timestamp : Double;   // simulation time
+  end;
+
+type
+  TShortTermMemory = class
+  private
+    FEntries : TList<TMemoryEntry>;
+    FHalfLife: Double;
+
+    function Decay(const Age: Double): Double;
+  public
+    constructor Create(const AHalfLife: Double);
+    destructor Destroy; override;
+
+    procedure Add(
+      const ATag  : TMemoryTag;
+      const AValue: Double;
+      const Now   : Double
+    );
+
+    function Score(
+      const ATag: TMemoryTag;
+      const Now : Double
+    ): Double;
+
+    procedure CullOld(const Now: Double; const MaxAge: Double);
+  end;
+
+constructor TShortTermMemory.Create(const AHalfLife: Double);
+begin
+  inherited Create;
+  FEntries := TList<TMemoryEntry>.Create;
+  FHalfLife := AHalfLife;
+end;
+
+destructor TShortTermMemory.Destroy;
+begin
+  FEntries.Free;
+  inherited;
+end;
+
+function TShortTermMemory.Decay(const Age: Double): Double;
+begin
+  // exp(-age / halfLife)
+  Result := Exp(-Age / FHalfLife);
+end;
+
+procedure TShortTermMemory.Add(
+  const ATag  : TMemoryTag;
+  const AValue: Double;
+  const Now   : Double
+);
+var
+  E: TMemoryEntry;
+begin
+  E.Tag := ATag;
+  E.Value := AValue;
+  E.Timestamp := Now;
+
+  FEntries.Add(E);
+end;
+
+This is the heart of the system:
+
+function TShortTermMemory.Score(
+  const ATag: TMemoryTag;
+  const Now : Double
+): Double;
+var
+  E   : TMemoryEntry;
+  Age : Double;
+begin
+  Result := 0.0;
+
+  for E in FEntries do
+  begin
+    if E.Tag <> ATag then
+      Continue;
+
+    Age := Now - E.Timestamp;
+    Result := Result + (E.Value * Decay(Age));
+  end;
+end;
+
+procedure TShortTermMemory.CullOld(
+  const Now: Double;
+  const MaxAge: Double
+);
+var
+  I: Integer;
+begin
+  for I := FEntries.Count - 1 downto 0 do
+    if (Now - FEntries[I].Timestamp) > MaxAge then
+      FEntries.Delete(I);
+end;
+
+
+weighted tree
+
+type
+  TDecision = (
+    dEngage,
+    dCautious,
+    dAvoid,
+    dIgnore
+  );
+
+function DecideInteraction(
+  const Memory: TShortTermMemory;
+  const Now   : Double
+): TDecision;
+var
+  Threat: Double;
+  Trust : Double;
+begin
+  Threat := Memory.Score(mtThreat, Now);
+  Trust  := Memory.Score(mtTrust, Now);
+
+  if Threat > 0.7 then
+    Exit(dAvoid);
+
+  if Trust > 0.5 then
+    Exit(dEngage);
+
+  Result := dCautious;
+end;
+
+var
+  Memory: TShortTermMemory;
+  Now   : Double;
+begin
+  Memory := TShortTermMemory.Create(10.0); // half-life = 10 seconds
+  try
+    Now := 100.0;
+
+    Memory.Add(mtTrust,  +0.8, Now - 2);
+    Memory.Add(mtThreat, +1.0, Now - 1);
+
+    case DecideInteraction(Memory, Now) of
+      dEngage  : ...
+      dAvoid   : ...
+      dCautious: ...
+    end;
+  finally
+    Memory.Free;
+  end;
+end;
+
+
+===============================
+
+| Job                                 | Model                  |
+| ----------------------------------- | ---------------------- |
+| Big ideas, systems, social modeling | **GPT-5.x (non-mini)** |
+| Debugging, local correctness        | **Codex**              |
+| Autocomplete only                   | mini / auto            |
+

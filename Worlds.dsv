@@ -1,10 +1,1561 @@
 ﻿[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXE1haW4ucGFz]
 Module=C:\DelphiProjects\Worlds\Main.pas
 CursorX=1
-CursorY=13
+CursorY=52
 TopLine=1
 LeftCol=1
 Elisions=
 Bookmarks=
 EditViewName=C:\DelphiProjects\Worlds\Main.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxXb3JsZFR5cGVzLnBhcw==]
+Module=C:\DelphiProjects\Worlds\engine\WorldTypes.pas
+CursorX=1
+CursorY=44
+TopLine=19
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\WorldTypes.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxXb3JsZHMucGFz]
+Module=C:\DelphiProjects\Worlds\engine\Worlds.pas
+CursorX=5
+CursorY=9
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\Worlds.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxBc3BlY3RzLnBhcw==]
+Module=C:\DelphiProjects\Worlds\engine\Aspects.pas
+CursorX=1
+CursorY=16
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxDaGVtaXN0cnkucGFz]
+Module=C:\DelphiProjects\Worlds\engine\Chemistry.pas
+CursorX=1
+CursorY=1
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\Chemistry.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxTaW11bGF0b3JzLnBhcw==]
+Module=C:\DelphiProjects\Worlds\engine\Simulators.pas
+CursorX=1
+CursorY=20
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\Simulators.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxBZ2VudFN0YXRlcy5wYXM=]
+Module=C:\DelphiProjects\Worlds\engine\AgentStates.pas
+CursorX=1
+CursorY=9
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxCcmFpbnMucGFz]
+Module=C:\DelphiProjects\Worlds\engine\Brains.pas
+CursorX=16
+CursorY=5
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\Brains.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5wYXM=]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.pas
+CursorX=1
+CursorY=15
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxzdGF0ZXNcU2ltU3RhdGVzLnBhcw==]
+Module=C:\DelphiProjects\Worlds\engine\states\SimStates.pas
+CursorX=13
+CursorY=29
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\states\SimStates.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxzdGF0ZXNcU2ltU3RhdGVzLkVuZXJneS5w
+YXM=]
+Module=C:\DelphiProjects\Worlds\engine\states\SimStates.Energy.pas
+CursorX=1
+CursorY=8
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\states\SimStates.Energy.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5FbmVyZ3kucGFz]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Energy.pas
+CursorX=1
+CursorY=27
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5QZXJjZXB0aW9uLnBh
+cw==]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+CursorX=1
+CursorY=8
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXFdvcmxkcy5kcHI=]
+Module=C:\DelphiProjects\Worlds\Worlds.dpr
+CursorX=1
+CursorY=13
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\Worlds.dpr
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5Db2duaXRpb24ucGFz
+]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+CursorX=1
+CursorY=1
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxzdGF0ZXNcU2ltU3RhdGVzLkVuZXJneS5w
+YXM=]
+Module=C:\DelphiProjects\Worlds\engine\states\SimStates.Energy.pas
+CursorX=1
+CursorY=8
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\states\SimStates.Energy.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lUmVnaXN0cmllcy5wYXM=]
+Module=C:\DelphiProjects\Worlds\engine\genes\GeneRegistries.pas
+CursorX=1
+CursorY=70
+TopLine=19
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\GeneRegistries.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxzdGF0ZXNcU2ltU3RhdGVzLkVuZXJneS5w
+YXM=]
+Module=C:\DelphiProjects\Worlds\engine\states\SimStates.Energy.pas
+CursorX=1
+CursorY=8
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\states\SimStates.Energy.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxBZ2VudHMucGFz]
+Module=C:\DelphiProjects\Worlds\engine\Agents.pas
+CursorX=1
+CursorY=1
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\Agents.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5Db2duaXRpb24ucGFz
+]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+CursorX=1
+CursorY=1
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxzb3VyY2VccnRs
+XGNvbW1vblxTeXN0ZW0uR2VuZXJpY3MuQ29sbGVjdGlvbnMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\source\rtl\common\System.Generics.Collections.pas
+CursorX=74
+CursorY=426
+TopLine=1160
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5QZXJjZXB0aW9uLnBh
+cw==]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+CursorX=1
+CursorY=8
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5Db2duaXRpb24ucGFz
+]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+CursorX=1
+CursorY=1
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lUmVnaXN0cnkucGFz]
+Module=C:\DelphiProjects\Worlds\engine\genes\GeneRegistry.pas
+CursorX=1
+CursorY=63
+TopLine=64
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\GeneRegistry.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5Db2duaXRpb24ucGFz
+]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+CursorX=1
+CursorY=1
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5QZXJjZXB0aW9uLnBh
+cw==]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+CursorX=1
+CursorY=11
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5QZXJjZXB0aW9uLnBh
+cw==]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+CursorX=1
+CursorY=11
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5QZXJjZXB0aW9uLnBh
+cw==]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+CursorX=1
+CursorY=11
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5Db2duaXRpb24ucGFz
+]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+CursorX=13
+CursorY=8
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5Db2duaXRpb24ucGFz
+]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+CursorX=13
+CursorY=8
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5QZXJjZXB0aW9uLnBh
+cw==]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+CursorX=1
+CursorY=11
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5QZXJjZXB0aW9uLnBh
+cw==]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+CursorX=1
+CursorY=11
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5Db2duaXRpb24ucGFz
+]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+CursorX=6
+CursorY=11
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5Db2duaXRpb24ucGFz
+]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+CursorX=17
+CursorY=21
+TopLine=19
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5QZXJjZXB0aW9uLnBh
+cw==]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+CursorX=1
+CursorY=1
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5QZXJjZXB0aW9uLnBh
+cw==]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+CursorX=1
+CursorY=14
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Perception.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5Nb3Rpb24ucGFz]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Motion.pas
+CursorX=1
+CursorY=23
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Motion.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5SZXByb2R1Y3Rpb24u
+cGFz]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Reproduction.pas
+CursorX=17
+CursorY=21
+TopLine=19
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Reproduction.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5SZXByb2R1Y3Rpb24u
+cGFz]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Reproduction.pas
+CursorX=17
+CursorY=21
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Reproduction.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcUlRM
+XFNZU1xTeXN0ZW0ucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\RTL\SYS\System.pas
+CursorX=1
+CursorY=17902
+TopLine=17881
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\RTL\SYS\System.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxnZW5lc1xHZW5lcy5Db2duaXRpb24ucGFz
+]
+Module=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+CursorX=17
+CursorY=21
+TopLine=19
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\genes\Genes.Cognition.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxzb3VyY2VccnRs
+XGNvbW1vblxTeXN0ZW0uR2VuZXJpY3MuRGVmYXVsdHMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\source\rtl\common\System.Generics.Defaults.pas
+CursorX=1
+CursorY=25
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\source\rtl\common\System.Generics.Defaults.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxzb3VyY2VccnRs
+XGNvbW1vblxTeXN0ZW0uR2VuZXJpY3MuRGVmYXVsdHMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\source\rtl\common\System.Generics.Defaults.pas
+CursorX=1
+CursorY=25
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\source\rtl\common\System.Generics.Defaults.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxzb3VyY2VccnRs
+XGNvbW1vblxTeXN0ZW0uR2VuZXJpY3MuRGVmYXVsdHMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\source\rtl\common\System.Generics.Defaults.pas
+CursorX=1
+CursorY=25
+TopLine=79
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\source\rtl\common\System.Generics.Defaults.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcUlRM
+XFNZU1xTeXN0ZW0ucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\RTL\SYS\System.pas
+CursorX=1
+CursorY=12
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxzb3VyY2VccnRs
+XGNvbW1vblxTeXN0ZW0uR2VuZXJpY3MuQ29sbGVjdGlvbnMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\source\rtl\common\System.Generics.Collections.pas
+CursorX=18
+CursorY=7986
+TopLine=7952
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\source\rtl\common\System.Generics.Collections.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxzb3VyY2VccnRs
+XGNvbW1vblxTeXN0ZW0uR2VuZXJpY3MuQ29sbGVjdGlvbnMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\source\rtl\common\System.Generics.Collections.pas
+CursorX=18
+CursorY=7986
+TopLine=7952
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\source\rtl\common\System.Generics.Collections.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxzdGF0ZXNcU2ltU3RhdGVzLkVuZXJneS5w
+YXM=]
+Module=C:\DelphiProjects\Worlds\engine\states\SimStates.Energy.pas
+CursorX=1
+CursorY=8
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\states\SimStates.Energy.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXFVuaXQxLnBhcw==]
+Module=C:\DelphiProjects\Worlds\Unit1.pas
+CursorX=1
+CursorY=1
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\Unit1.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxwcm9wZXJ0aWVzXFByb3BlcnR5R3JvdXBz
+SW50Zi5wYXM=]
+Module=C:\DelphiProjects\Worlds\engine\properties\PropertyGroupsIntf.pas
+CursorX=3
+CursorY=7
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\properties\PropertyGroupsIntf.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxwcm9wZXJ0aWVzXFN0cmluZ0xpc3RQcm9w
+ZXJ0eUdyb3Vwcy5wYXM=]
+Module=C:\DelphiProjects\Worlds\engine\properties\StringListPropertyGroups.pas
+CursorX=1
+CursorY=14
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\properties\StringListPropertyGroups.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxwcm9wZXJ0aWVzXFByb3BlcnR5R3JvdXBz
+SW50Zi5wYXM=]
+Module=C:\DelphiProjects\Worlds\engine\properties\PropertyGroupsIntf.pas
+CursorX=59
+CursorY=5
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\properties\PropertyGroupsIntf.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxwcm9wZXJ0aWVzXFByb3BlcnR5R3JvdXBz
+SW50Zi5wYXM=]
+Module=C:\DelphiProjects\Worlds\engine\properties\PropertyGroupsIntf.pas
+CursorX=3
+CursorY=84
+TopLine=31
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\properties\PropertyGroupsIntf.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVuZ2luZVxwcm9wZXJ0aWVzXFByb3BlcnR5R3JvdXBz
+SW50Zi5wYXM=]
+Module=C:\DelphiProjects\Worlds\engine\properties\PropertyGroupsIntf.pas
+CursorX=1
+CursorY=66
+TopLine=46
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\engine\properties\PropertyGroupsIntf.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXHVpXGZyX0ludHJvQ29uZmlnLnBhcw==]
+Module=C:\DelphiProjects\Worlds\ui\fr_IntroConfig.pas
+CursorX=1
+CursorY=1
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\ui\fr_IntroConfig.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5JbWFnaW5nLnBuZ2ltYWdlLnBhcw==]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Imaging.pngimage.pas
+CursorX=1
+CursorY=69
+TopLine=45
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Imaging.pngimage.pas
+[ClosedView_QzpcVXNlcnNcc2NvbWFcT25lRHJpdmVcRG9jdW1lbnRzXEVtYmFyY2FkZXJvXFN0dWRpb1wyMy4w
+XENhdGFsb2dSZXBvc2l0b3J5XFBOR0NvbXBvbmVudHMtMTJcc291cmNlXFBuZ0ltYWdlTGlzdC5w
+YXM=]
+Module=C:\Users\scoma\OneDrive\Documents\Embarcadero\Studio\23.0\CatalogRepository\PNGComponents-12\source\PngImageList.pas
+CursorX=1
+CursorY=1
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\Users\scoma\OneDrive\Documents\Embarcadero\Studio\23.0\CatalogRepository\PNGComponents-12\source\PngImageList.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5JbWFnaW5nLnBuZ2ltYWdlLnBhcw==]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Imaging.pngimage.pas
+CursorX=1
+CursorY=69
+TopLine=42
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Imaging.pngimage.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5JbWFnaW5nLnBuZ2ltYWdlLnBhcw==]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Imaging.pngimage.pas
+CursorX=1
+CursorY=69
+TopLine=42
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Imaging.pngimage.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5JbWFnaW5nLnBuZ2ltYWdlLnBhcw==]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Imaging.pngimage.pas
+CursorX=1
+CursorY=69
+TopLine=42
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Imaging.pngimage.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGVudmlyb25tZW50XHVfUmVnaW9ucy5wYXM=]
+Module=C:\DelphiProjects\Worlds\environment\u_Regions.pas
+CursorX=1
+CursorY=13
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\environment\u_Regions.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGRvY3NcZGVzaWduLm1k]
+Module=C:\DelphiProjects\Worlds\docs\design.md
+CursorX=1
+CursorY=1
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXHVpXE1haW4ucGFz]
+Module=C:\DelphiProjects\Worlds\ui\Main.pas
+CursorX=1
+CursorY=85
+TopLine=62
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\ui\Main.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXFVuaXQyLnBhcw==]
+Module=C:\DelphiProjects\Worlds\Unit2.pas
+CursorX=1
+CursorY=1
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGNvbW1vblx1X1dvcmxkcy5UeXBlcy5wYXM=]
+Module=C:\DelphiProjects\Worlds\common\u_Worlds.Types.pas
+CursorX=1
+CursorY=7
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\common\u_Worlds.Types.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGNvbW1vblx1X0Vudmlyb25tZW50LlR5cGVzLnBhcw==]
+Module=C:\DelphiProjects\Worlds\common\u_Environment.Types.pas
+CursorX=1
+CursorY=32
+TopLine=9
+LeftCol=1
+Elisions=
+Bookmarks={1,126,1}
+EditViewName=C:\DelphiProjects\Worlds\common\u_Environment.Types.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGNvbW1vblx1X0Vudmlyb25tZW50LkpTT04ucGFz]
+Module=C:\DelphiProjects\Worlds\common\u_Environment.JSON.pas
+CursorX=71
+CursorY=22
+TopLine=55
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\common\u_Environment.JSON.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGNvbW1vblx1X1dvcmxkcy5wYXM=]
+Module=C:\DelphiProjects\Worlds\common\u_Worlds.pas
+CursorX=1
+CursorY=59
+TopLine=23
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\common\u_Worlds.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXHVpXGZyX1dvcmxkRnJhbWUucGFz]
+Module=C:\DelphiProjects\Worlds\ui\fr_WorldFrame.pas
+CursorX=70
+CursorY=58
+TopLine=41
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\ui\fr_WorldFrame.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXHVpXGZyX0VkaXRvckZyYW1lLnBhcw==]
+Module=C:\DelphiProjects\Worlds\ui\fr_EditorFrame.pas
+CursorX=45
+CursorY=21
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\ui\fr_EditorFrame.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxzb3VyY2VccnRs
+XGNvbW1vblxTeXN0ZW0uQ2xhc3Nlcy5wYXM=]
+Module=c:\program files (x86)\embarcadero\studio\23.0\source\rtl\common\System.Classes.pas
+CursorX=1
+CursorY=17919
+TopLine=17898
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\source\rtl\common\System.Classes.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXHVpXGZyX0Zvb2RFZGl0b3IucGFz]
+Module=C:\DelphiProjects\Worlds\ui\fr_FoodEditor.pas
+CursorX=29
+CursorY=163
+TopLine=131
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\ui\fr_FoodEditor.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXHVpXGZyX0NvbnRlbnRGcmFtZXMucGFz]
+Module=C:\DelphiProjects\Worlds\ui\fr_ContentFrames.pas
+CursorX=11
+CursorY=27
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\ui\fr_ContentFrames.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxzb3VyY2VccnRs
+XGNvbW1vblxTeXN0ZW0uQ2xhc3Nlcy5wYXM=]
+Module=c:\program files (x86)\embarcadero\studio\23.0\source\rtl\common\System.Classes.pas
+CursorX=1
+CursorY=17919
+TopLine=17898
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\source\rtl\common\System.Classes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5HcmFwaFV0aWwucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.GraphUtil.pas
+CursorX=29
+CursorY=360
+TopLine=334
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.GraphUtil.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5HcmFwaFV0aWwucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.GraphUtil.pas
+CursorX=29
+CursorY=360
+TopLine=334
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.GraphUtil.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcQ29tcG9uZW50c1xNdWx0aWNhc3RFdmVudHMucGFz]
+Module=C:\DelphiProjects\Components\MulticastEvents.pas
+CursorX=1
+CursorY=1
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Components\MulticastEvents.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXHVpXHVfQnV0dG9uQmFycy5wYXM=]
+Module=C:\DelphiProjects\Worlds\ui\u_ButtonBars.pas
+CursorX=1
+CursorY=173
+TopLine=173
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\ui\u_ButtonBars.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcQ29tcG9uZW50c1xXaW5kb3dCdXR0b25zLnBhcw==]
+Module=C:\DelphiProjects\Components\WindowButtons.pas
+CursorX=3
+CursorY=75
+TopLine=63
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Components\WindowButtons.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxzb3VyY2VccnRs
+XHdpblxXaW5hcGkuV2luZG93cy5wYXM=]
+Module=c:\program files (x86)\embarcadero\studio\23.0\source\rtl\win\Winapi.Windows.pas
+CursorX=1
+CursorY=1
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcQ29tcG9uZW50c1xWYXJpYWJsZUxpc3RzLnBhcw==]
+Module=C:\DelphiProjects\Components\VariableLists.pas
+CursorX=1
+CursorY=84
+TopLine=61
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Components\VariableLists.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcUkFEU3R1ZGlvRGVtb3NcT2JqZWN0IFBhc2NhbFxWQ0xcVGl0bGVi
+YXJcVGl0bGViYXJQYW5lbFxNYWluLnBhcw==]
+Module=C:\DelphiProjects\RADStudioDemos\Object Pascal\VCL\Titlebar\TitlebarPanel\Main.pas
+CursorX=1
+CursorY=358
+TopLine=239
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\RADStudioDemos\Object Pascal\VCL\Titlebar\TitlebarPanel\Main.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=14
+CursorY=83
+TopLine=62
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=88
+TopLine=62
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=104
+CursorY=2355
+TopLine=2340
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5CdXR0b25zLnBhcw==]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Buttons.pas
+CursorX=42
+CursorY=1764
+TopLine=1731
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Buttons.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=170
+TopLine=162
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5CdXR0b25zLnBhcw==]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Buttons.pas
+CursorX=42
+CursorY=1764
+TopLine=1731
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Buttons.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcUkFEU3R1ZGlvRGVtb3NcT2JqZWN0IFBhc2NhbFxWQ0xcVGl0bGVi
+YXJcVGl0bGViYXJQYW5lbFxNYWluLnBhcw==]
+Module=C:\DelphiProjects\RADStudioDemos\Object Pascal\VCL\Titlebar\TitlebarPanel\Main.pas
+CursorX=1
+CursorY=358
+TopLine=239
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\RADStudioDemos\Object Pascal\VCL\Titlebar\TitlebarPanel\Main.pas
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcUkFEU3R1ZGlvRGVtb3NcT2JqZWN0IFBhc2NhbFxWQ0xcVGl0bGVi
+YXJcVGl0bGViYXJQYW5lbFxNYWluLnBhcw==]
+Module=C:\DelphiProjects\RADStudioDemos\Object Pascal\VCL\Titlebar\TitlebarPanel\Main.pas
+CursorX=1
+CursorY=358
+TopLine=239
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\RADStudioDemos\Object Pascal\VCL\Titlebar\TitlebarPanel\Main.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=178
+TopLine=162
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=259
+TopLine=234
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=54
+CursorY=259
+TopLine=234
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5CdXR0b25zLnBhcw==]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Buttons.pas
+CursorX=42
+CursorY=1764
+TopLine=1731
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Buttons.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=350
+TopLine=333
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=48
+CursorY=350
+TopLine=333
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=540
+TopLine=516
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=663
+TopLine=636
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=34
+CursorY=699
+TopLine=678
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=20
+CursorY=699
+TopLine=678
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=137
+TopLine=117
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=17
+CursorY=321
+TopLine=300
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=26
+CursorY=482
+TopLine=460
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=48
+CursorY=482
+TopLine=460
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=36
+CursorY=554
+TopLine=532
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=11
+CursorY=617
+TopLine=601
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=349
+TopLine=328
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=42
+CursorY=349
+TopLine=328
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=40
+CursorY=349
+TopLine=328
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5CdXR0b25zLnBhcw==]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Buttons.pas
+CursorX=42
+CursorY=1764
+TopLine=1731
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Buttons.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=858
+TopLine=835
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=36
+CursorY=858
+TopLine=835
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXHVpXGZyX1JhdGluZ0NvbnRyb2wucGFz]
+Module=C:\DelphiProjects\Worlds\ui\fr_RatingControl.pas
+CursorX=50
+CursorY=102
+TopLine=75
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=Borland.FormDesignerView
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5CdXR0b25zLnBhcw==]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Buttons.pas
+CursorX=42
+CursorY=1764
+TopLine=1731
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Buttons.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXHVpXHVfUmF0aW5nRWRpdG9yLnBhcw==]
+Module=C:\DelphiProjects\Worlds\ui\u_RatingEditor.pas
+CursorX=91
+CursorY=97
+TopLine=83
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\ui\u_RatingEditor.pas
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcS2xvbmRpa2VFeHBsb3Jlclx1aVx1X1RhYmxlVmlld2Vycy5wYXM=]
+Module=C:\DelphiProjects\KlondikeExplorer\ui\u_TableViewers.pas
+CursorX=42
+CursorY=392
+TopLine=361
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=135
+TopLine=110
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=584
+TopLine=559
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=234
+TopLine=206
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=991
+TopLine=977
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=637
+TopLine=605
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=584
+TopLine=562
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=17
+CursorY=585
+TopLine=562
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=12
+CursorY=598
+TopLine=577
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=596
+TopLine=577
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=594
+TopLine=577
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=1
+CursorY=1094
+TopLine=1060
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=1
+CursorY=1084
+TopLine=1060
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=594
+TopLine=572
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=594
+TopLine=572
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=19
+CursorY=595
+TopLine=572
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=584
+TopLine=575
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=595
+TopLine=572
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=595
+TopLine=572
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=637
+TopLine=605
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5Db250cm9scy5wYXM=]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Controls.pas
+CursorX=1
+CursorY=14174
+TopLine=14147
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Controls.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=1
+CursorY=1108
+TopLine=1086
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=87
+CursorY=1108
+TopLine=1087
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=87
+CursorY=1108
+TopLine=1087
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5Db250cm9scy5wYXM=]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Controls.pas
+CursorX=1
+CursorY=14174
+TopLine=14147
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Controls.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=87
+CursorY=1108
+TopLine=1087
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=87
+CursorY=1108
+TopLine=1093
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=87
+CursorY=1108
+TopLine=1093
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5HcmFwaFV0aWwucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.GraphUtil.pas
+CursorX=1
+CursorY=1063
+TopLine=1083
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXHVpXHVfQ29udHJvbFJlbmRlcmluZy5wYXM=]
+Module=C:\DelphiProjects\Worlds\ui\u_ControlRendering.pas
+CursorX=26
+CursorY=241
+TopLine=1
+LeftCol=1
+Elisions=
+Bookmarks={1,168,1}
+EditViewName=C:\DelphiProjects\Worlds\ui\u_ControlRendering.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=27
+CursorY=637
+TopLine=605
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=73
+CursorY=637
+TopLine=605
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=5
+CursorY=603
+TopLine=575
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=22
+CursorY=584
+TopLine=575
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=42
+CursorY=349
+TopLine=335
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=17
+CursorY=321
+TopLine=302
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=19
+CursorY=296
+TopLine=284
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5HcmFwaGljcy5wYXM=]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Graphics.pas
+CursorX=1
+CursorY=4109
+TopLine=4082
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=
+
+[ClosedView_QzpcRGVscGhpUHJvamVjdHNcV29ybGRzXGNvbW1vblx1X1dvcmxkcy5KU09OLnBhcw==]
+Module=C:\DelphiProjects\Worlds\common\u_Worlds.JSON.pas
+CursorX=1
+CursorY=33
+TopLine=6
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=C:\DelphiProjects\Worlds\common\u_Worlds.JSON.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=19
+CursorY=296
+TopLine=284
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5UaGVtZXMucGFz]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
+CursorX=19
+CursorY=296
+TopLine=284
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Themes.pas
 
