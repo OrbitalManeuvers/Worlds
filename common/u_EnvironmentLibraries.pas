@@ -42,6 +42,7 @@ type
     property Foods[I: Integer]: TFood read GetFood;
 
     // biomes
+    procedure AddBiome(aBiome: TBiome);
     property BiomeCount: Integer read GetBiomeCount;
     property Biomes[I: Integer]: TBiome read GetBiome;
 
@@ -172,6 +173,11 @@ end;
 
 
 {$region 'Utility Methods'}
+procedure TEnvironmentLibrary.AddBiome(aBiome: TBiome);
+begin
+  fBiomes.Add(aBiome);
+end;
+
 procedure TEnvironmentLibrary.AddFood(aFood: TFood);
 begin
   fFoods.Add(aFood);

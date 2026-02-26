@@ -13,13 +13,21 @@ uses
 
 type
   TPaintboxHelper = class helper for TPaintBox
+  private type
+    TLayout = record
+      content: TRect;
+      cellSize: TPoint;
+      margins: TPoint;
+    end;
+    function GetColorGridLayout(): TLayout;
+  public
     procedure Render(Rating: TRating); overload;
     procedure Render(Recipe: TRecipe); overload;
     procedure Render(Recipe: TRecipe; Molecule: TGrowableMolecule); overload;
     function PercentAtPos(X, Y: Integer; out Percent: TPercentage): Boolean;
 
     procedure RenderColorPresets;
-    function IndexAtPos(X, Y: Integer; out Index: Integer): Boolean;
+    function ColorAtPos(X, Y: Integer; out aColor: TColor): Boolean;
   end;
 
 implementation
@@ -28,6 +36,12 @@ uses System.Types, Vcl.Themes, Vcl.GraphUtil, System.Math;
 
 const
   MoleculeColors: array[TGrowableMolecule] of string = ('#6FA8DC', '#93C47D', '#E69138');
+
+  PresetBiomeColors: array[0..9] of string = (
+    '#D8BFA6','#B3D8A6','#D47349','#BE9974','#4F7CAC',
+    '#87BE74','#99734D','#60994D','#6FA3A8','#C75538'
+  );
+
 
 { TPaintboxHelper }
 
@@ -101,7 +115,7 @@ begin
 
     Inc(r.Left, horz_margin);
     Inc(r.Top, vert_margin);
-    Dec(r.Right, vert_margin);
+    Dec(r.Right, horz_margin);
     r.Bottom := r.Top + captionSize.cy;
     bitmap.Canvas.Brush.Style := bsClear;
     bitmap.canvas.TextRect(r, caption, [tfSingleLine, tfCenter]);
@@ -236,12 +250,14 @@ begin
     Exit(False);
   end;
 
+  // someone clean up this mess
+
   const hv_margin = 2;
   var contentRect := Self.ClientRect;
   contentRect.Inflate(-hv_margin, -hv_margin);
 
   // calculate how tall each segment can be if we need 11 + 1 blank space
-  var segmentHeight := Floor(contentRect.Height / (10 + 2));
+  var segmentHeight := Floor(contentRect.Height / (11 + 1));
   var segmentIndex := Min(y div segmentHeight, 11);
 
   case segmentIndex of
@@ -252,11 +268,43 @@ begin
   end;
 
   Result := True;
-
 end;
 
-function TPaintboxHelper.IndexAtPos(X, Y: Integer; out Index: Integer): Boolean;
+
+function TPaintboxHelper.GetColorGridLayout(): TLayout;
 begin
+  // 5x5 grid
+  Result.margins := Point(2, 2);
+  Result.content := Self.ClientRect;
+  Result.content.Inflate(-Result.margins.X, -Result.margins.Y);
+  Result.cellSize.X := Floor(Result.content.Width / 5) - 1;
+  Result.cellSize.Y := Floor(Result.content.Height / 2) - 1;
+end;
+
+function TPaintboxHelper.ColorAtPos(X, Y: Integer; out aColor: TColor): Boolean;
+begin
+  var layout := GetColorGridLayout();
+  var mouse := Point(X, Y);
+  if layout.content.Contains(mouse) then
+  begin
+    // normalize mouse pos within content rect
+    Dec(mouse.X, layout.content.Left);
+    Dec(mouse.y, layout.content.Top);
+
+    // figure out which cell was clicked
+    var hitCell := Point(mouse.X div (layout.cellSize.X + layout.margins.X),
+      mouse.Y div (layout.cellSize.Y + layout.margins.Y));
+    if (hitCell.X < 5) and (hitCell.Y < 2) then
+    begin 
+      var colorIndex := hitCell.X + (hitCell.Y * 5);
+      if colorIndex < Length(PresetBiomeColors) then
+      begin
+        aColor := WebColorStrToColor(PresetBiomeColors[colorIndex]);
+        Exit(True);
+      end;
+    end;
+  end;
+
   Result := False;
 end;
 
@@ -268,38 +316,29 @@ begin
     bitmap.Height := self.ClientHeight;
 
     // background
-    var contentRect := Self.ClientRect;
     bitmap.canvas.Brush.Style := bsSolid;
     bitmap.canvas.Brush.Color := StyleServices.GetSystemColor(clWindow);
-    bitmap.canvas.FillRect(contentRect);
+    bitmap.canvas.FillRect(Self.ClientRect);
     bitmap.canvas.Brush.Color := StyleServices.GetSystemColor(clBtnHighlight);
-    bitmap.Canvas.FrameRect(contentRect);
+    bitmap.Canvas.FrameRect(Self.ClientRect);
 
-    // 5x5 grid
-    const v_margin = 2;
-    const h_margin = 2;
-    var content := Self.ClientRect;
-    content.Inflate(-h_margin, -v_margin);
+    var layout := GetColorGridLayout();
 
-    var cellSize: TPoint;
-    cellSize.X := Floor(content.Width / 5) - 1;
-    cellSize.Y := Floor(content.Height / 2) - 1;
-
-    var r := content;
-    r.Width := cellSize.x;
-    r.Height := cellSize.y;
-    for var i := 1 to 10 do
+    var r := layout.content;
+    r.Width := layout.cellSize.x;
+    r.Height := layout.cellSize.y;
+    for var i := 0 to 9 do
     begin
-      bitmap.Canvas.Brush.Color := WebColorStrToColor(PRESET_BIOME_COLORS[i].hex);
+      bitmap.Canvas.Brush.Color := WebColorStrToColor(PresetBiomeColors[i]);
       bitmap.canvas.FillRect(r);
-      r.Offset(cellSize.x + 2, 0);
-      if i = 5 then
-        r.SetLocation(content.Left, content.Top + (cellSize.y + 2));
+      r.Offset(layout.cellSize.x + layout.margins.X, 0);
+      if i = 4 then
+        r.SetLocation(layout.content.Left, layout.content.Top + (layout.cellSize.y + layout.margins.Y));
     end;
 
     // xfer to display surface
-    contentRect := Self.Canvas.ClipRect;
-    Self.Canvas.CopyRect(contentRect, bitmap.Canvas, contentRect);
+    r := Self.Canvas.ClipRect;
+    Self.Canvas.CopyRect(r, bitmap.Canvas, r);
 
   finally
     bitmap.Free;

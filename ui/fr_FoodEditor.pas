@@ -8,7 +8,7 @@ uses
   Vcl.ControlList, Vcl.ExtCtrls,
   System.Generics.Collections, Vcl.ComCtrls, Vcl.Buttons,
 
-  u_Worlds.Types, u_Environment.Types, u_Foods;
+  u_Worlds.Types, u_Environment.Types, u_Foods, fr_RatingEditor;
 
 type
   TFoodEditor = class(TContentFrame)
@@ -22,10 +22,7 @@ type
     lblNameProp: TLabel;
     edtName: TEdit;
     lblGrowthRate: TLabel;
-    pbGrowthRate: TPaintBox;
     pbIngredients: TPaintBox;
-    btnGrowthLess: TSpeedButton;
-    btnGrowthMore: TSpeedButton;
     Label1: TLabel;
     Label2: TLabel;
     Label3: TLabel;
@@ -33,14 +30,13 @@ type
     pbAlphaPercent: TPaintBox;
     pbBetaPercent: TPaintBox;
     pbGammaPercent: TPaintBox;
-    Button1: TButton;
+    btnNewFood: TButton;
+    GrowthEditor: TRatingEditorFrame;
     procedure FoodListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
     procedure FoodListItemClick(Sender: TObject);
-    procedure pbGrowthRatePaint(Sender: TObject);
     procedure pbIngredientsPaint(Sender: TObject);
     procedure edtNameChange(Sender: TObject);
-    procedure GrowthRateClick(Sender: TObject);
     procedure pbPercentMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure pbPercentMouseUp(Sender: TObject; Button: TMouseButton;
@@ -48,13 +44,13 @@ type
     procedure pbPercentMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
     procedure pbPercentPaint(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
+    procedure btnNewFoodClick(Sender: TObject);
   private
-//    fItemIndex: Integer;
     Food: TFood; // the one being edited
     procedure UpdateControls;
     procedure EditFood(aFood: TFood);
     procedure ItemChanged;
+    procedure GrowthChanged(Sender: TObject);
   protected
     procedure InitContent; override;
   public
@@ -68,18 +64,25 @@ implementation
 uses System.UITypes, Vcl.Themes, Vcl.GraphUtil, System.Math,
   u_ControlRendering, u_EnvironmentLibraries;
 
+
 { TFoodEditor }
+
+destructor TFoodEditor.Destroy;
+begin
+  inherited;
+end;
 
 procedure TFoodEditor.InitContent;
 begin
   inherited;
-//  fItemIndex := -1;
   Food := nil;
   FoodList.ItemCount := GlobalLibrary.FoodCount;
   FoodPages.ActivePage := tsNoSelection;
   pbAlphaPercent.Tag := Ord(Alpha);
   pbBetaPercent.Tag := Ord(Beta);
   pbGammaPercent.Tag := Ord(Gamma);
+
+  GrowthEditor.OnChange := GrowthChanged;
   UpdateControls;
 end;
 
@@ -103,7 +106,6 @@ begin
     Food.Recipe.Percents[TMolecule(pb.Tag)] := percent;
     ItemChanged;
   end;
-
 end;
 
 procedure TFoodEditor.pbPercentMouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -127,28 +129,13 @@ begin
   end;
 end;
 
-procedure TFoodEditor.pbGrowthRatePaint(Sender: TObject);
+procedure TFoodEditor.btnNewFoodClick(Sender: TObject);
 begin
-  if Assigned(Food) then
-  begin
-    var rating := Food.GrowthRate;
-    TPaintBox(Sender).Render(rating);
-  end;
-end;
-
-procedure TFoodEditor.Button1Click(Sender: TObject);
-begin
-//  var Food := TFood.Create;
-//  Food.Name := 'Unnamed01';
-//  World.AddFood(Food);
-//  FoodList.ItemCount := World.FoodCount;
-//
-
-end;
-
-destructor TFoodEditor.Destroy;
-begin
-  inherited;
+  var Food := TFood.Create;
+  Food.Name := 'Unnamed01';
+  GlobalLibrary.AddFood(Food);
+  FoodList.ItemCount := GlobalLibrary.FoodCount;
+  FoodList.Invalidate;
 end;
 
 procedure TFoodEditor.edtNameChange(Sender: TObject);
@@ -176,6 +163,12 @@ begin
     EditFood(GlobalLibrary.Foods[FoodList.ItemIndex]);
 end;
 
+procedure TFoodEditor.GrowthChanged(Sender: TObject);
+begin
+  if Assigned(Food) then
+    Food.GrowthRate := GrowthEditor.Rating;
+end;
+
 procedure TFoodEditor.EditFood(aFood: TFood);
 begin
   Food := aFood;
@@ -183,28 +176,17 @@ begin
   begin
     FoodPages.ActivePage := tsSelection;
     edtName.Text := Food.Name;
+    GrowthEditor.Rating := food.GrowthRate;
     ItemChanged;
   end
   else
     FoodPages.ActivePage := tsNoSelection;
 end;
 
-procedure TFoodEditor.GrowthRateClick(Sender: TObject);
-begin
-  var rate := Food.GrowthRate;
-  if Sender = btnGrowthLess then
-    rate := Pred(rate)
-  else
-    rate := Succ(rate);
-  Food.GrowthRate := Rate;
-  pbGrowthRate.Invalidate;
-  ItemChanged;
-end;
-
 procedure TFoodEditor.ItemChanged;
 begin
   FoodList.UpdateItem(FoodList.ItemIndex);
-  pbGrowthRate.Invalidate;
+//  pbGrowthRate.Invalidate;
   pbAlphaPercent.Invalidate;
   pbBetaPercent.Invalidate;
   pbGammaPercent.Invalidate;
@@ -213,8 +195,8 @@ end;
 
 procedure TFoodEditor.UpdateControls;
 begin
-  btnGrowthLess.Enabled := Assigned(Food) and (Food.GrowthRate > Low(TRating));
-  btnGrowthMore.Enabled := Assigned(Food) and (Food.GrowthRate < High(TRating));
+//  btnGrowthLess.Enabled := Assigned(Food) and (Food.GrowthRate > Low(TRating));
+//  btnGrowthMore.Enabled := Assigned(Food) and (Food.GrowthRate < High(TRating));
 end;
 
 

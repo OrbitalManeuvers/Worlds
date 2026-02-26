@@ -62,6 +62,10 @@ constructor TBiome.Create;
 begin
   inherited Create;
   fFoods := TList<TFood>.Create; // objects we don't own
+  Sunlight := Normal;
+  Mobility := Normal;
+  Capacity := Normal;
+  GrowthRate := Normal;
 end;
 
 destructor TBiome.Destroy;

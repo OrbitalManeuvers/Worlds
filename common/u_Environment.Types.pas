@@ -38,26 +38,6 @@ const
   KEY_FOODS = 'foods';
 
 type
-  TColorPreset = record
-    color: TColor;
-    hex: string;
-  end;
-
-const
-  PRESET_BIOME_COLORS: array[1..10] of TColorPreset = (
-    (hex: '#DBA979'),
-    (hex: '#E8EFCF'),
-    (hex: '#EADBC8'),
-    (hex: '#B99470'),
-    (hex: '#124076'),
-    (hex: '#F9E897'),
-    (hex: '#EBC49F'),
-    (hex: '#A3B087'),
-    (hex: '#B87C4C'),
-    (hex: '#CA7842')
-  );
-
-type
   TRatingHelper = record helper for TRating
   private
     function getText: string;

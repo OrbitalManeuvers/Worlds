@@ -21,7 +21,8 @@ uses
   u_Regions in 'common\u_Regions.pas',
   u_EnvironmentLibraries in 'common\u_EnvironmentLibraries.pas',
   u_Foods.JSON in 'common\u_Foods.JSON.pas',
-  u_Biomes.JSON in 'common\u_Biomes.JSON.pas';
+  u_Biomes.JSON in 'common\u_Biomes.JSON.pas',
+  fr_RatingEditor in 'ui\fr_RatingEditor.pas' {RatingEditorFrame: TFrame};
 
 {$R *.res}
 

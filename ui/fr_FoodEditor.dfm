@@ -73,33 +73,10 @@ inherited FoodEditor: TFoodEditor
       end
       object lblGrowthRate: TLabel
         Left = 8
-        Top = 41
+        Top = 46
         Width = 75
         Height = 17
         Caption = 'Growth Rate:'
-      end
-      object pbGrowthRate: TPaintBox
-        Left = 150
-        Top = 35
-        Width = 148
-        Height = 35
-        OnPaint = pbGrowthRatePaint
-      end
-      object btnGrowthLess: TSpeedButton
-        Left = 121
-        Top = 36
-        Width = 23
-        Height = 35
-        Caption = '<'
-        OnClick = GrowthRateClick
-      end
-      object btnGrowthMore: TSpeedButton
-        Left = 306
-        Top = 35
-        Width = 23
-        Height = 35
-        Caption = '>'
-        OnClick = GrowthRateClick
       end
       object Label1: TLabel
         Left = 8
@@ -168,15 +145,24 @@ inherited FoodEditor: TFoodEditor
         Text = 'edtName'
         OnChange = edtNameChange
       end
+      inline GrowthEditor: TRatingEditorFrame
+        Left = 120
+        Top = 34
+        Width = 205
+        Height = 46
+        TabOrder = 1
+        ExplicitLeft = 120
+        ExplicitTop = 34
+      end
     end
   end
-  object Button1: TButton
+  object btnNewFood: TButton
     Left = 24
     Top = 504
-    Width = 75
+    Width = 89
     Height = 25
-    Caption = 'Button1'
+    Caption = 'New Food'
     TabOrder = 2
-    OnClick = Button1Click
+    OnClick = btnNewFoodClick
   end
 end

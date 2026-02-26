@@ -78,6 +78,7 @@ inherited BiomeEditor: TBiomeEditor
         Top = 72
         Width = 153
         Height = 41
+        OnMouseDown = pbPresetsMouseDown
         OnPaint = pbPresetsPaint
       end
       object shMapColor: TShape
@@ -95,6 +96,7 @@ inherited BiomeEditor: TBiomeEditor
         Height = 25
         TabOrder = 0
         TextHint = 'Name'
+        OnChange = NameChanged
       end
       object edtDescription: TEdit
         Left = 120
@@ -103,6 +105,7 @@ inherited BiomeEditor: TBiomeEditor
         Height = 25
         TabOrder = 1
         TextHint = 'Description'
+        OnChange = DescriptionChanged
       end
       object PropertyPages: TPageControl
         Left = 8
@@ -189,27 +192,6 @@ inherited BiomeEditor: TBiomeEditor
             Font.Style = []
             ParentFont = False
           end
-          object btnGrowthLess: TSpeedButton
-            Left = 33
-            Top = 212
-            Width = 23
-            Height = 35
-            Caption = '<'
-          end
-          object pbGrowthRate: TPaintBox
-            Left = 62
-            Top = 211
-            Width = 148
-            Height = 35
-            OnPaint = pbGrowthRatePaint
-          end
-          object btnGrowthMore: TSpeedButton
-            Left = 218
-            Top = 211
-            Width = 23
-            Height = 35
-            Caption = '>'
-          end
           object lblGrowthRateInfo: TLabel
             Left = 25
             Top = 255
@@ -218,27 +200,6 @@ inherited BiomeEditor: TBiomeEditor
             AutoSize = False
             Caption = 'Modifies the rate of food growth within this biome.'
             WordWrap = True
-          end
-          object btnSunlightLess: TSpeedButton
-            Left = 33
-            Top = 53
-            Width = 23
-            Height = 35
-            Caption = '<'
-          end
-          object pbSunlight: TPaintBox
-            Left = 62
-            Top = 52
-            Width = 148
-            Height = 35
-            OnPaint = pbSunlightPaint
-          end
-          object btnSunlightMore: TSpeedButton
-            Left = 218
-            Top = 52
-            Width = 23
-            Height = 35
-            Caption = '>'
           end
           object lblSunlightInfo: TLabel
             Left = 25
@@ -251,27 +212,6 @@ inherited BiomeEditor: TBiomeEditor
               'iome.'
             WordWrap = True
           end
-          object btnMobilityLess: TSpeedButton
-            Left = 297
-            Top = 53
-            Width = 23
-            Height = 35
-            Caption = '<'
-          end
-          object pbMobility: TPaintBox
-            Left = 326
-            Top = 52
-            Width = 148
-            Height = 35
-            OnPaint = pbMobilityPaint
-          end
-          object btnMobilityMore: TSpeedButton
-            Left = 482
-            Top = 52
-            Width = 23
-            Height = 35
-            Caption = '>'
-          end
           object lblMobilityInfo: TLabel
             Left = 289
             Top = 96
@@ -281,27 +221,6 @@ inherited BiomeEditor: TBiomeEditor
             Caption = 'Modifies movement cost within this biome.'
             WordWrap = True
           end
-          object btnCapacityLess: TSpeedButton
-            Left = 297
-            Top = 211
-            Width = 23
-            Height = 35
-            Caption = '<'
-          end
-          object pbCapacity: TPaintBox
-            Left = 326
-            Top = 210
-            Width = 148
-            Height = 35
-            OnPaint = pbCapacityPaint
-          end
-          object btnCapacityMore: TSpeedButton
-            Left = 482
-            Top = 210
-            Width = 23
-            Height = 35
-            Caption = '>'
-          end
           object Label6: TLabel
             Left = 289
             Top = 254
@@ -310,6 +229,42 @@ inherited BiomeEditor: TBiomeEditor
             AutoSize = False
             Caption = 'Modifies the rate of food growth within this biome.'
             WordWrap = True
+          end
+          inline SunlightEditor: TRatingEditorFrame
+            Left = 35
+            Top = 48
+            Width = 205
+            Height = 46
+            TabOrder = 0
+            ExplicitLeft = 35
+            ExplicitTop = 48
+          end
+          inline MobilityEditor: TRatingEditorFrame
+            Left = 304
+            Top = 40
+            Width = 205
+            Height = 46
+            TabOrder = 1
+            ExplicitLeft = 304
+            ExplicitTop = 40
+          end
+          inline GrowthEditor: TRatingEditorFrame
+            Left = 32
+            Top = 200
+            Width = 205
+            Height = 46
+            TabOrder = 2
+            ExplicitLeft = 32
+            ExplicitTop = 200
+          end
+          inline CapacityEditor: TRatingEditorFrame
+            Left = 299
+            Top = 200
+            Width = 205
+            Height = 46
+            TabOrder = 3
+            ExplicitLeft = 299
+            ExplicitTop = 200
           end
         end
         object tsFoods: TTabSheet
@@ -354,11 +309,19 @@ inherited BiomeEditor: TBiomeEditor
               Top = 4
               Width = 40
               Height = 35
-              OnPaint = pbIngredientsPaint
             end
           end
         end
       end
     end
+  end
+  object btnNewBiome: TButton
+    Left = 16
+    Top = 544
+    Width = 89
+    Height = 25
+    Caption = 'New Biome'
+    TabOrder = 2
+    OnClick = btnNewBiomeClick
   end
 end
