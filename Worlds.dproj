@@ -156,6 +156,18 @@
         </DCCReference>
         <DCCReference Include="ui\u_ControlRendering.pas"/>
         <DCCReference Include="common\u_Worlds.JSON.pas"/>
+        <DCCReference Include="ui\fr_BiomeEditor.pas">
+            <Form>BiomeEditor</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
+        <DCCReference Include="common\u_EditorObjects.pas"/>
+        <DCCReference Include="common\u_Foods.pas"/>
+        <DCCReference Include="common\u_Biomes.pas"/>
+        <DCCReference Include="common\u_Regions.pas"/>
+        <DCCReference Include="common\u_EnvironmentLibraries.pas"/>
+        <DCCReference Include="common\u_Foods.JSON.pas"/>
+        <DCCReference Include="common\u_Biomes.JSON.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
