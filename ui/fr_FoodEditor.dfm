@@ -86,8 +86,8 @@ inherited FoodEditor: TFoodEditor
         OnPaint = pbGrowthRatePaint
       end
       object btnGrowthLess: TSpeedButton
-        Left = 120
-        Top = 35
+        Left = 121
+        Top = 36
         Width = 23
         Height = 35
         Caption = '<'

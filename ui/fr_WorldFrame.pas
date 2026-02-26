@@ -39,12 +39,13 @@ implementation
 uses
   Vcl.GraphUtil, Vcl.Themes,
 
-  fr_FoodEditor;
+  fr_FoodEditor,
+  fr_BiomeEditor;
 
 const
   FrameClass: array[TContentFrameType] of TContentFrameClass = (
     TFoodEditor,
-    nil,
+    TBiomeEditor,
     nil,
     nil,
     nil

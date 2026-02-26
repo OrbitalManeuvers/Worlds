@@ -8,7 +8,8 @@ uses
   System.Generics.Collections,
 
   u_Worlds.Types,
-  u_Environment.Types;
+  u_Environment.Types,
+  u_Foods;
 
 type
   TPaintboxHelper = class helper for TPaintBox
@@ -16,6 +17,9 @@ type
     procedure Render(Recipe: TRecipe); overload;
     procedure Render(Recipe: TRecipe; Molecule: TGrowableMolecule); overload;
     function PercentAtPos(X, Y: Integer; out Percent: TPercentage): Boolean;
+
+    procedure RenderColorPresets;
+    function IndexAtPos(X, Y: Integer; out Index: Integer): Boolean;
   end;
 
 implementation
@@ -250,6 +254,59 @@ begin
   Result := True;
 
 end;
+
+function TPaintboxHelper.IndexAtPos(X, Y: Integer; out Index: Integer): Boolean;
+begin
+  Result := False;
+end;
+
+procedure TPaintboxHelper.RenderColorPresets;
+begin
+  var bitmap := TBitmap.Create;
+  try
+    bitmap.Width := Self.ClientWidth;
+    bitmap.Height := self.ClientHeight;
+
+    // background
+    var contentRect := Self.ClientRect;
+    bitmap.canvas.Brush.Style := bsSolid;
+    bitmap.canvas.Brush.Color := StyleServices.GetSystemColor(clWindow);
+    bitmap.canvas.FillRect(contentRect);
+    bitmap.canvas.Brush.Color := StyleServices.GetSystemColor(clBtnHighlight);
+    bitmap.Canvas.FrameRect(contentRect);
+
+    // 5x5 grid
+    const v_margin = 2;
+    const h_margin = 2;
+    var content := Self.ClientRect;
+    content.Inflate(-h_margin, -v_margin);
+
+    var cellSize: TPoint;
+    cellSize.X := Floor(content.Width / 5) - 1;
+    cellSize.Y := Floor(content.Height / 2) - 1;
+
+    var r := content;
+    r.Width := cellSize.x;
+    r.Height := cellSize.y;
+    for var i := 1 to 10 do
+    begin
+      bitmap.Canvas.Brush.Color := WebColorStrToColor(PRESET_BIOME_COLORS[i].hex);
+      bitmap.canvas.FillRect(r);
+      r.Offset(cellSize.x + 2, 0);
+      if i = 5 then
+        r.SetLocation(content.Left, content.Top + (cellSize.y + 2));
+    end;
+
+    // xfer to display surface
+    contentRect := Self.Canvas.ClipRect;
+    Self.Canvas.CopyRect(contentRect, bitmap.Canvas, contentRect);
+
+  finally
+    bitmap.Free;
+  end;
+
+end;
+
 
 
 end.

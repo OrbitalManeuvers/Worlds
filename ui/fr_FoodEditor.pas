@@ -8,7 +8,7 @@ uses
   Vcl.ControlList, Vcl.ExtCtrls,
   System.Generics.Collections, Vcl.ComCtrls, Vcl.Buttons,
 
-  u_Worlds.Types, u_Environment.Types;
+  u_Worlds.Types, u_Environment.Types, u_Foods;
 
 type
   TFoodEditor = class(TContentFrame)
@@ -51,7 +51,7 @@ type
     procedure Button1Click(Sender: TObject);
   private
 //    fItemIndex: Integer;
-    Food: TFood;
+    Food: TFood; // the one being edited
     procedure UpdateControls;
     procedure EditFood(aFood: TFood);
     procedure ItemChanged;
@@ -65,7 +65,8 @@ implementation
 
 {$R *.dfm}
 
-uses System.UITypes, Vcl.Themes, Vcl.GraphUtil, System.Math, u_ControlRendering;
+uses System.UITypes, Vcl.Themes, Vcl.GraphUtil, System.Math,
+  u_ControlRendering, u_EnvironmentLibraries;
 
 { TFoodEditor }
 
@@ -74,7 +75,7 @@ begin
   inherited;
 //  fItemIndex := -1;
   Food := nil;
-  FoodList.ItemCount := World.Foods.Count;
+  FoodList.ItemCount := GlobalLibrary.FoodCount;
   FoodPages.ActivePage := tsNoSelection;
   pbAlphaPercent.Tag := Ord(Alpha);
   pbBetaPercent.Tag := Ord(Beta);
@@ -85,9 +86,9 @@ end;
 procedure TFoodEditor.pbIngredientsPaint(Sender: TObject);
 begin
   var index := pbIngredients.Tag;
-  if (not Assigned(World)) or (index < 0) or (index >= World.Foods.Count) then
+  if (not Assigned(World)) or (index < 0) or (index >= GlobalLibrary.FoodCount) then
     Exit;
-   pbIngredients.Render(World.Foods[index].Recipe);
+   pbIngredients.Render(GlobalLibrary.Foods[index].Recipe);
 end;
 
 procedure TFoodEditor.pbPercentMouseDown(Sender: TObject; Button: TMouseButton;
@@ -137,10 +138,10 @@ end;
 
 procedure TFoodEditor.Button1Click(Sender: TObject);
 begin
-  var Food := TFood.Create;
-  Food.Name := 'Unnamed01';
-  World.Foods.Add(Food);
-  FoodList.ItemCount := World.Foods.Count;
+//  var Food := TFood.Create;
+//  Food.Name := 'Unnamed01';
+//  World.AddFood(Food);
+//  FoodList.ItemCount := World.FoodCount;
 //
 
 end;
@@ -162,7 +163,7 @@ end;
 procedure TFoodEditor.FoodListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
   ARect: TRect; AState: TOwnerDrawState);
 begin
-  lblFoodName.Caption := World.Foods[AIndex].Name;
+  lblFoodName.Caption := GlobalLibrary.Foods[AIndex].Name;
   pbIngredients.Tag := AIndex;
   pbIngredients.Invalidate;
 end;
@@ -172,23 +173,20 @@ begin
   if FoodList.ItemIndex = -1 then
     EditFood(nil)
   else
-    EditFood(World.Foods[FoodList.ItemIndex]);
+    EditFood(GlobalLibrary.Foods[FoodList.ItemIndex]);
 end;
 
 procedure TFoodEditor.EditFood(aFood: TFood);
 begin
   Food := aFood;
   if Assigned(Food) then
-    FoodPages.ActivePage := tsSelection
+  begin
+    FoodPages.ActivePage := tsSelection;
+    edtName.Text := Food.Name;
+    ItemChanged;
+  end
   else
     FoodPages.ActivePage := tsNoSelection;
-
-  edtName.Text := Food.Name;
-  pbGrowthRate.Invalidate;
-  pbAlphaPercent.Invalidate;
-  pbBetaPercent.Invalidate;
-  pbGammaPercent.Invalidate;
-  ItemChanged;
 end;
 
 procedure TFoodEditor.GrowthRateClick(Sender: TObject);
@@ -206,6 +204,7 @@ end;
 procedure TFoodEditor.ItemChanged;
 begin
   FoodList.UpdateItem(FoodList.ItemIndex);
+  pbGrowthRate.Invalidate;
   pbAlphaPercent.Invalidate;
   pbBetaPercent.Invalidate;
   pbGammaPercent.Invalidate;
