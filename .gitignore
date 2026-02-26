@@ -51,3 +51,5 @@ node_modules/
 
 # Local scratch workspace (not in source control)
 scratch/
+
+trash/
