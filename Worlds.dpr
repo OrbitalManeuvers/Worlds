@@ -22,7 +22,10 @@ uses
   u_EnvironmentLibraries in 'common\u_EnvironmentLibraries.pas',
   u_Foods.JSON in 'common\u_Foods.JSON.pas',
   u_Biomes.JSON in 'common\u_Biomes.JSON.pas',
-  fr_RatingEditor in 'ui\fr_RatingEditor.pas' {RatingEditorFrame: TFrame};
+  fr_RatingEditor in 'ui\fr_RatingEditor.pas' {RatingEditorFrame: TFrame},
+  u_Regions.JSON in 'common\u_Regions.JSON.pas',
+  fr_RegionEditor in 'ui\fr_RegionEditor.pas' {RegionEditor: TFrame},
+  u_GridEditor in 'ui\u_GridEditor.pas';
 
 {$R *.res}
 

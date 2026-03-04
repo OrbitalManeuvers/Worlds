@@ -13,15 +13,14 @@ type
   private
   protected
     Name: string;
+  public
     constructor Create;
     destructor Destroy; override;
-
   end;
 
 implementation
 
 uses System.SysUtils, System.IOUtils;
-
 
 { TWorld }
 

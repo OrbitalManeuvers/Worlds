@@ -40,7 +40,7 @@ type
     lblGrowthRateInfo: TLabel;
     lblSunlightInfo: TLabel;
     lblMobilityInfo: TLabel;
-    Label6: TLabel;
+    lblCapacityInfo: TLabel;
     shBiomeMapColor: TShape;
     FoodList: TControlList;
     cbFoodActive: TControlListCheckBox;
@@ -73,9 +73,8 @@ type
     procedure UpdateControls;
     procedure ItemChanged;
   protected
-    procedure InitContent; override;
   public
-    { Public declarations }
+    procedure Init; override;
   end;
 
 
@@ -91,9 +90,9 @@ uses Vcl.Themes,
 procedure TBiomeEditor.BiomeListBeforeDrawItem(AIndex: Integer;
   ACanvas: TCanvas; ARect: TRect; AState: TOwnerDrawState);
 begin
-  if (AIndex >= 0) and (AIndex <= GlobalLibrary.BiomeCount) then
+  if (AIndex >= 0) and (AIndex <= WorldLibrary.BiomeCount) then
   begin
-    var b := GlobalLibrary.Biomes[AIndex];
+    var b := WorldLibrary.Biomes[AIndex];
     lblBiomeName.Caption := b.Name;
     shBiomeMapColor.Brush.Color := b.Color;
     shBiomeMapColor.Brush.Style := bsSolid;
@@ -110,15 +109,15 @@ begin
   if BiomeList.ItemIndex = -1 then
     EditBiome(nil)
   else
-    EditBiome(GlobalLibrary.Biomes[BiomeList.ItemIndex]);
+    EditBiome(WorldLibrary.Biomes[BiomeList.ItemIndex]);
 end;
 
 procedure TBiomeEditor.btnNewBiomeClick(Sender: TObject);
 begin
   var b := TBiome.Create;
   b.Name := 'Untitled01';
-  GlobalLibrary.AddBiome(b);
-  BiomeList.ItemCount := GlobalLibrary.BiomeCount;
+  WorldLibrary.AddBiome(b);
+  BiomeList.ItemCount := WorldLibrary.BiomeCount;
 
 end;
 
@@ -129,7 +128,7 @@ begin
   if i = -1 then
     Exit;
 
-  var food := GlobalLibrary.Foods[i];
+  var food := WorldLibrary.Foods[i];
   if cbFoodActive.Checked then
   begin
     Biome.AddFood(food);
@@ -175,8 +174,8 @@ procedure TBiomeEditor.FoodListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
 begin
   if Assigned(Biome) then
   begin
-    lblFoodName.Caption := GlobalLibrary.Foods[AIndex].Name;
-    cbFoodActive.Checked := Biome.FoodActive(GlobalLibrary.Foods[AIndex]);
+    lblFoodName.Caption := WorldLibrary.Foods[AIndex].Name;
+    cbFoodActive.Checked := Biome.FoodActive(WorldLibrary.Foods[AIndex]);
 
     if cbFoodActive.Checked then
       lblFoodName.Font.Color := StyleServices.GetStyleFontColor(sfWindowTextNormal)
@@ -189,15 +188,15 @@ begin
 
 end;
 
-procedure TBiomeEditor.InitContent;
+procedure TBiomeEditor.Init;
 begin
   inherited;
 
   Biome := nil;
   BiomePages.ActivePage := tsNoSelection;
-  BiomeList.ItemCount := GlobalLibrary.BiomeCount;
+  BiomeList.ItemCount := WorldLibrary.BiomeCount;
 
-  FoodList.ItemCount := GlobalLibrary.FoodCount;
+  FoodList.ItemCount := WorldLibrary.FoodCount;
   lblFoodName.StyleElements := lblFoodName.StyleElements - [seFont];
 
   SunlightEditor.OnChange := SunlightClick;

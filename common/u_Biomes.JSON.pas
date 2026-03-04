@@ -37,13 +37,26 @@ const
 function TBiomeHelper.getJSON: TJSONObject;
 begin
   Result := TJSONObject.Create;
+  Result.AddPair(KEY_NAME, Name);
+  Result.AddPair(KEY_DESCRIPTION, Description);
+  Result.AddPair(KEY_MARKER, Integer(Marker));
+  Result.AddPair(KEY_COLOR, ColorToWebColorStr(Color));
+
+  Result.AddPair(KEY_GROWTH_RATE, GrowthRate.AsText);
+  Result.AddPair(KEY_CAPACITY, Capacity.AsText);
+  Result.AddPair(KEY_SUNLIGHT, Sunlight.AsText);
+  Result.AddPair(KEY_MOBILITY, Mobility.AsText);
+
+  var arr := TJSONArray.Create;
+  for var i := 0 to FoodCount - 1 do
+    arr.Add(Foods[i].Name);
+  Result.AddPair(KEY_FOODS, arr);
 end;
 
 procedure TBiomeHelper.setJSON(const Value: TJSONObject);
 var
   strVal: string;
   intVal: Integer;
-  ratingVal: TRating;
 begin
   if Value.TryGetValue(KEY_NAME, strVal) then
     Name := strVal;
@@ -70,7 +83,7 @@ begin
   begin
     for var v in strArr do
     begin
-      var food := GlobalLibrary.FindFood(v.Value);
+      var food := WorldLibrary.FindFood(v.Value);
       if Assigned(food) then
         AddFood(food);
     end;

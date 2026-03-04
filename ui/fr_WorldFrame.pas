@@ -22,14 +22,11 @@ type
     btnRegions: TPngSpeedButton;
     procedure EditorButtonClick(Sender: TObject);
   private
-    fWorld: TWorld;
     fActiveFrameType: TContentFrameType;
     fContentFrames: array[TContentFrameType] of TContentFrame;
-    procedure SetWorld(const Value: TWorld);
     procedure ActivateContent(FrameType: TContentFrameType);
   public
     constructor Create(AOwner: TComponent); override;
-    property World: TWorld write SetWorld;
   end;
 
 implementation
@@ -40,13 +37,14 @@ uses
   Vcl.GraphUtil, Vcl.Themes,
 
   fr_FoodEditor,
-  fr_BiomeEditor;
+  fr_BiomeEditor,
+  fr_RegionEditor;
 
 const
   FrameClass: array[TContentFrameType] of TContentFrameClass = (
     TFoodEditor,
     TBiomeEditor,
-    nil,
+    TRegionEditor,
     nil,
     nil
   );
@@ -77,6 +75,7 @@ begin
 
   // make sure we detect a change on startup
   fActiveFrameType := High(TContentFrameType);
+  ActivateContent(Low(TContentFrameType));
 end;
 
 procedure TWorldFrame.EditorButtonClick(Sender: TObject);
@@ -88,19 +87,16 @@ begin
   end;
 end;
 
-procedure TWorldFrame.SetWorld(const Value: TWorld);
-begin
-  fWorld := Value;
-  ActivateContent(Low(TContentFrameType));
-end;
-
 procedure TWorldFrame.ActivateContent(FrameType: TContentFrameType);
 begin
   if FrameType <> fActiveFrameType then
   begin
-    // hide the currently active frame
+    // deactivate current content
     if Assigned(fContentFrames[fActiveFrameType]) then
+    begin
       fContentFrames[fActiveFrameType].Hide;
+      fContentFrames[fActiveFrameType].DeactivateContent;
+    end;
 
     fActiveFrameType := FrameType;
     if FrameClass[FrameType] = nil then
@@ -111,10 +107,11 @@ begin
       var frame := FrameClass[fActiveFrameType].Create(Self);
       frame.Align := alClient;
       frame.Parent := Self;
-      frame.World := fWorld;
+      frame.Init;
       fContentFrames[fActiveFrameType] := frame;
     end;
 
+    fContentFrames[fActiveFrameType].ActivateContent;
     fContentFrames[fActiveFrameType].Show;
   end;
 

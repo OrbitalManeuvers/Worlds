@@ -15,7 +15,9 @@ type
 
   TBiomeMarker = Byte;
   TGridExtent = 0 .. BIOME_GRID_SIZE - 1;
+  PBiomeGrid = ^TBiomeGrid;
   TBiomeGrid = array[TGridExtent, TGridExtent] of TBiomeMarker;
+  TBiomeColorPalette = array[TBiomeMarker] of TColor;
 
 const
   RATING_NAMES: array[TRating] of string = ('Worst', 'Horrible', 'Bad', 'Normal', 'Good', 'Great', 'Best');

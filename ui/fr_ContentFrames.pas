@@ -11,12 +11,12 @@ uses
 type
   TContentFrame = class(TFrame)
   private
-    fWorld: TWorld;
-    procedure SetWorld(const Value: TWorld);
   protected
-    procedure InitContent; virtual; abstract;
   public
-    property World: TWorld read fWorld write SetWorld;
+    procedure Init; virtual;
+    procedure Done; virtual;
+    procedure ActivateContent; virtual;
+    procedure DeactivateContent; virtual;
   end;
   TContentFrameClass = class of TContentFrame;
 
@@ -24,12 +24,27 @@ implementation
 
 {$R *.dfm}
 
+
 { TContentFrame }
 
-procedure TContentFrame.SetWorld(const Value: TWorld);
+procedure TContentFrame.ActivateContent;
 begin
-  fWorld := Value;
-  InitContent;
+  //
+end;
+
+procedure TContentFrame.DeactivateContent;
+begin
+  //
+end;
+
+procedure TContentFrame.Done;
+begin
+  //
+end;
+
+procedure TContentFrame.Init;
+begin
+  //
 end;
 
 end.

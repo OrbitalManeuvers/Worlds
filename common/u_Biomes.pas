@@ -20,10 +20,6 @@ type
     fCapacity: TRating;
     function GetFoodCount: Integer;
     function GetFood(I: Integer): TFood;
-
-//    function getRating(const Index: Integer): TRating;
-//    procedure setRating(const Index: Integer; const Value: TRating);
-
     procedure SetColor(const Value: TColor);
     procedure SetDescription(const Value: string);
     procedure SetMarker(const Value: TBiomeMarker);

@@ -199,6 +199,7 @@ inherited BiomeEditor: TBiomeEditor
             Height = 42
             AutoSize = False
             Caption = 'Modifies the rate of food growth within this biome.'
+            Enabled = False
             WordWrap = True
           end
           object lblSunlightInfo: TLabel
@@ -210,6 +211,9 @@ inherited BiomeEditor: TBiomeEditor
             Caption = 
               'Dampens or enhances the natural amount of sunlight within this b' +
               'iome.'
+            Color = clGrayText
+            Enabled = False
+            ParentColor = False
             WordWrap = True
           end
           object lblMobilityInfo: TLabel
@@ -219,15 +223,17 @@ inherited BiomeEditor: TBiomeEditor
             Height = 42
             AutoSize = False
             Caption = 'Modifies movement cost within this biome.'
+            Enabled = False
             WordWrap = True
           end
-          object Label6: TLabel
+          object lblCapacityInfo: TLabel
             Left = 289
             Top = 254
             Width = 220
             Height = 42
             AutoSize = False
             Caption = 'Modifies the rate of food growth within this biome.'
+            Enabled = False
             WordWrap = True
           end
           inline SunlightEditor: TRatingEditorFrame
@@ -287,15 +293,16 @@ inherited BiomeEditor: TBiomeEditor
               Left = 0
               Top = 0
               Width = 44
-              Height = 45
+              Height = 0
               Align = alLeft
               OnClick = cbFoodActiveClick
+              ExplicitHeight = 45
             end
             object lblFoodName: TLabel
               Left = 44
               Top = 0
               Width = 169
-              Height = 45
+              Height = 0
               Align = alLeft
               AutoSize = False
               Caption = 'Food name'

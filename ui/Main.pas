@@ -12,32 +12,15 @@ uses
 
 type
   TMainForm = class(TForm)
-    MainMenu: TMainMenu;
-    mnuFile: TMenuItem;
-    mniFileNew: TMenuItem;
-    mniFileOpen: TMenuItem;
-    mniFileSave: TMenuItem;
-    mniFileSaveAs: TMenuItem;
-    mniFileExit: TMenuItem;
-    N1: TMenuItem;
     StatusBar: TStatusBar;
     AppEvents: TApplicationEvents;
-    Help1: TMenuItem;
-    About1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure AppEventsHint(Sender: TObject);
-    procedure mniFileExitClick(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure FormDestroy(Sender: TObject);
   private
-    World: TWorld;
     WorldFrame: TWorldFrame;
 
-    procedure NewWorld;
-    procedure CloseWorld;
-    procedure UpdateControls;
-    procedure WorldCreated;
-    procedure LoadWorld(const aFileName: string);
   public
 
   end;
@@ -48,125 +31,56 @@ var
 implementation
 
 uses System.JSON, Vcl.GraphUtil, Vcl.Themes, System.IOUtils, System.Generics.Collections,
-
-  u_Worlds.JSON, u_EnvironmentLibraries;
+  u_EnvironmentLibraries, System.UITypes;
 
 {$R *.dfm}
 
-function WorldFileName: string;
-begin
-  Result := TPath.Combine(ExtractFilePath(Application.ExeName), 'default.json');
-end;
-
 function LibraryFileName: string;
 begin
-  Result := TPath.Combine(ExtractFilePath(Application.ExeName), 'library.json');
+  Result := TPath.Combine(ExtractFilePath(Application.ExeName), 'WorldLibrary.json');
 end;
 
 { TMainForm }
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
-  // initialization
-  World := nil;
-  UpdateControls;
-
   // initialize global library
-  InitGlobalLibrary;
-  GlobalLibrary.LoadFromFile(LibraryFileName());
+  WorldLibrary := TEnvironmentLibrary.Create;
+  WorldLibrary.LoadFromFile(LibraryFileName());
 
-
-  // load state - for now, single world file
-  var fName := WorldFileName();
-  if TFile.Exists(fName) then
-  begin
-    LoadWorld(fName);
-  end;
-
-  //
-  if not Assigned(World) then
-  begin
-    NewWorld;
-
-  end;
+  // create main frame
+  WorldFrame := TWorldFrame.Create(Self);
+  WorldFrame.Align := alClient;
+  WorldFrame.Parent := Self;
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
-  CloseWorld;
-  DoneGlobalLibrary;
+  WorldLibrary.Free;
 end;
 
 procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+const
+  SAVE_PROMPT = 'Save changes?';
 begin
-  CanClose := True;
-
-  if Assigned(World) and World.Modified then
+  if CanClose and WorldLibrary.Modified then
   begin
-    var fileName := WorldFileName();
-
-    { !! still single file only here }
-//    World.SaveToFile(fileName);
-//    TFile.WriteAllText(fileName, World.AsJSON.Format(4));
+    var result := MessageDlg(SAVE_PROMPT, TMsgDlgType.mtConfirmation, [mbYes, mbNo, mbCancel], 0);
+    case result of
+      mrYes:
+        begin
+          WorldLibrary.SaveToFile(LibraryFileName());
+          CanClose := True;
+        end;
+      mrNo:
+        begin
+          CanClose := True;
+        end;
+      mrCancel:
+        begin
+          CanClose := False;
+        end;
+    end;
   end;
-
-  if CanClose and Assigned(World) then
-    CloseWorld;
-end;
-
-procedure TMainForm.mniFileExitClick(Sender: TObject);
-begin
-  Application.Terminate;
-end;
-
-procedure TMainForm.NewWorld;
-begin
-  World := TWorld.Create;
-//  World.CreateSampleData;
-  WorldCreated;
-end;
-
-procedure TMainForm.LoadWorld(const aFileName: string);
-begin
-  World := TWorld.Create;
-  World.BeginUpdate;
-  try
-//    World.LoadFromFile(aFileName);
-    World.Modified := False;
-  finally
-    World.EndUpdate;
-  end;
-
-  WorldCreated;
-end;
-
-procedure TMainForm.UpdateControls;
-begin
-  //
-  mniFileSave.Enabled := Assigned(World) and World.Modified;
-  mniFileSaveAs.Enabled := Assigned(World);
-end;
-
-procedure TMainForm.CloseWorld;
-begin
-  if Assigned(World) then
-  begin
-    World.Free;
-    World := nil;
-  end;
-end;
-
-procedure TMainForm.WorldCreated;
-begin
-  // create main frame
-  if not Assigned(WorldFrame) then
-  begin
-    WorldFrame := TWorldFrame.Create(Self);
-    WorldFrame.Align := alClient;
-    WorldFrame.Parent := Self;
-  end;
-
-  WorldFrame.World := World;
-  UpdateControls;
 end;
 
 

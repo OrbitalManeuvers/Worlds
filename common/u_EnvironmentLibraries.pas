@@ -4,29 +4,37 @@ interface
 
 uses System.Classes, System.SysUtils, System.JSON, System.Generics.Collections,
 
+  u_EditorObjects,
   u_Worlds.Types,
   u_Environment.Types,
   u_Foods,
-  u_Biomes;
+  u_Biomes,
+  u_Regions;
 
 type
-  TEnvironmentLibrary = class
+  TEnvironmentLibrary = class(TEditorObject)
   private
     fFoods: TObjectList<TFood>;
     fBiomes: TObjectList<TBiome>;
+    fRegions: TObjectList<TRegion>;
   private
     // foods
     function GetFood(I: Integer): TFood;
     function GetFoodCount: Integer;
     procedure LoadFoods(const container: TJSONObject);
+    procedure SaveFoods(const container: TJSONObject);
 
     // biomes
     procedure LoadBiomes(const container: TJSONObject);
+    procedure SaveBiomes(const container: TJSONObject);
 
     // regions
     procedure LoadRegions(const container: TJSONObject);
+    procedure SaveRegions(const container: TJSONObject);
     function GetBiome(I: Integer): TBiome;
     function GetBiomeCount: Integer;
+    function GetRegion(I: Integer): TRegion;
+    function GetRegionCount: Integer;
 
   public
     constructor Create;
@@ -47,43 +55,30 @@ type
     property Biomes[I: Integer]: TBiome read GetBiome;
 
     // regions
+    procedure AddRegion(aRegion: TRegion);
+    property RegionCount: Integer read GetRegionCount;
+    property Regions[I: Integer]: TRegion read GetRegion;
+
+    //
+    procedure UpdateBiomeColorPalette(var aPalette: TBiomeColorPalette);
 
   end;
 
-procedure InitGlobalLibrary;
-procedure DoneGlobalLibrary;
-function GlobalLibrary: TEnvironmentLibrary;
+var
+  WorldLibrary: TEnvironmentLibrary = nil;
 
 implementation
 
-uses System.IOUtils,
+uses System.IOUtils, Vcl.Graphics,
   u_Foods.JSON,
-  u_Biomes.JSON;
+  u_Biomes.JSON,
+  u_Regions.JSON;
 
 const
   KEY_FOODS = 'foods';
   KEY_BIOMES = 'biomes';
   KEY_REGIONS = 'regions';
 
-var
-  _globalLibrary: TEnvironmentLibrary = nil;
-
-procedure InitGlobalLibrary;
-begin
-  if not Assigned(_globalLibrary) then
-    _globalLibrary := TEnvironmentLibrary.Create;
-end;
-
-procedure DoneGlobalLibrary;
-begin
-  _globalLibrary.Free;
-  _globalLibrary := nil;
-end;
-
-function GlobalLibrary: TEnvironmentLibrary;
-begin
-  Result := _globalLibrary;
-end;
 
 { TEnvironmentLibrary }
 
@@ -92,10 +87,12 @@ begin
   inherited Create;
   fFoods := TObjectList<TFood>.Create(True);
   fBiomes := TObjectList<TBiome>.Create(True);
+  fRegions := TObjectList<TRegion>.Create(True);
 end;
 
 destructor TEnvironmentLibrary.Destroy;
 begin
+  fRegions.Free;
   fBiomes.Free;
   fFoods.Free;
   inherited;
@@ -114,6 +111,7 @@ begin
         var food := TFood.Create;
         try
           food.AsJSON := TJSONObject(item);
+          food.OnChange := ChildChanged;
           fFoods.Add(food);
         except
           food.Free;
@@ -135,6 +133,7 @@ begin
         var biome := TBiome.Create;
         try
           biome.AsJSON := TJSONObject(item);
+          biome.OnChange := ChildChanged;
           fBiomes.Add(biome);
         except
           biome.Free;
@@ -145,8 +144,25 @@ begin
 end;
 
 procedure TEnvironmentLibrary.LoadRegions(const container: TJSONObject);
+var
+  arr: TJSONArray;
 begin
-  //
+  if container.TryGetValue(KEY_REGIONS, arr) then
+  begin
+    for var item in arr do
+      if item is TJSONObject then
+      begin
+        var region := TRegion.Create;
+        try
+          region.AsJSON := TJSONObject(item);
+          region.OnChange := ChildChanged;
+          fRegions.Add(region);
+        except
+          region.Free;
+          raise;
+        end;
+      end;
+  end;
 end;
 
 procedure TEnvironmentLibrary.LoadFromFile(const aFileName: string);
@@ -155,32 +171,110 @@ var
 begin
   if TFile.Exists(aFileName) then
   begin
-    json := TJSONValue.ParseJSONValue(TFile.ReadAllText(aFileName)) as TJSONObject;
-    if Assigned(json) then
-    begin
-      LoadFoods(json);
-      LoadBiomes(json);
-      LoadRegions(json);
+    BeginUpdate;
+    try
+      fFoods.Clear;
+      fBiomes.Clear;
+      fRegions.Clear;
+
+      json := TJSONValue.ParseJSONValue(TFile.ReadAllText(aFileName)) as TJSONObject;
+      if Assigned(json) then
+      begin
+        LoadFoods(json);
+        LoadBiomes(json);
+        LoadRegions(json);
+      end;
+
+      Modified := False;
+    finally
+      EndUpdate;
     end;
   end;
 end;
 
-procedure TEnvironmentLibrary.SaveToFile(const aFileName: string);
+procedure TEnvironmentLibrary.SaveBiomes(const container: TJSONObject);
+var
+  arr: TJSONArray;
 begin
-
+  arr := TJSONArray.Create;
+  for var biome in fBiomes do
+    arr.AddElement(biome.AsJSON);
+  container.AddPair(KEY_BIOMES, arr);
 end;
+
+procedure TEnvironmentLibrary.SaveFoods(const container: TJSONObject);
+var
+  arr: TJSONArray;
+begin
+  arr := TJSONArray.Create;
+  for var food in fFoods do
+    arr.AddElement(food.AsJSON);
+  container.AddPair(KEY_FOODS, arr);
+end;
+
+procedure TEnvironmentLibrary.SaveRegions(const container: TJSONObject);
+var
+  arr: TJSONArray;
+begin
+  arr := TJSONArray.Create;
+  for var region in fRegions do
+    arr.AddElement(region.AsJSON);
+  container.AddPair(KEY_REGIONS, arr);
+end;
+
+procedure TEnvironmentLibrary.SaveToFile(const aFileName: string);
+var
+  json: TJSONObject;
+begin
+  json := TJSONObject.Create;
+  try
+    SaveFoods(json);
+    SaveBiomes(json);
+    SaveRegions(json);
+    TFile.WriteAllText(aFileName, json.Format(4));
+  finally
+    json.Free;
+  end;
+end;
+
+procedure TEnvironmentLibrary.UpdateBiomeColorPalette(var aPalette: TBiomeColorPalette);
+begin
+  for var i := Low(TBiomeMarker) to High(TBiomeMarker) do
+    aPalette[i] := clBlack;
+  for var biome in fBiomes do
+    aPalette[biome.Marker] := biome.Color;
+end;
+
 {$endregion}
 
 
 {$region 'Utility Methods'}
 procedure TEnvironmentLibrary.AddBiome(aBiome: TBiome);
 begin
+  // !! markers need to be permanent
+  var nextMarker := Succ(Low(TBiomeMarker));
+  for var b in fBiomes do
+    if (b.Marker >= nextMarker) and (b.Marker < Pred(High(TBiomeMarker))) then  // !! edge case
+      nextMarker := Succ(b.Marker);
+
+  aBiome.Marker := nextMarker;
+  aBiome.OnChange := ChildChanged;
   fBiomes.Add(aBiome);
+  Changed;
 end;
 
 procedure TEnvironmentLibrary.AddFood(aFood: TFood);
 begin
+  aFood.OnChange := ChildChanged;
   fFoods.Add(aFood);
+  Changed;
+end;
+
+procedure TEnvironmentLibrary.AddRegion(aRegion: TRegion);
+begin
+  aRegion.OnChange := ChildChanged;
+  fRegions.Add(aRegion);
+  Changed;
 end;
 
 function TEnvironmentLibrary.FindFood(const aName: string): TFood;
@@ -214,6 +308,16 @@ end;
 function TEnvironmentLibrary.GetFoodCount: Integer;
 begin
   Result := fFoods.Count;
+end;
+
+function TEnvironmentLibrary.GetRegion(I: Integer): TRegion;
+begin
+  Result := fRegions[I];
+end;
+
+function TEnvironmentLibrary.GetRegionCount: Integer;
+begin
+  Result := fRegions.Count;
 end;
 
 {$endregion}
