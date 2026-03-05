@@ -5,6 +5,12 @@ interface
 uses System.JSON,
   u_Biomes;
 
+
+implementation
+
+uses Vcl.GraphUtil, u_Worlds.Types, u_Worlds.JSON, u_EnvironmentLibraries,
+  u_Environment.Types;
+
 type
   TBiomeHelper = class helper for TBiome
   private
@@ -13,24 +19,6 @@ type
   public
     property AsJSON: TJSONObject read getJSON write setJSON;
   end;
-
-implementation
-
-uses Vcl.GraphUtil, u_Worlds.Types, u_Worlds.JSON, u_EnvironmentLibraries;
-
-const
-  KEY_NAME = 'name';
-  KEY_DESCRIPTION = 'description';
-
-  KEY_MARKER = 'marker';
-  KEY_COLOR = 'color';
-
-  KEY_GROWTH_RATE = 'growthRate';
-  KEY_CAPACITY = 'capacity';
-  KEY_SUNLIGHT = 'sunlight';
-  KEY_MOBILITY = 'mobility';
-  KEY_FOODS = 'foods';
-
 
 { TBiomeHelper }
 
@@ -65,9 +53,7 @@ begin
   if Value.TryGetValue(KEY_MARKER, intVal) then
     Marker := intVal;
   if Value.TryGetValue(KEY_COLOR, strVal) then
-  begin
     Color := WebColorStrToColor(strVal);
-  end;
 
   if Value.TryGetValue(KEY_GROWTH_RATE, strVal) then
     GrowthRate.AsText := strVal;
@@ -83,9 +69,9 @@ begin
   begin
     for var v in strArr do
     begin
-      var food := WorldLibrary.FindFood(v.Value);
-      if Assigned(food) then
-        AddFood(food);
+//      var food := WorldLibrary.FindFood(v.Value);
+//      if Assigned(food) then
+//        AddFood(food);
     end;
   end;
 end;

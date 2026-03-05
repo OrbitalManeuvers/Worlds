@@ -1,20 +1,20 @@
-unit u_GridEditor;
+unit u_MapEditors;
 
 interface
 
 uses WinApi.Windows, WinApi.Messages, System.Classes, Vcl.Controls, System.SysUtils,
   System.Types, Vcl.Graphics,
-  u_Worlds.Types, u_Environment.Types;
+  u_EnvironmentTypes, u_EditorTypes, u_BiomeMaps;
 
 type
   TCellRect = type TRect;
   TCellPoint = type TPoint;
 
-  TGridEditor = class(TCustomControl)
+  TMapEditor = class(TCustomControl)
   private
     fCellSize: TSize;
     fDrawBuffer: TBitmap;
-    fGrid: PBiomeGrid;
+    fMap: TBiomeMap;
     fPalette: TBiomeColorPalette;
     fDrawMarker: TBiomeMarker;
     fIsDrawing: Boolean;
@@ -22,7 +22,7 @@ type
     fLastCell: TCellPoint;
     fLastMousePoint: TPoint;
     procedure SetCellSize(const Value: TSize);
-    procedure SetGrid(const Value: PBiomeGrid);
+    procedure SetMap(const Value: TBiomeMap);
     function PixelPointToCellPoint(const APixelPoint: TPoint): TCellPoint;
     function BiasCellForDrag(const AProposedCell: TCellPoint; const APixelPoint: TPoint): TCellPoint;
     function ClipRectToCellRect(const APixelRect: TRect): TCellRect;
@@ -43,7 +43,7 @@ type
     destructor Destroy; override;
     procedure UpdatePalette;
     property CellSize: TSize read fCellSize write SetCellSize;
-    property Grid: PBiomeGrid read fGrid write SetGrid;
+    property Map: TBiomeMap read fMap write SetMap;
     property DrawMarker: TBiomeMarker read fDrawMarker write fDrawMarker;
   end;
 
@@ -54,9 +54,9 @@ uses Vcl.Forms, Vcl.Themes,
   u_EnvironmentLibraries;
 
 
-{ TGridEditor }
+{ TMapEditor }
 
-constructor TGridEditor.Create(AOwner: TComponent);
+constructor TMapEditor.Create(AOwner: TComponent);
 begin
   inherited;
   ControlStyle := ControlStyle + [csClickEvents];
@@ -67,13 +67,13 @@ begin
   fDrawMarker := 1;
 end;
 
-destructor TGridEditor.Destroy;
+destructor TMapEditor.Destroy;
 begin
   fDrawBuffer.Free;
   inherited;
 end;
 
-function TGridEditor.CellRectToPixelRect(const ACellRect: TCellRect): TRect;
+function TMapEditor.CellRectToPixelRect(const ACellRect: TCellRect): TRect;
 begin
   Result.Left := ACellRect.Left * fCellSize.cx;
   Result.Top := ACellRect.Top * fCellSize.cy;
@@ -81,7 +81,7 @@ begin
   Result.Bottom := ACellRect.Bottom * fCellSize.cy;
 end;
 
-function TGridEditor.PixelPointToCellPoint(const APixelPoint: TPoint): TCellPoint;
+function TMapEditor.PixelPointToCellPoint(const APixelPoint: TPoint): TCellPoint;
 begin
   Result.X := APixelPoint.X div fCellSize.cx;
   Result.Y := APixelPoint.Y div fCellSize.cy;
@@ -98,7 +98,7 @@ begin
     Result.Y := High(TGridExtent);
 end;
 
-function TGridEditor.BiasCellForDrag(const AProposedCell: TCellPoint;
+function TMapEditor.BiasCellForDrag(const AProposedCell: TCellPoint;
   const APixelPoint: TPoint): TCellPoint;
 begin
   Result := AProposedCell;
@@ -118,7 +118,7 @@ begin
   end;
 end;
 
-function TGridEditor.ClipRectToCellRect(const APixelRect: TRect): TCellRect;
+function TMapEditor.ClipRectToCellRect(const APixelRect: TRect): TCellRect;
 begin
   Result.Left := APixelRect.Left div fCellSize.cx;
   Result.Top := APixelRect.Top div fCellSize.cy;
@@ -126,7 +126,7 @@ begin
   Result.Bottom := (APixelRect.Bottom + fCellSize.cy - 1) div fCellSize.cy;
 end;
 
-procedure TGridEditor.InvalidateCell(const aCell: TCellPoint);
+procedure TMapEditor.InvalidateCell(const aCell: TCellPoint);
 begin
   var cellRect: TCellRect;
   cellRect.SetLocation(aCell.X, aCell.Y);
@@ -137,7 +137,7 @@ begin
   InvalidateRect(Self.Handle, @pxRect, False);
 end;
 
-procedure TGridEditor.PaintCell(const Cell: TCellPoint; Value: TBiomeMarker);
+procedure TMapEditor.PaintCell(const Cell: TCellPoint; Value: TBiomeMarker);
 begin
   if not fHasLastCell or (Cell.X <> fLastCell.X) or (Cell.Y <> fLastCell.Y) then
   begin
@@ -145,16 +145,16 @@ begin
     fHasLastCell := True;
   end;
 
-  if fGrid[cell.X, cell.Y] = Value then
+  if fMap[cell.X, cell.Y] = Value then
     Exit;
 
-  fGrid[cell.X, cell.Y] := Value;
+  fMap[cell.X, cell.Y] := Value;
   InvalidateCell(cell);
 end;
 
-procedure TGridEditor.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+procedure TMapEditor.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-  if (Button <> mbLeft) or (fGrid = nil) then
+  if (Button <> mbLeft) or (fMap = nil) then
     Exit;
 
   fLastMousePoint := Point(X, Y);
@@ -164,7 +164,7 @@ begin
   fIsDrawing := True;
 end;
 
-procedure TGridEditor.MouseMove(Shift: TShiftState; X, Y: Integer);
+procedure TMapEditor.MouseMove(Shift: TShiftState; X, Y: Integer);
 begin
   if fIsDrawing then
   begin
@@ -176,14 +176,14 @@ begin
   end;
 end;
 
-procedure TGridEditor.MouseUp(Button: TMouseButton; Shift: TShiftState; X,
+procedure TMapEditor.MouseUp(Button: TMouseButton; Shift: TShiftState; X,
   Y: Integer);
 begin
   fIsDrawing := False;
   fHasLastCell := False;
 end;
 
-procedure TGridEditor.CreateParams(var Params: TCreateParams);
+procedure TMapEditor.CreateParams(var Params: TCreateParams);
 const
   BorderStyles: array[TBorderStyle] of DWORD = (0, WS_BORDER);
 begin
@@ -194,9 +194,9 @@ begin
   end;
 end;
 
-procedure TGridEditor.Paint;
+procedure TMapEditor.Paint;
 begin
-  if fGrid = nil then
+  if fMap = nil then
   begin
     Canvas.Brush.Color := StyleServices.GetSystemColor(clWindow);
     Canvas.Brush.Style := bsSolid;
@@ -217,13 +217,13 @@ begin
     var rleStart := cellClipRect.Left;
     while rleStart < cellClipRect.Right do
     begin
-      var currentMarker: TBiomeMarker := fGrid[rleStart, row];
+      var currentMarker: TBiomeMarker := fMap[rleStart, row];
       var rleEnd := rleStart + 1;
 
       // move the right end of the run until it's another value
       while rleEnd < cellClipRect.Right do
       begin
-        if fGrid[rleEnd, row] = currentMarker then
+        if fMap[rleEnd, row] = currentMarker then
           Inc(rleEnd)
         else
           Break;
@@ -249,19 +249,19 @@ begin
   Canvas.CopyRect(r, fDrawBuffer.Canvas, r);
 end;
 
-procedure TGridEditor.SetGrid(const Value: PBiomeGrid);
+procedure TMapEditor.SetMap(const Value: TBiomeMap);
 begin
-  fGrid := Value;
+  fMap := Value;
   UpdatePalette;
 end;
 
-procedure TGridEditor.UpdatePalette;
+procedure TMapEditor.UpdatePalette;
 begin
   WorldLibrary.UpdateBiomeColorPalette(fPalette);
   Invalidate;
 end;
 
-procedure TGridEditor.SetCellSize(const Value: TSize);
+procedure TMapEditor.SetCellSize(const Value: TSize);
 begin
   fCellSize := Value;
   var imageSize: TSize := TSize.Create(fCellSize.cx * BIOME_GRID_SIZE,
@@ -275,13 +275,13 @@ begin
   Invalidate;
 end;
 
-procedure TGridEditor.WMCaptureChanged(var Msg: TWMNoParams);
+procedure TMapEditor.WMCaptureChanged(var Msg: TWMNoParams);
 begin
   fIsDrawing := False;
   fHasLastCell := False;
 end;
 
-procedure TGridEditor.WMEraseBkgnd(var Msg: TWMEraseBkgnd);
+procedure TMapEditor.WMEraseBkgnd(var Msg: TWMEraseBkgnd);
 begin
   Msg.Result := 1;
 end;

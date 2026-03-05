@@ -3,12 +3,13 @@ unit fr_FoodEditor;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, fr_ContentFrames, Vcl.StdCtrls,
+  Winapi.Windows, System.SysUtils, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.StdCtrls,
   Vcl.ControlList, Vcl.ExtCtrls,
-  System.Generics.Collections, Vcl.ComCtrls, Vcl.Buttons,
+  Vcl.ComCtrls,
 
-  u_Worlds.Types, u_Environment.Types, u_Foods, fr_RatingEditor;
+  fr_ContentFrames,
+  u_EnvironmentTypes, u_Foods, fr_RatingEditor;
 
 type
   TFoodEditor = class(TContentFrame)
@@ -54,6 +55,7 @@ type
   protected
   public
     procedure Init; override;
+    procedure ActivateContent; override;
     destructor Destroy; override;
   end;
 
@@ -61,8 +63,7 @@ implementation
 
 {$R *.dfm}
 
-uses System.UITypes, Vcl.Themes, Vcl.GraphUtil, System.Math,
-  u_ControlRendering, u_EnvironmentLibraries;
+uses u_ControlRendering, u_EnvironmentLibraries;
 
 
 { TFoodEditor }
@@ -126,6 +127,16 @@ begin
   begin
     var pb := TPaintbox(Sender);
     pb.Render(Food.Recipe, TMolecule(pb.Tag));
+  end;
+end;
+
+procedure TFoodEditor.ActivateContent;
+begin
+  inherited;
+  if (FoodList.ItemCount > 0) and (FoodList.ItemIndex = -1) then
+  begin
+    FoodList.ItemIndex := 0;
+    EditFood(WorldLibrary.Foods[0]);
   end;
 end;
 

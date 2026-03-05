@@ -3,12 +3,11 @@ unit Main;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Menus,
-  Vcl.Buttons, PngSpeedButton, Vcl.ComCtrls, Vcl.ControlList, Vcl.AppEvnts,
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.Buttons, Vcl.ComCtrls, Vcl.AppEvnts,
 
-  fr_WorldFrame,
-  u_Worlds;
+  fr_WorldFrame;
 
 type
   TMainForm = class(TForm)
@@ -30,8 +29,8 @@ var
 
 implementation
 
-uses System.JSON, Vcl.GraphUtil, Vcl.Themes, System.IOUtils, System.Generics.Collections,
-  u_EnvironmentLibraries, System.UITypes;
+uses System.IOUtils, System.UITypes,
+  u_EnvironmentLibraries, u_Serialization;
 
 {$R *.dfm}
 
@@ -45,7 +44,9 @@ procedure TMainForm.FormCreate(Sender: TObject);
 begin
   // initialize global library
   WorldLibrary := TEnvironmentLibrary.Create;
-  WorldLibrary.LoadFromFile(LibraryFileName());
+  var fileName := LibraryFileName();
+  if TFile.Exists(fileName) then
+    TSerializer.LoadLibrary(WorldLibrary, fileName);
 
   // create main frame
   WorldFrame := TWorldFrame.Create(Self);
@@ -68,7 +69,7 @@ begin
     case result of
       mrYes:
         begin
-          WorldLibrary.SaveToFile(LibraryFileName());
+          TSerializer.SaveLibrary(WorldLibrary, LibraryFileName());
           CanClose := True;
         end;
       mrNo:
@@ -83,11 +84,9 @@ begin
   end;
 end;
 
-
 procedure TMainForm.AppEventsHint(Sender: TObject);
 begin
   StatusBar.SimpleText := Application.Hint;
 end;
-
 
 end.

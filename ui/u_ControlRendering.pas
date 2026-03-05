@@ -3,12 +3,10 @@ unit u_ControlRendering;
 interface
 
 uses
-  Winapi.Windows, System.SysUtils, System.Classes, Vcl.Graphics,
+  Winapi.Windows, System.SysUtils, Vcl.Graphics,
   Vcl.Controls, Vcl.StdCtrls, Vcl.ExtCtrls,
-  System.Generics.Collections,
 
-  u_Worlds.Types,
-  u_Environment.Types,
+  u_EnvironmentTypes,
   u_Foods;
 
 type

@@ -18,12 +18,13 @@ type
 implementation
 
 uses
-  System.SysUtils, System.Generics.Collections;
+  System.SysUtils, System.Generics.Collections,
+    u_Environment.Types;
 
-const
-  KEY_NAME = 'name';
-  KEY_DESCRIPTION = 'description';
-  KEY_BIOME_GRID = 'biomeGrid';
+//const
+//  KEY_NAME = 'name';
+//  KEY_DESCRIPTION = 'description';
+//  KEY_BIOME_GRID = 'biomeGrid';
 
 
 { TRegionHelper }

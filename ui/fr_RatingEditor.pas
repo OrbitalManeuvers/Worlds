@@ -3,11 +3,12 @@ unit fr_RatingEditor;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
-  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, System.ImageList,
-  Vcl.ImgList, PngImageList, Vcl.Buttons, PngSpeedButton, Vcl.ExtCtrls,
+  Winapi.Windows, System.SysUtils, System.Classes,
+  Vcl.Graphics, Vcl.Controls, Vcl.Forms,
+  PngImageList, PngSpeedButton, Vcl.ExtCtrls,
+  System.ImageList, Vcl.ImgList, Vcl.Buttons,
 
-  u_Worlds.Types;
+  u_EnvironmentTypes;
 
 type
   TRatingEditorFrame = class(TFrame)

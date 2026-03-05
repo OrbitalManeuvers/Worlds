@@ -3,12 +3,13 @@ unit fr_RegionEditor;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, fr_ContentFrames, Vcl.StdCtrls,
-  Vcl.ExtCtrls,
+  Winapi.Windows, System.SysUtils, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.StdCtrls,
+  Vcl.ExtCtrls, Vcl.ControlList, Vcl.ComCtrls, Vcl.Buttons,
+  PngSpeedButton,
 
-  u_GridEditor, u_Regions, Vcl.ControlList, Vcl.ComCtrls, Vcl.Buttons,
-  PngSpeedButton;
+  fr_ContentFrames,
+  u_MapEditors, u_Regions;
 
 type
   TRegionEditor = class(TContentFrame)
@@ -41,7 +42,7 @@ type
   private
     UntitledCount: Integer;
     Region: TRegion;
-    GridEditor: TGridEditor;
+    MapEditor: TMapEditor;
     procedure EditRegion(aRegion: TRegion);
     procedure ItemChanged;
   public
@@ -63,9 +64,9 @@ begin
   PageControl.ActivePage := tsNoSelection;
   var r := shPlaceholder.BoundsRect;
   shPlaceholder.Hide;
-  GridEditor := TGridEditor.Create(Self);
-  GridEditor.BoundsRect := r;
-  GridEditor.Parent := shPlaceholder.Parent;
+  MapEditor := TMapEditor.Create(Self);
+  MapEditor.BoundsRect := r;
+  MapEditor.Parent := shPlaceholder.Parent;
 
   RegionList.ItemCount := WorldLibrary.RegionCount;
   BiomeList.ItemCount := WorldLibrary.BiomeCount;
@@ -87,14 +88,13 @@ procedure TRegionEditor.ActivateContent;
 begin
   inherited;
   BiomeList.ItemCount := WorldLibrary.BiomeCount;
-  GridEditor.UpdatePalette;
+  MapEditor.UpdatePalette;
 
-  if BiomeList.ItemIndex = -1 then
+  if (RegionList.ItemCount > 0) and (RegionList.ItemIndex = -1) then
   begin
-    //
+    RegionList.ItemIndex := 0;
+    EditRegion(WorldLibrary.Regions[0]);
   end;
-
-
 end;
 
 procedure TRegionEditor.BiomeListBeforeDrawItem(AIndex: Integer;
@@ -111,7 +111,7 @@ begin
     Exit;
 
   shDrawing.Brush.Color := WorldLibrary.Biomes[biomeIndex].Color;
-  GridEditor.DrawMarker := WorldLibrary.Biomes[biomeIndex].Marker;
+  MapEditor.DrawMarker := WorldLibrary.Biomes[biomeIndex].Marker;
 end;
 
 procedure TRegionEditor.btnNewRegionClick(Sender: TObject);
@@ -132,7 +132,7 @@ begin
   edtDescription.Text := Region.Description;
   PageControl.ActivePage := tsSelection;
 
-  GridEditor.Grid := Region.BiomeGridPtr;
+  MapEditor.map := Region.BiomeMap;
 end;
 
 procedure TRegionEditor.edtDescriptionChange(Sender: TObject);

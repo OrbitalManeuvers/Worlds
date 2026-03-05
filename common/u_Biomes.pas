@@ -2,14 +2,13 @@ unit u_Biomes;
 
 interface
 
-uses System.Generics.Collections, System.JSON, Vcl.Graphics,
-  u_EditorObjects, u_Environment.Types, u_Worlds.Types,
+uses System.Generics.Collections, Vcl.Graphics,
+  u_EditorTypes, u_EnvironmentTypes,
   u_Foods;
 
 type
-  TBiome = class(TEditorObject)
+  TBiome = class(TNamedEnvironmentObject)
   private
-    fName: string;
     fDescription: string;
     fMarker: TBiomeMarker;        // matches a value in a grid map
     fColor: TColor;               // so we can draw grids and show biomes
@@ -23,7 +22,6 @@ type
     procedure SetColor(const Value: TColor);
     procedure SetDescription(const Value: string);
     procedure SetMarker(const Value: TBiomeMarker);
-    procedure SetName(const Value: string);
     procedure SetCapcity(const Value: TRating);
     procedure SetGrowthRate(const Value: TRating);
     procedure SetMobility(const Value: TRating);
@@ -36,7 +34,6 @@ type
     procedure RemoveFood(aFood: TFood);
     function FoodActive(aFood: TFood): Boolean;
 
-    property Name: string read fName write SetName;
     property Description: string read fDescription write SetDescription;
     property Marker: TBiomeMarker read fMarker write SetMarker;
     property Color: TColor read fColor write SetColor;
@@ -51,7 +48,7 @@ type
 
 implementation
 
-uses System.SysUtils;
+uses System.SysUtils, Vcl.GraphUtil;
 
 { TBiome }
 constructor TBiome.Create;
@@ -151,15 +148,6 @@ begin
   if Value <> fMobility then
   begin
     fMobility := Value;
-    Changed;
-  end;
-end;
-
-procedure TBiome.SetName(const Value: string);
-begin
-  if not SameStr(Value, fName) then
-  begin
-    fName := Value;
     Changed;
   end;
 end;

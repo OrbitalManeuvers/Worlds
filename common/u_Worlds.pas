@@ -8,19 +8,20 @@ uses System.Generics.Collections, System.JSON,
 
   u_Foods;
 
-type
-  TWorld = class(TEditorObject)
-  private
-  protected
-    Name: string;
-  public
-    constructor Create;
-    destructor Destroy; override;
-  end;
 
 implementation
 
 uses System.SysUtils, System.IOUtils;
+
+type
+  TWorld = class
+  private
+  protected
+    Name: string;
+  public
+    constructor Create; override;
+    destructor Destroy; override;
+  end;
 
 { TWorld }
 

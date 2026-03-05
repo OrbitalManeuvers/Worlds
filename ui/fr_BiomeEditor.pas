@@ -3,12 +3,10 @@ unit fr_BiomeEditor;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, fr_ContentFrames, Vcl.StdCtrls,
-  Vcl.ComCtrls, Vcl.ControlList, Vcl.ExtCtrls, Vcl.Buttons,
+  Winapi.Windows, System.SysUtils, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, fr_ContentFrames, Vcl.StdCtrls,
+  Vcl.ComCtrls, Vcl.ControlList, Vcl.ExtCtrls,
 
-  u_Worlds.Types,
-  u_Environment.Types,
   u_Foods,
   u_Biomes, fr_RatingEditor;
 
@@ -75,6 +73,7 @@ type
   protected
   public
     procedure Init; override;
+    procedure ActivateContent; override;
   end;
 
 
@@ -86,6 +85,16 @@ uses Vcl.Themes,
 {$R *.dfm}
 
 { TBiomeEditor }
+
+procedure TBiomeEditor.ActivateContent;
+begin
+  inherited;
+  if (BiomeList.ItemCount > 0) and (BiomeList.ItemIndex = -1) then
+  begin
+    BiomeList.ItemIndex := 0;
+    EditBiome(WorldLibrary.Biomes[0]);
+  end;
+end;
 
 procedure TBiomeEditor.BiomeListBeforeDrawItem(AIndex: Integer;
   ACanvas: TCanvas; ARect: TRect; AState: TOwnerDrawState);

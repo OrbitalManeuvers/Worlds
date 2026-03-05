@@ -1,43 +1,13 @@
-unit u_Environment.Types;
+unit u_EditorTypes;
 
 interface
 
-uses Vcl.Graphics,
+uses System.Classes, System.SysUtils, System.JSON, Vcl.Graphics,
 
-  u_Worlds.Types;
-
-const
-  BIOME_GRID_SIZE = 32;
+  u_EnvironmentTypes;
 
 type
-  TMolecule = (Alpha, Beta, Gamma, Biomass);
-  TGrowableMolecule = TMolecule.Alpha .. TMolecule.Gamma;
-
-  TBiomeMarker = Byte;
-  TGridExtent = 0 .. BIOME_GRID_SIZE - 1;
-  PBiomeGrid = ^TBiomeGrid;
-  TBiomeGrid = array[TGridExtent, TGridExtent] of TBiomeMarker;
   TBiomeColorPalette = array[TBiomeMarker] of TColor;
-
-const
-  RATING_NAMES: array[TRating] of string = ('Worst', 'Horrible', 'Bad', 'Normal', 'Good', 'Great', 'Best');
-  MOLECULE_NAMES: array[TMolecule] of string = ('Alpha', 'Beta', 'Gamma', 'Biomass');
-
-const
-  KEY_NAME = 'name';
-  KEY_DESCRIPTION = 'description';
-  KEY_MOLECULE = 'molecule';
-  KEY_PERCENT = 'percent';
-  KEY_RECIPE = 'recipe';
-
-  KEY_MARKER = 'marker';
-  KEY_COLOR = 'color';
-
-  KEY_GROWTH_RATE = 'growthRate';
-  KEY_CAPACITY = 'capacity';
-  KEY_SUNLIGHT = 'sunlight';
-  KEY_MOBILITY = 'mobility';
-  KEY_FOODS = 'foods';
 
 type
   TRatingHelper = record helper for TRating
@@ -52,8 +22,6 @@ function MoleculeToStr(aMolecule: TMolecule): string;
 function StrToMolecule(const aValue: string; out aMolecule: TMolecule): Boolean;
 
 implementation
-
-uses System.SysUtils;
 
 function MoleculeToStr(aMolecule: TMolecule): string;
 begin
@@ -80,11 +48,13 @@ end;
 procedure TRatingHelper.setText(const Value: string);
 begin
   for var candidate := Low(TRating) to High(TRating) do
+  begin
     if SameText(Value, candidate.AsText) then
     begin
       Self := candidate;
       Exit;
     end;
+  end;
 end;
 
 end.

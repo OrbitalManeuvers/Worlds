@@ -2,12 +2,12 @@ unit u_Foods;
 
 interface
 
-uses System.Generics.Collections,
-  u_EditorObjects, u_Environment.Types, u_Worlds.Types;
+uses System.Classes, System.JSON,
+  u_EditorTypes, u_EnvironmentTypes;
 
 type
   // usage of TMolecules
-  TRecipe = class(TEditorObject)
+  TRecipe = class(TEnvironmentObject)
   private
     fPercents: array[TGrowableMolecule] of TPercentage;
     function GetPercent(I: TGrowableMolecule): TPercentage;
@@ -20,19 +20,14 @@ type
   end;
 
   // a food item
-  TFood = class(TEditorObject)
+  TFood = class(TNamedEnvironmentObject)
   private
-    fName: string;
     fGrowthRate: TRating;
     fRecipe: TRecipe;
     procedure SetGrowthRate(const Value: TRating);
-    procedure SetName(const Value: string);
-  protected
   public
     constructor Create;
     destructor Destroy; override;
-
-    property Name: string read fName write SetName;
     property GrowthRate: TRating read fGrowthRate write SetGrowthRate;
     property Recipe: TRecipe read fRecipe;
   end;
@@ -65,8 +60,6 @@ begin
   Result := total = 100;
 end;
 
-
-
 procedure TRecipe.SetPercents(alphaPercent, betaPercent, gammaPercent: TPercentage);
 begin
   fPercents[Alpha] := alphaPercent;
@@ -81,14 +74,13 @@ begin
   Changed;
 end;
 
-
 { TFood }
-
 constructor TFood.Create;
 begin
   inherited Create;
   fGrowthRate := Normal;
   fRecipe := TRecipe.Create;
+  fRecipe.OnChange := ChildChanged;
 end;
 
 destructor TFood.Destroy;
@@ -102,15 +94,6 @@ begin
   if Value <> fGrowthRate then
   begin
     fGrowthRate := Value;
-    Changed;
-  end;
-end;
-
-procedure TFood.SetName(const Value: string);
-begin
-  if not SameText(Value, fName) then
-  begin
-    fName := Value;
     Changed;
   end;
 end;

@@ -1,0 +1,104 @@
+unit u_EnvironmentTypes;
+
+interface
+
+uses System.Classes;
+
+const
+  BIOME_GRID_SIZE = 32;
+
+type
+  // low-res, easy, relative scoring
+  TRating = (Worst, Horrible, Bad, Normal, Good, Great, Best);
+  TPercentage = 0 .. 100;
+
+type
+  TMolecule = (Alpha, Beta, Gamma, Biomass);
+  TGrowableMolecule = TMolecule.Alpha .. TMolecule.Gamma;
+
+  TBiomeMarker = Byte;
+  TGridExtent = 0 .. BIOME_GRID_SIZE - 1;
+//  TBiomeArray = array[TGridExtent, TGridExtent] of TBiomeMarker;
+
+const
+  RATING_NAMES: array[TRating] of string = ('Worst', 'Horrible', 'Bad', 'Normal', 'Good', 'Great', 'Best');
+  MOLECULE_NAMES: array[TMolecule] of string = ('Alpha', 'Beta', 'Gamma', 'Biomass');
+
+
+type
+  TEnvironmentObject = class
+  private
+    fModified: Boolean;
+    fUpdateCount: Integer;
+    fOnChange: TNotifyEvent;
+    procedure SetModified(const Value: Boolean);
+  protected
+    procedure Changed;
+    procedure ChildChanged(Sender: TObject);
+  public
+    procedure BeginUpdate;
+    procedure EndUpdate;
+    property Modified: Boolean read fModified write SetModified;
+    property OnChange: TNotifyEvent read fOnChange write fOnChange;
+  end;
+
+  TNamedEnvironmentObject = class(TEnvironmentObject)
+  private
+    fName: string;
+    procedure SetName(const Value: string);
+  public
+    property Name: string read fName write SetName;
+  end;
+
+implementation
+
+uses System.SysUtils;
+
+
+{ TEnvironmentObject }
+
+procedure TEnvironmentObject.BeginUpdate;
+begin
+  Inc(fUpdateCount);
+end;
+
+procedure TEnvironmentObject.Changed;
+begin
+  fModified := True;
+  if (fUpdateCount = 0) and Assigned(fOnChange) then
+    fOnChange(Self);
+end;
+
+procedure TEnvironmentObject.ChildChanged(Sender: TObject);
+begin
+  Changed;
+end;
+
+procedure TEnvironmentObject.EndUpdate;
+begin
+  Dec(fUpdateCount);
+  if fUpdateCount <= 0 then
+  begin
+    fUpdateCount := 0;
+    if Modified then
+      Changed;
+  end;
+end;
+
+procedure TEnvironmentObject.SetModified(const Value: Boolean);
+begin
+  fModified := Value;
+end;
+
+{ TNamedEnvironmentObject }
+
+procedure TNamedEnvironmentObject.SetName(const Value: string);
+begin
+  if Value <> fName then
+  begin
+    fName := Value;
+    Modified := True;
+  end;
+end;
+
+end.

@@ -3,12 +3,11 @@ unit fr_WorldFrame;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
-  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.Buttons,
+  Winapi.Windows, System.SysUtils, System.Classes,
+  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Buttons,
   PngSpeedButton, Vcl.ExtCtrls,
 
-  fr_ContentFrames,
-  u_Worlds;
+  fr_ContentFrames;
 
 type
   TContentFrameType = (cfFood, cfBiomes, cfRegions, cfWorlds, cfSimulator);
