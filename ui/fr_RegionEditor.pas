@@ -88,6 +88,13 @@ begin
   inherited;
   BiomeList.ItemCount := WorldLibrary.BiomeCount;
   GridEditor.UpdatePalette;
+
+  if BiomeList.ItemIndex = -1 then
+  begin
+    //
+  end;
+
+
 end;
 
 procedure TRegionEditor.BiomeListBeforeDrawItem(AIndex: Integer;

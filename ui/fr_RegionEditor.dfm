@@ -136,20 +136,22 @@ inherited RegionEditor: TRegionEditor
     OnBeforeDrawItem = BiomeListBeforeDrawItem
     OnItemClick = BiomeListItemClick
     object lblBiomeName: TLabel
-      Left = 0
+      AlignWithMargins = True
+      Left = 4
       Top = 0
-      Width = 149
+      Width = 141
       Height = 45
+      Margins.Left = 4
+      Margins.Top = 0
+      Margins.Right = 0
+      Margins.Bottom = 0
       Align = alLeft
       AutoSize = False
       Caption = '(none)'
       Layout = tlCenter
-      ExplicitLeft = 10
-      ExplicitTop = 5
-      ExplicitHeight = 34
     end
     object shBiomeMapColor: TShape
-      Left = 165
+      Left = 157
       Top = 6
       Width = 32
       Height = 32
