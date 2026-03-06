@@ -1,8 +1,0 @@
-unit u_Worlds.Types;
-
-interface
-
-
-implementation
-
-end.

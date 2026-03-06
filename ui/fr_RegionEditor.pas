@@ -9,7 +9,7 @@ uses
   PngSpeedButton,
 
   fr_ContentFrames,
-  u_MapEditors, u_Regions;
+  u_MapEditors, u_Regions, u_EnvironmentTypes;
 
 type
   TRegionEditor = class(TContentFrame)
@@ -28,8 +28,11 @@ type
     BiomeList: TControlList;
     lblBiomeName: TLabel;
     shBiomeMapColor: TShape;
-    shDrawing: TShape;
-    shErasing: TShape;
+    pbDrawButton: TPaintBox;
+    pbEraseButton: TPaintBox;
+    SpeedButton1: TSpeedButton;
+    SpeedButton2: TSpeedButton;
+    SpeedButton3: TSpeedButton;
     procedure RegionListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
     procedure RegionListItemClick(Sender: TObject);
@@ -39,12 +42,21 @@ type
     procedure BiomeListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
     procedure BiomeListItemClick(Sender: TObject);
+    procedure pbDrawButtonPaint(Sender: TObject);
+    procedure pbEraseButtonPaint(Sender: TObject);
+    procedure pbDrawButtonClick(Sender: TObject);
+    procedure pbEraseButtonClick(Sender: TObject);
+  private type
+    TToolMode = (tmDrawing, tmErasing);
   private
     UntitledCount: Integer;
     Region: TRegion;
     MapEditor: TMapEditor;
+    ToolMode: TToolMode;
+    DrawingMarker: TBiomeMarker;
     procedure EditRegion(aRegion: TRegion);
     procedure ItemChanged;
+    procedure SetToolMode(aMode: TToolMode);
   public
     procedure Init; override;
     procedure ActivateContent; override;
@@ -54,7 +66,7 @@ implementation
 
 {$R *.dfm}
 
-uses u_EnvironmentLibraries;
+uses u_EnvironmentLibraries, u_ControlRendering;
 
 { TRegionEditor }
 
@@ -84,15 +96,37 @@ begin
   EditRegion(r);
 end;
 
+procedure TRegionEditor.SetToolMode(aMode: TToolMode);
+begin
+  ToolMode := aMode;
+  pbDrawButton.Invalidate;
+  pbEraseButton.Invalidate;
+
+  if ToolMode = tmDrawing then
+    MapEditor.DrawMarker := DrawingMarker
+  else
+    MapEditor.DrawMarker := 0;
+end;
+
 procedure TRegionEditor.ActivateContent;
 begin
   inherited;
+  var saveIndex := BiomeList.ItemIndex;
   BiomeList.ItemCount := WorldLibrary.BiomeCount;
+  if BiomeList.ItemCount > 0 then
+  begin
+    if (saveIndex < 0) or (saveIndex > BiomeList.ItemCount) then
+     saveIndex := 0;
+    BiomeList.ItemIndex := saveIndex;
+    BiomeListItemClick(nil);
+  end;
+
   MapEditor.UpdatePalette;
 
   if (RegionList.ItemCount > 0) and (RegionList.ItemIndex = -1) then
   begin
     RegionList.ItemIndex := 0;
+    RegionListItemClick(nil);
     EditRegion(WorldLibrary.Regions[0]);
   end;
 end;
@@ -110,8 +144,10 @@ begin
   if biomeIndex < 0 then
     Exit;
 
-  shDrawing.Brush.Color := WorldLibrary.Biomes[biomeIndex].Color;
-  MapEditor.DrawMarker := WorldLibrary.Biomes[biomeIndex].Marker;
+  DrawingMarker := WorldLibrary.Biomes[biomeIndex].Marker;
+  pbDrawButton.Invalidate;
+  if ToolMode = tmDrawing then
+    MapEditor.DrawMarker := DrawingMarker;
 end;
 
 procedure TRegionEditor.btnNewRegionClick(Sender: TObject);
@@ -150,6 +186,29 @@ end;
 procedure TRegionEditor.ItemChanged;
 begin
   RegionList.UpdateItem(RegionList.ItemIndex);
+end;
+
+procedure TRegionEditor.pbDrawButtonClick(Sender: TObject);
+begin
+  SetToolMode(tmDrawing);
+end;
+
+procedure TRegionEditor.pbDrawButtonPaint(Sender: TObject);
+begin
+  var drawingColor := clBlack;
+  if BiomeList.ItemIndex <> -1 then
+    drawingColor := WorldLibrary.Biomes[BiomeList.ItemIndex].Color;
+  pbDrawButton.RenderToolButton('Drawing', drawingColor, ToolMode = tmDrawing);
+end;
+
+procedure TRegionEditor.pbEraseButtonClick(Sender: TObject);
+begin
+  SetToolMode(tmErasing);
+end;
+
+procedure TRegionEditor.pbEraseButtonPaint(Sender: TObject);
+begin
+  pbEraseButton.RenderToolButton('Erasing', clBlack, ToolMode = tmErasing);
 end;
 
 end.

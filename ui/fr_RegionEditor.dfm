@@ -20,19 +20,42 @@ inherited RegionEditor: TRegionEditor
     Height = 17
     Caption = 'Regions'
   end
-  object shDrawing: TShape
-    Left = 296
-    Top = 136
-    Width = 33
-    Height = 33
+  object pbDrawButton: TPaintBox
+    Left = 288
+    Top = 134
+    Width = 105
+    Height = 35
+    OnClick = pbDrawButtonClick
+    OnPaint = pbDrawButtonPaint
   end
-  object shErasing: TShape
-    Left = 344
-    Top = 136
-    Width = 33
-    Height = 33
-    Brush.Color = clBlack
-    Pen.Color = clGray
+  object pbEraseButton: TPaintBox
+    Left = 416
+    Top = 134
+    Width = 97
+    Height = 35
+    OnClick = pbEraseButtonClick
+    OnPaint = pbEraseButtonPaint
+  end
+  object SpeedButton1: TSpeedButton
+    Left = 568
+    Top = 134
+    Width = 73
+    Height = 35
+    Caption = 'Clear'
+  end
+  object SpeedButton2: TSpeedButton
+    Left = 648
+    Top = 134
+    Width = 89
+    Height = 35
+    Caption = 'Clear Active'
+  end
+  object SpeedButton3: TSpeedButton
+    Left = 752
+    Top = 134
+    Width = 89
+    Height = 35
+    Caption = 'Replace...'
   end
   object RegionList: TControlList
     Left = 16

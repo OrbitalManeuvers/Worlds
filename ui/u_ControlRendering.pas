@@ -20,9 +20,12 @@ type
     function GetColorGridLayout(): TLayout;
   public
     procedure Render(Rating: TRating); overload;
+
     procedure Render(Recipe: TRecipe); overload;
     procedure Render(Recipe: TRecipe; Molecule: TGrowableMolecule); overload;
     function PercentAtPos(X, Y: Integer; out Percent: TPercentage): Boolean;
+
+    procedure RenderToolButton(const aCaption: string; aColor: TColor; isActive: Boolean);
 
     procedure RenderColorPresets;
     function ColorAtPos(X, Y: Integer; out aColor: TColor): Boolean;
@@ -344,6 +347,63 @@ begin
 
 end;
 
+procedure TPaintboxHelper.RenderToolButton(const aCaption: string; aColor: TColor; isActive: Boolean);
+const
+  color_size = 20;
+begin
+  var bitmap := TBitmap.Create;
+  try
+    bitmap.Width := Self.ClientWidth;
+    bitmap.Height := self.ClientHeight;
+
+    // background
+    bitmap.canvas.Brush.Style := bsSolid;
+    var c := StyleServices.GetSystemColor(clBtnFace);
+    if isActive then
+      c := Vcl.GraphUtil.GetHighLightColor(c, 25);
+    bitmap.canvas.Brush.Color := c;
+    bitmap.canvas.FillRect(Self.ClientRect);
+
+    c := StyleServices.GetSystemColor(clWindowFrame);
+    if isActive then
+      c := StyleServices.GetSystemColor(clHighlight);
+
+    bitmap.canvas.Brush.Color := c;
+    bitmap.Canvas.FrameRect(Self.ClientRect);
+
+    var r := Self.ClientRect;
+    Dec(r.Right, 4);
+    r.left := r.Right - color_size;
+
+    var p := r.CenterPoint;
+    r.top := p.y - (color_size div 2);
+    r.Bottom := r.Top + color_size;
+    bitmap.Canvas.Brush.Color := aColor;
+    bitmap.Canvas.FillRect(r);
+
+    r.right := r.left - 4;
+    r.left := 4;
+    r.Top := 0;
+    r.Bottom := self.ClientHeight;
+    bitmap.Canvas.Font := Self.Font;
+    if isActive then
+      c := StyleServices.GetStyleFontColor(sfButtonTextPressed)
+    else
+      c := StyleServices.GetStyleFontColor(sfButtonTextDisabled);
+
+    bitmap.Canvas.Font.Color := c;
+    var s := aCaption;
+    bitmap.Canvas.Brush.Style := bsClear;
+    bitmap.Canvas.TextRect(r, s, [tfVerticalCenter, tfSingleLine]);
+
+    // xfer to display surface
+    r := Self.Canvas.ClipRect;
+    Self.Canvas.CopyRect(r, bitmap.Canvas, r);
+
+  finally
+    bitmap.Free;
+  end;
+end;
 
 
 end.

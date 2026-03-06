@@ -232,7 +232,9 @@ inherited BiomeEditor: TBiomeEditor
             Width = 220
             Height = 42
             AutoSize = False
-            Caption = 'Modifies the rate of food growth within this biome.'
+            Caption = 
+              'Modifies scarcity vs abundance of all natural resources in the b' +
+              'iome.'
             Enabled = False
             WordWrap = True
           end
