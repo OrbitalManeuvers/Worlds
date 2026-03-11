@@ -6,7 +6,12 @@ uses System.Classes, System.SysUtils, System.JSON, Vcl.Graphics,
 
   u_EnvironmentTypes;
 
+const
+  BIOME_GRID_SIZE = 32;
+
 type
+  TGridExtent = 0 .. BIOME_GRID_SIZE - 1;
+  TBiomeMarker = Byte;
   TBiomeColorPalette = array[TBiomeMarker] of TColor;
 
 type

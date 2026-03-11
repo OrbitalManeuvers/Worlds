@@ -22,6 +22,100 @@ object MainForm: TMainForm
     Panels = <>
     SimplePanel = True
   end
+  object pnlTaskbar: TPanel
+    Left = 0
+    Top = 0
+    Width = 1315
+    Height = 33
+    Align = alTop
+    BevelEdges = [beBottom]
+    BevelOuter = bvNone
+    Padding.Left = 2
+    Padding.Top = 2
+    Padding.Right = 2
+    Padding.Bottom = 2
+    ShowCaption = False
+    TabOrder = 1
+    object btnFood: TPngSpeedButton
+      Left = 2
+      Top = 2
+      Width = 110
+      Height = 29
+      Align = alLeft
+      GroupIndex = 1
+      Down = True
+      Caption = 'FOOD'
+      OnClick = ContentSelectorClick
+      ExplicitLeft = 4
+      ExplicitHeight = 44
+    end
+    object btnBiomes: TPngSpeedButton
+      Tag = 1
+      Left = 112
+      Top = 2
+      Width = 110
+      Height = 29
+      Align = alLeft
+      GroupIndex = 1
+      Caption = 'BIOMES'
+      OnClick = ContentSelectorClick
+      ExplicitTop = 5
+    end
+    object btnWorlds: TPngSpeedButton
+      Tag = 3
+      Left = 332
+      Top = 2
+      Width = 110
+      Height = 29
+      Align = alLeft
+      GroupIndex = 1
+      Caption = 'WORLDS'
+      OnClick = ContentSelectorClick
+      ExplicitLeft = 344
+      ExplicitTop = 4
+      ExplicitHeight = 39
+    end
+    object btnSimulator: TPngSpeedButton
+      Tag = 4
+      Left = 442
+      Top = 2
+      Width = 110
+      Height = 29
+      Align = alLeft
+      GroupIndex = 1
+      Caption = 'SIMULATOR'
+      OnClick = ContentSelectorClick
+      ExplicitLeft = 478
+      ExplicitTop = 4
+      ExplicitHeight = 44
+    end
+    object btnRegions: TPngSpeedButton
+      Tag = 2
+      Left = 222
+      Top = 2
+      Width = 110
+      Height = 29
+      Align = alLeft
+      GroupIndex = 1
+      Caption = 'REGIONS'
+      OnClick = ContentSelectorClick
+      ExplicitLeft = 344
+      ExplicitTop = 4
+      ExplicitHeight = 39
+    end
+    object btnSave: TPngSpeedButton
+      Tag = 4
+      Left = 1238
+      Top = 2
+      Width = 75
+      Height = 29
+      Align = alRight
+      GroupIndex = 1
+      Caption = 'Save'
+      OnClick = btnSaveClick
+      ExplicitLeft = 717
+    end
+  end
   object AppEvents: TApplicationEvents
     OnHint = AppEventsHint
     Left = 104

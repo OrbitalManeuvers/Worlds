@@ -46,6 +46,7 @@ type
 
     // biomes
     procedure AddBiome(aBiome: TBiome);
+    function FindBiome(aMarker: TBiomeMarker): TBiome;
     property BiomeCount: Integer read GetBiomeCount;
     property Biomes[I: Integer]: TBiome read GetBiome;
 
@@ -89,6 +90,24 @@ begin
   fFoods.Clear;
   fBiomes.Clear;
   fRegions.Clear;
+
+  // there's always a default biome
+  var ground := TBiome.Create;
+  try
+    ground.Name := 'Ground';
+    ground.Description := 'Default surface, no foods here!';
+    ground.Marker := 0;
+    ground.Color := clBlack;
+    ground.Sunlight := Normal;
+    ground.Mobility := Normal;
+    ground.Capacity := Worst;
+    ground.GrowthRate := Worst;
+    AddBiome(ground);
+  except
+    ground.Free;
+    raise;
+  end;
+
 end;
 
 procedure TEnvironmentLibrary.UpdateBiomeColorPalette(var aPalette: TBiomeColorPalette);
@@ -104,7 +123,7 @@ begin
   // revisit someday
   Assert(fBiomes.Count < High(TBiomeMarker));
 
-  var nextMarker := Succ(Low(TBiomeMarker));
+  var nextMarker := Low(TBiomeMarker);
   for var b in fBiomes do
     if (b.Marker >= nextMarker) and (b.Marker < Pred(High(TBiomeMarker))) then
       nextMarker := Succ(b.Marker);
@@ -127,6 +146,14 @@ begin
   aRegion.OnChange := ChildChanged;
   fRegions.Add(aRegion);
   Changed;
+end;
+
+function TEnvironmentLibrary.FindBiome(aMarker: TBiomeMarker): TBiome;
+begin
+  Result := nil;
+  for var biome in fBiomes do
+    if biome.Marker = aMarker then
+      Exit(biome);
 end;
 
 function TEnvironmentLibrary.FindFood(const aName: string): TFood;

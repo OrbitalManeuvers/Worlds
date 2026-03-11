@@ -26,6 +26,8 @@ type
     procedure SetGrowthRate(const Value: TRating);
     procedure SetMobility(const Value: TRating);
     procedure SetSunlight(const Value: TRating);
+  protected
+    property _foodList: TList<TFood> read fFoods;
   public
     constructor Create;
     destructor Destroy; override;
@@ -55,6 +57,7 @@ constructor TBiome.Create;
 begin
   inherited Create;
   fFoods := TList<TFood>.Create; // objects we don't own
+  fMarker := High(TBiomeMarker);
   Sunlight := Normal;
   Mobility := Normal;
   Capacity := Normal;

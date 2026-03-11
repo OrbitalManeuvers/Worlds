@@ -4,8 +4,6 @@ interface
 
 uses System.Classes;
 
-const
-  BIOME_GRID_SIZE = 32;
 
 type
   // low-res, easy, relative scoring
@@ -15,10 +13,6 @@ type
 type
   TMolecule = (Alpha, Beta, Gamma, Biomass);
   TGrowableMolecule = TMolecule.Alpha .. TMolecule.Gamma;
-
-  TBiomeMarker = Byte;
-  TGridExtent = 0 .. BIOME_GRID_SIZE - 1;
-//  TBiomeArray = array[TGridExtent, TGridExtent] of TBiomeMarker;
 
 const
   RATING_NAMES: array[TRating] of string = ('Worst', 'Horrible', 'Bad', 'Normal', 'Good', 'Great', 'Best');

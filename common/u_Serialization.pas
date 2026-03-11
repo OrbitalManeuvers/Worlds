@@ -95,7 +95,10 @@ type
 class procedure TSerializer.LoadLibrary(aLibrary: TEnvironmentLibrary; const aFileName: string);
 begin
   if not TFile.Exists(aFileName) then
+  begin
+    aLibrary.Clear;
     Exit;
+  end;
 
   var json: TJSONObject := TJSONValue.ParseJSONValue(TFile.ReadAllText(aFileName)) as TJSONObject;
   if Assigned(json) then

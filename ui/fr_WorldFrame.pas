@@ -19,6 +19,7 @@ type
     btnWorlds: TPngSpeedButton;
     btnSimulator: TPngSpeedButton;
     btnRegions: TPngSpeedButton;
+    btnSave: TPngSpeedButton;
     procedure EditorButtonClick(Sender: TObject);
   private
     fActiveFrameType: TContentFrameType;

@@ -9,7 +9,7 @@ uses
   PngSpeedButton,
 
   fr_ContentFrames,
-  u_MapEditors, u_Regions, u_EnvironmentTypes;
+  u_MapEditors, u_Regions, u_EditorTypes, u_EnvironmentTypes;
 
 type
   TRegionEditor = class(TContentFrame)

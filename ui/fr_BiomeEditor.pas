@@ -170,6 +170,12 @@ begin
     SunlightEditor.Rating := Biome.Sunlight;
     MobilityEditor.Rating := Biome.Mobility;
     CapacityEditor.Rating := Biome.Capacity;
+
+    if Biome.Marker = 0 then
+      FoodList.ItemCount := 0
+    else
+      FoodList.ItemCount := WorldLibrary.FoodCount;
+
     FoodList.Invalidate;
   end
   else
@@ -220,6 +226,9 @@ procedure TBiomeEditor.pbPresetsMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
   inherited;
+  if Biome.Marker = 0 then
+    Exit;
+
   var newColor: TColor;
   if pbPresets.ColorAtPos(X, Y, newColor) then
   begin
@@ -241,6 +250,17 @@ end;
 
 procedure TBiomeEditor.UpdateControls;
 begin
+  if not Assigned(Biome) then
+    Exit;
+
+  edtName.Enabled := Biome.Marker <> 0;
+  edtDescription.Enabled := Biome.Marker <> 0;
+  SunlightEditor.IsReadOnly := Biome.Marker = 0;
+  MobilityEditor.IsReadOnly := Biome.Marker = 0;
+  CapacityEditor.IsReadOnly := Biome.Marker = 0;
+  GrowthEditor.IsReadOnly := Biome.Marker = 0;
+
+
 end;
 
 procedure TBiomeEditor.ItemChanged;

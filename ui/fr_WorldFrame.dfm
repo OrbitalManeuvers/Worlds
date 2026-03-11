@@ -18,6 +18,7 @@ object WorldFrame: TWorldFrame
     BevelOuter = bvNone
     Padding.Left = 2
     Padding.Top = 2
+    Padding.Right = 2
     Padding.Bottom = 2
     ShowCaption = False
     TabOrder = 0
@@ -87,6 +88,18 @@ object WorldFrame: TWorldFrame
       ExplicitLeft = 344
       ExplicitTop = 4
       ExplicitHeight = 39
+    end
+    object btnSave: TPngSpeedButton
+      Tag = 4
+      Left = 750
+      Top = 2
+      Width = 75
+      Height = 29
+      Align = alRight
+      GroupIndex = 1
+      Caption = 'Save'
+      OnClick = EditorButtonClick
+      ExplicitLeft = 717
     end
   end
 end

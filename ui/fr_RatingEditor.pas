@@ -20,12 +20,15 @@ type
     procedure ButtonClick(Sender: TObject);
   private
     fRating: TRating;
+    fIsReadOnly: Boolean;
     fOnChange: TNotifyEvent;
     procedure SetRating(const Value: TRating);
     procedure UpdateControls;
+    procedure SetIsReadOnly(const Value: Boolean);
   public
     property Rating: TRating read fRating write SetRating;
     property OnChange: TNotifyEvent read fOnChange write fOnChange;
+    property IsReadOnly: Boolean write SetIsReadOnly;
   end;
 
 implementation
@@ -51,6 +54,12 @@ begin
   pbRating.Render(fRating);
 end;
 
+procedure TRatingEditorFrame.SetIsReadOnly(const Value: Boolean);
+begin
+  fIsReadOnly := Value;
+  UpdateControls;
+end;
+
 procedure TRatingEditorFrame.SetRating(const Value: TRating);
 begin
   fRating := Value;
@@ -60,8 +69,8 @@ end;
 
 procedure TRatingEditorFrame.UpdateControls;
 begin
-  btnLess.Enabled := fRating > Low(TRating);
-  btnMore.Enabled := fRating < High(TRating);
+  btnLess.Enabled := (fRating > Low(TRating)) and (not fIsReadOnly);
+  btnMore.Enabled := (fRating < High(TRating)) and (not fIsReadOnly);
 end;
 
 end.
