@@ -29,6 +29,7 @@ type
     constructor Create(aRuntime: TSimRuntime; aParams: TSimParams);
     destructor Destroy; override;
 
+    // this interface is temporary, and will be replaced by a world type (1x1,2x1,1x2,or 2x2 of region)
     procedure UpscaleRegion(aRegion: TRegion; aFactor: Integer; aLibrary: TEnvironmentLibrary);
 
     property BiomeMapping: TList<TBiome> read BiomeMappingOrder;
@@ -207,8 +208,6 @@ begin
     Log(biomeIndex.ToString + ': ' + BiomeList[biomeIndex].Name);
 
   end;
-
-  // umm, I think I'm done here.
 end;
 
 function TSimUpscaler.ResourceGrowthRate(aBiomeRating, aFoodRating: TRating): Single;
@@ -216,6 +215,7 @@ const
   BIOME_WEIGHT = 0.45;
   FOOD_WEIGHT = 0.55;
   BAD_SYNERGY = 0.60;
+  JITTER_MAX_PERCENT = 0.08;
   MIN_RATE = 0.05;
   MAX_RATE = 2.00;
 var
@@ -224,6 +224,7 @@ var
   combined: Single;
   biomeDeficit: Single;
   foodDeficit: Single;
+  jitterMultiplier: Single;
 begin
   biomeFactor := GROWTH_FACTOR[aBiomeRating];
   foodFactor := GROWTH_FACTOR[aFoodRating];
@@ -239,7 +240,22 @@ begin
     combined := combined * (1.0 - (BAD_SYNERGY * biomeDeficit * foodDeficit));
   end;
 
+  // Small bounded per-resource variation. Seed control is expected upstream.
+  jitterMultiplier := 1.0 + ((Random * 2.0 - 1.0) * JITTER_MAX_PERCENT);
+  combined := combined * jitterMultiplier;
+
   Result := EnsureRange(combined, MIN_RATE, MAX_RATE);
+end;
+
+function EdgeFadeByDistance(aDistanceFromEdge: Integer): Single;
+begin
+  // 2-cell soft edge profile: border cell is sparse, next inward cell is reduced.
+  case aDistanceFromEdge of
+    0: Result := 0.15;
+    1: Result := 0.50;
+  else
+    Result := 1.0;
+  end;
 end;
 
 procedure TSimUpscaler.UpscaleRegion(aRegion: TRegion; aFactor: Integer; aLibrary: TEnvironmentLibrary);
@@ -256,7 +272,10 @@ begin
   // Runtime resources are per upscaled cell, so scale by area expansion.
   RequiredResourceCount := RequiredResourceCount * (aFactor * aFactor);
 
-  // todo: when we do agents we'll need to populate Runtime.Environment.Substances
+  // populate substances
+  Runtime.Environment.SetSubstanceCount(FoodList.Count);
+  for var subIndex := 0 to FoodList.Count - 1 do
+    Runtime.Environment.SetSubstance(subIndex, FoodList[subIndex].ToSubstance);
 
   // set the sim runtime sizes
   Runtime.Environment.SetDimensions(simSize);
@@ -264,6 +283,7 @@ begin
 
   // need a lookup between the authored biomemap and the index of the biome in the dense list
   var markerToIndex := TDictionary<TBiomeMarker, Integer>.Create;
+  var sourceSize := aRegion.BiomeMap.Size;
   try
     for var i := 0 to BiomeList.Count - 1 do
       markerToIndex.Add(BiomeList[i].Marker, i);
@@ -277,9 +297,31 @@ begin
         var cellIndex := (cellY * simSize.cx) + cellX;
 
         // retrieve the biomeMarker from the region
-        var biomeMarker := aRegion.BiomeMap[cellX div aFactor, cellY div aFactor];
+        var sourceX := cellX div aFactor;
+        var sourceY := cellY div aFactor;
+        var localX := cellX mod aFactor;
+        var localY := cellY mod aFactor;
+
+        var biomeMarker := aRegion.BiomeMap[sourceX, sourceY];
         var biomeIndex := markerToIndex[biomeMarker];
         var biome := BiomeList[biomeIndex];
+
+        var edgeFactor := 1.0;
+        if aFactor > 1 then
+        begin
+          // Preserve region boundaries for future stitching. Only soften interior biome boundaries.
+          if (sourceX > 0) and (aRegion.BiomeMap[sourceX - 1, sourceY] <> biomeMarker) then
+            edgeFactor := Min(edgeFactor, EdgeFadeByDistance(localX));
+
+          if (sourceX < sourceSize.cx - 1) and (aRegion.BiomeMap[sourceX + 1, sourceY] <> biomeMarker) then
+            edgeFactor := Min(edgeFactor, EdgeFadeByDistance((aFactor - 1) - localX));
+
+          if (sourceY > 0) and (aRegion.BiomeMap[sourceX, sourceY - 1] <> biomeMarker) then
+            edgeFactor := Min(edgeFactor, EdgeFadeByDistance(localY));
+
+          if (sourceY < sourceSize.cy - 1) and (aRegion.BiomeMap[sourceX, sourceY + 1] <> biomeMarker) then
+            edgeFactor := Min(edgeFactor, EdgeFadeByDistance((aFactor - 1) - localY));
+        end;
 
 
         // this is not needed currently, or ever
@@ -303,8 +345,8 @@ begin
             // the foodList and the substances are in the same order
             Runtime.Environment.Resources[resIndex].SubstanceIndex := FoodList.IndexOf(biome.Foods[foodIndex]);
             Runtime.Environment.Resources[resIndex].Amount := 0;
-            Runtime.Environment.Resources[resIndex].Capacity := CAPACITY_FACTOR[biome.Capacity];
-            Runtime.Environment.Resources[resIndex].GrowthRate := ResourceGrowthRate(biome.GrowthRate, biome.Foods[foodIndex].GrowthRate);
+            Runtime.Environment.Resources[resIndex].Capacity := CAPACITY_FACTOR[biome.Capacity] * edgeFactor;
+            Runtime.Environment.Resources[resIndex].GrowthRate := ResourceGrowthRate(biome.GrowthRate, biome.Foods[foodIndex].GrowthRate) * edgeFactor;
           end;
 
           Inc(resourceWriteIndex, biome.FoodCount);

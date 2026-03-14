@@ -95,6 +95,10 @@ end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
+  for var frameType := Low(TContentFrameType) to High(TContentFrameType) do
+    if ContentFrames[frameType] <> nil then
+      ContentFrames[frameType].Done;
+
   WorldLibrary.Free;
 end;
 

@@ -11,7 +11,7 @@ type
     fParams: TSimParams;
     fRuntime: TSimRuntime;
     procedure SetParams(const Value: TSimParams);
-    procedure ClockCallback(Sender: TObject; var CanContinue: Boolean);
+    procedure ClockCallback(Sender: TObject; const TimeSlice: TSimClock.TTimeSlice; var CanContinue: Boolean);
   public
     constructor Create;
     destructor Destroy; override;
@@ -19,6 +19,7 @@ type
     function Upscaler: TSimUpscaler;
 
     property SimParams: TSimParams read fParams write SetParams;
+    property Runtime: TSimRuntime read fRuntime;
     property Clock: TSimClock read fClock;
   end;
 
@@ -41,10 +42,11 @@ begin
   inherited;
 end;
 
-procedure TSimulator.ClockCallback(Sender: TObject; var CanContinue: Boolean);
+procedure TSimulator.ClockCallback(Sender: TObject; const TimeSlice: TSimClock.TTimeSlice; var CanContinue: Boolean);
 begin
-  // we can stop the clock from being able to continue any further
-
+  // what does the runtime need to know
+  fRuntime.ClockTick := TimeSlice.ClockTick;
+  //
 end;
 
 procedure TSimulator.SetParams(const Value: TSimParams);

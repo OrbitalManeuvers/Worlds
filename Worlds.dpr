@@ -28,7 +28,10 @@ uses
   u_SimUpscalers in 'sim\u_SimUpscalers.pas',
   u_SimEnvironments in 'sim\u_SimEnvironments.pas',
   u_SimPopulations in 'sim\u_SimPopulations.pas',
-  fr_SimFrame in 'ui\fr_SimFrame.pas' {SimFrame: TFrame};
+  fr_SimFrame in 'ui\fr_SimFrame.pas' {SimFrame: TFrame},
+  u_CellVisualizers in 'ui\u_CellVisualizers.pas',
+  u_SimLoggers in 'sim\u_SimLoggers.pas',
+  u_SimVisualizer in 'ui\u_SimVisualizer.pas';
 
 {$R *.res}
 

@@ -4,47 +4,59 @@ interface
 
 uses System.Classes;
 
+const
+  CLOCK_TICKS_PER_DAY = 100;
+  NIGHT_TICKS_NUMERATOR = 1;
+  NIGHT_TICKS_DENOMINATOR = 5; // 20% of the day is night by default
+  NIGHT_TICKS_PER_DAY = (CLOCK_TICKS_PER_DAY * NIGHT_TICKS_NUMERATOR) div NIGHT_TICKS_DENOMINATOR;
+  DAYLIGHT_TICKS_PER_DAY = CLOCK_TICKS_PER_DAY - NIGHT_TICKS_PER_DAY;
+
 type
-  TClockCallback = procedure (Sender: TObject; var CanContinue: Boolean) of object;
+  TClockTick = 0 .. (CLOCK_TICKS_PER_DAY - 1);
+  TDaylightTicks = 0 .. (DAYLIGHT_TICKS_PER_DAY - 1);
 
   TSimClock = class
-  private type
-    TDayTick = 0 .. 99;
+  public type
+    TTimeSlice = record
+      DayNumber: Integer;
+      ClockTick: TClockTick;
+    end;
+    TControllerCallback = procedure (Sender: TObject; const CurrentTime: TTimeSlice; var CanContinue: Boolean) of object;
   private
     fDayNumber: Cardinal;
-    fDayTick: TDayTick;
+    fDayTick: TClockTick;
     fStopped: Boolean;
-    fCallback: TClockCallback;
+    fController: TControllerCallback;
     fOnDayChange: TNotifyEvent;
     fOnTickChange: TNotifyEvent;
     procedure Callback;
   public
-    constructor Create(aCallback: TClockCallback);
+    constructor Create(aController: TControllerCallback);
     destructor Destroy; override;
 
     procedure Reset;
     procedure Stop;
-    procedure SetDate(aDayNumber: Cardinal; aDayTick: TDayTick = 0);
+    procedure SetDate(aDayNumber: Cardinal; aDayTick: TClockTick = 0);
 
     procedure Step;
     procedure StepToTomorrow;
-    procedure RunTo(aDayNumber: Cardinal; aDayTick: TDayTick = 0);
+    procedure RunTo(aDayNumber: Cardinal; aDayTick: TClockTick = 0);
 
     property DayNumber: Cardinal read fDayNumber;
-    property DayTick: TDayTick read fDayTick;
+    property Tick: TClockTick read fDayTick;
 
-    property OnTickChange: TNotifyEvent read fOnTickChange write fOnTickChange;
-    property OnDayChange: TNotifyEvent read fOnDayChange write fOnDayChange;
+//    property OnTickChange: TNotifyEvent read fOnTickChange write fOnTickChange;
+//    property OnDayChange: TNotifyEvent read fOnDayChange write fOnDayChange;
   end;
 
 implementation
 
 { TSimClock }
 
-constructor TSimClock.Create(aCallback: TClockCallback);
+constructor TSimClock.Create(aController: TControllerCallback);
 begin
   inherited Create;
-  fCallback := aCallback;
+  fController := aController;
   Reset;
 end;
 
@@ -63,22 +75,25 @@ end;
 
 procedure TSimClock.Callback;
 begin
-  if Assigned(fCallback) then
+  if Assigned(fController) then
   begin
     var canContinue := True;
-    fCallback(Self, canContinue);
+    var current: TTimeSlice;
+    current.DayNumber := fDayNumber;
+    current.ClockTick := fDayTick;
+    fController(Self, current, canContinue);
     if not canContinue then
       fStopped := True;
   end;
 end;
 
-procedure TSimClock.RunTo(aDayNumber: Cardinal; aDayTick: TDayTick);
+procedure TSimClock.RunTo(aDayNumber: Cardinal; aDayTick: TClockTick);
 begin
   //
 
 end;
 
-procedure TSimClock.SetDate(aDayNumber: Cardinal; aDayTick: TDayTick);
+procedure TSimClock.SetDate(aDayNumber: Cardinal; aDayTick: TClockTick);
 begin
   fDayNumber := aDayNumber;
   fDayTick := aDayTick;
@@ -86,7 +101,7 @@ end;
 
 procedure TSimClock.Step;
 begin
-  if fDayTick < High(TDayTick) then
+  if fDayTick < High(TClockTick) then
   begin
     Inc(fDayTick);
     if Assigned(fOnTickChange) then
@@ -105,6 +120,11 @@ end;
 
 procedure TSimClock.StepToTomorrow;
 begin
+
+  // !! untested
+  var tuhDay := fDayNumber;
+  while (not fStopped) and (fDayNumber = tuhDay) do
+    Step;
 
 end;
 
