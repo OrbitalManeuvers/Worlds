@@ -38,8 +38,8 @@ type
     fResourceCount: Integer; // read only cache for instrumentation
     fSubstances: TSubstanceArray;
     fSolarFlux: Single;
-    procedure SetClockTick(const Value: TClockTick);
-    procedure UpdateResources(const aClockTick: TClockTick);
+    procedure SetDayTick(const Value: TDayTick);
+    procedure UpdateResources(const aDayTick: TDayTick);
   public
     constructor Create;
     destructor Destroy; override;
@@ -60,7 +60,7 @@ type
     property Substances: TSubstanceArray read fSubstances;
 
     property SolarFlux: Single read fSolarFlux write fSolarFlux;
-    property ClockTick: TClockTick write SetClockTick;
+    property DayTick: TDayTick write SetDayTick;
     property Dimensions: TSize read fDimensions;
   end;
 
@@ -68,15 +68,15 @@ implementation
 
 uses System.Math;
 
-function BaseSolarFlux(const ClockTick: TClockTick): Single;
+function BaseSolarFlux(const DayTick: TDayTick): Single;
 var
   Phase: Single;
 begin
-  if ClockTick > High(TDaylightTicks) then
+  if DayTick > High(TDaylightTicks) then
     Exit(0);
 
   // Convert discrete tick position into a continuous daylight phase.
-  Phase := ClockTick / High(TDaylightTicks); // 0..1 across daylight ticks
+  Phase := DayTick / High(TDaylightTicks); // 0..1 across daylight ticks
   Result := Sin(Pi * Phase);
   if Result < 0 then
     Result := 0;
@@ -96,7 +96,7 @@ begin
   inherited;
 end;
 
-procedure TSimEnvironment.SetClockTick(const Value: TClockTick);
+procedure TSimEnvironment.SetDayTick(const Value: TDayTick);
 begin
   fSolarFlux := BaseSolarFlux(Value);
 
@@ -104,18 +104,13 @@ begin
   // UpdateBiomass; // planned cache pass
 end;
 
-procedure TSimEnvironment.UpdateResources(const aClockTick: TClockTick);
+procedure TSimEnvironment.UpdateResources(const aDayTick: TDayTick);
 const
-  // Percentage decay per tick. Night can be same as day (no-growth-only nights)
-  // or higher for stronger overnight collapse.
-  DAY_DECAY_RATE = 0.01;
-  NIGHT_DECAY_RATE = 0.1;
-var
-  isNight: Boolean;
+  // Growable molecules decay at a constant rate whenever there is no sunlight.
+  GROWABLE_NO_SUNLIGHT_DECAY_PER_TICK = 0.056;
 begin
   // Resource growth pass is driven by current SolarFlux and per-cell modifiers.
   // Growth slows as a cache approaches capacity, making full-cap saturation rarer.
-  isNight := aClockTick > High(TDaylightTicks);
 
   for var cellIndex := 0 to High(fCells) do
   begin
@@ -135,10 +130,9 @@ begin
       // Soft cap: growth fades out as the cache fills.
       var growth := light * fResources[resIndex].GrowthRate * (1.0 - fill);
 
-      var decayRate := DAY_DECAY_RATE;
-      if isNight then
-        decayRate := NIGHT_DECAY_RATE;
-      var decay := amount * decayRate;
+      var decay := 0.0;
+      if light <= 0 then
+        decay := GROWABLE_NO_SUNLIGHT_DECAY_PER_TICK;
 
       fResources[resIndex].Amount := EnsureRange(
         amount + growth - decay,

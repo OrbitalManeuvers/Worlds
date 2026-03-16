@@ -120,7 +120,7 @@ begin
     var cellIndex := (ACell.Y * simSizeX) + ACell.X;
 
     // sim time
-    Fields.Add(Format('[%.02d:%.04d]', [Sim.Clock.DayNumber, Sim.Clock.Tick]));
+    Fields.Add(Format('[%.02d:%.04d]', [Sim.Clock.DayNumber, Sim.Clock.DayTick]));
 
     // solar flux
     Fields.Add(Format('[%.06f]', [Sim.Runtime.Environment.SolarFlux]));

@@ -11,7 +11,8 @@ type
     fParams: TSimParams;
     fRuntime: TSimRuntime;
     procedure SetParams(const Value: TSimParams);
-    procedure ClockCallback(Sender: TObject; const TimeSlice: TSimClock.TTimeSlice; var CanContinue: Boolean);
+    procedure ClockCallback(Sender: TObject; const NextTick: Cardinal; var CanContinue: Boolean);
+    procedure ClockTickHandler(Sender: TObject; GlobalTick: Cardinal; DayTick: TDayTick);
   public
     constructor Create;
     destructor Destroy; override;
@@ -32,20 +33,27 @@ constructor TSimulator.Create;
 begin
   inherited Create;
   fClock := TSimClock.Create(ClockCallback);
+  fClock.SubscribeTick(ClockTickHandler);
   fRuntime := TSimRuntime.Create;
 end;
 
 destructor TSimulator.Destroy;
 begin
   fRuntime.Free;
+  fClock.UnsubscribeTick(ClockTickHandler);
   fClock.Free;
   inherited;
 end;
 
-procedure TSimulator.ClockCallback(Sender: TObject; const TimeSlice: TSimClock.TTimeSlice; var CanContinue: Boolean);
+procedure TSimulator.ClockTickHandler(Sender: TObject; GlobalTick: Cardinal; DayTick: TDayTick);
+begin
+  fRuntime.DayTick := DayTick;
+end;
+
+procedure TSimulator.ClockCallback(Sender: TObject; const NextTick: Cardinal; var CanContinue: Boolean);
 begin
   // what does the runtime need to know
-  fRuntime.ClockTick := TimeSlice.ClockTick;
+//  fRuntime.ClockTick := TimeSlice.ClockTick;
   //
 end;
 

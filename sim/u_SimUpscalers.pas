@@ -86,9 +86,15 @@ const
   // E.g. yourRate = normalRate * GROWTH_FACTOR[rating]
   GROWTH_FACTOR: array[TRating] of Single = (0.10, 0.35, 0.60, 1.00, 1.10, 1.18, 1.35);
 
-  // Capacity Rating: from below sim avg to above sim avg
-  // E.g. yourCapacity = normalCapacity * CAPACITY_FACTOR[rating]
-  CAPACITY_FACTOR: array[TRating] of Single = (0.10, 0.30, 0.60, 1.00, 1.10, 1.18, 1.35);
+  // Capacity Rating controls cache occurrence density (sparse vs abundant).
+  // E.g. yourDensityChance = baseChance * CAPACITY_DENSITY_FACTOR[rating]
+  CAPACITY_DENSITY_FACTOR: array[TRating] of Single = (0.01, 0.03, 0.06, 0.10, 0.11, 0.118, 0.135);
+
+  // Fallback defaults used when SimParams are not configured.
+  DEFAULT_BASE_CACHE_CAPACITY = 1.0;
+  DEFAULT_CACHE_CAPACITY_JITTER_PCT = 0.12;
+  DEFAULT_CACHE_FILL_MIN = 0.0;
+  DEFAULT_CACHE_FILL_MAX = 0.0;
 
 
 { TSimUpscaler }
@@ -177,7 +183,7 @@ begin
     end;
   end;
 
-  // reduce the biome list to just the used ones, and calculate the number of resources they represent
+  // reduce the biome list to just the used ones
   RequiredResourceCount := 0;
   for var marker := Low(TBiomeMarker) to High(TBiomeMarker) do
   begin
@@ -185,7 +191,6 @@ begin
     if biome <> nil then
     begin
       BiomeList.Add(biome);
-      RequiredResourceCount := RequiredResourceCount + (biomeUsage[marker].Count * biome.FoodCount);
     end;
   end;
 
@@ -259,7 +264,95 @@ begin
 end;
 
 procedure TSimUpscaler.UpscaleRegion(aRegion: TRegion; aFactor: Integer; aLibrary: TEnvironmentLibrary);
+
+  function ResolveBaseCacheCapacity: Single;
+  begin
+    Result := Params.BaseCacheCapacity;
+    if Result <= 0 then
+      Result := DEFAULT_BASE_CACHE_CAPACITY;
+  end;
+
+  function ResolveCapacityJitterPct: Single;
+  begin
+    Result := EnsureRange(Params.CacheCapacityJitterPct, 0.0, 0.95);
+    if Result = 0 then
+      Result := DEFAULT_CACHE_CAPACITY_JITTER_PCT;
+  end;
+
+  function ResolveInitialFillMin: Single;
+  begin
+    Result := EnsureRange(Params.CacheInitialFillMin, 0.0, 1.0);
+    if Result = 0 then
+      Result := DEFAULT_CACHE_FILL_MIN;
+  end;
+
+  function ResolveInitialFillMax: Single;
+  begin
+    Result := EnsureRange(Params.CacheInitialFillMax, 0.0, 1.0);
+    if Result = 0 then
+      Result := DEFAULT_CACHE_FILL_MAX;
+  end;
+
+  function CacheOccupancyChance(const aBiome: TBiome; const aEdgeFactor: Single): Single;
+  begin
+    Result := EnsureRange(CAPACITY_DENSITY_FACTOR[aBiome.Capacity] * aEdgeFactor, 0.0, 1.0);
+  end;
+
+  function ShouldPlaceCache(const aBiome: TBiome; const aEdgeFactor: Single): Boolean;
+  begin
+    var roll := Random;
+    Result := roll < CacheOccupancyChance(aBiome, aEdgeFactor);
+  end;
+
+  function ComputeEdgeFactor(const aSourceX, aSourceY, aLocalX, aLocalY: Integer;
+    const aBiomeMarker: TBiomeMarker; const aSourceSize: TSize): Single;
+  begin
+    Result := 1.0;
+    if aFactor <= 1 then
+      Exit;
+
+    // Preserve region boundaries for future stitching. Only soften interior biome boundaries.
+    if (aSourceX > 0) and (aRegion.BiomeMap[aSourceX - 1, aSourceY] <> aBiomeMarker) then
+      Result := Min(Result, EdgeFadeByDistance(aLocalX));
+
+    if (aSourceX < aSourceSize.cx - 1) and (aRegion.BiomeMap[aSourceX + 1, aSourceY] <> aBiomeMarker) then
+      Result := Min(Result, EdgeFadeByDistance((aFactor - 1) - aLocalX));
+
+    if (aSourceY > 0) and (aRegion.BiomeMap[aSourceX, aSourceY - 1] <> aBiomeMarker) then
+      Result := Min(Result, EdgeFadeByDistance(aLocalY));
+
+    if (aSourceY < aSourceSize.cy - 1) and (aRegion.BiomeMap[aSourceX, aSourceY + 1] <> aBiomeMarker) then
+      Result := Min(Result, EdgeFadeByDistance((aFactor - 1) - aLocalY));
+  end;
+
+  function CacheCapacityValue: Single;
+  begin
+    var jitterPct := ResolveCapacityJitterPct;
+    var noise := Random;
+    var signedNoise := (noise * 2.0) - 1.0;
+
+    Result := ResolveBaseCacheCapacity * (1.0 + (signedNoise * jitterPct));
+    Result := Max(Result, 0.01);
+  end;
+
+  function InitialCacheAmount(const aCacheCapacity: Single): Single;
+  begin
+    var fillMin := ResolveInitialFillMin;
+    var fillMax := ResolveInitialFillMax;
+    if fillMin > fillMax then
+    begin
+      var temp := fillMin;
+      fillMin := fillMax;
+      fillMax := temp;
+    end;
+
+    var fillNoise := Random;
+    var fillRatio := fillMin + ((fillMax - fillMin) * fillNoise);
+    Result := aCacheCapacity * EnsureRange(fillRatio, 0.0, 1.0);
+  end;
+
 begin
+
   // determine upscaled sim size
   var simSize := aRegion.BiomeMap.Size;
   simSize.cx := simSize.cx * aFactor;
@@ -268,18 +361,13 @@ begin
   // scan the region to extract the biome list we'll need
   GatherBiomeInfo(aRegion, aLibrary);
 
-  // GatherBiomeInfo counts resources on the authored (source) grid.
-  // Runtime resources are per upscaled cell, so scale by area expansion.
-  RequiredResourceCount := RequiredResourceCount * (aFactor * aFactor);
-
   // populate substances
   Runtime.Environment.SetSubstanceCount(FoodList.Count);
   for var subIndex := 0 to FoodList.Count - 1 do
     Runtime.Environment.SetSubstance(subIndex, FoodList[subIndex].ToSubstance);
 
-  // set the sim runtime sizes
+  // set the sim runtime dimensions up front; resource count is determined by sparse placement pass
   Runtime.Environment.SetDimensions(simSize);
-  Runtime.Environment.SetResourceCount(RequiredResourceCount);
 
   // need a lookup between the authored biomemap and the index of the biome in the dense list
   var markerToIndex := TDictionary<TBiomeMarker, Integer>.Create;
@@ -287,6 +375,25 @@ begin
   try
     for var i := 0 to BiomeList.Count - 1 do
       markerToIndex.Add(BiomeList[i].Marker, i);
+
+    // pass 1: compute worst-case resource slots (all food caches present)
+    RequiredResourceCount := 0;
+    for var cellY := 0 to simSize.cy - 1 do
+    begin
+      for var cellX := 0 to simSize.cx - 1 do
+      begin
+        var sourceX := cellX div aFactor;
+        var sourceY := cellY div aFactor;
+
+        var biomeMarker := aRegion.BiomeMap[sourceX, sourceY];
+        var biomeIndex := markerToIndex[biomeMarker];
+        var biome := BiomeList[biomeIndex];
+
+        Inc(RequiredResourceCount, biome.FoodCount);
+      end;
+    end;
+
+    Runtime.Environment.SetResourceCount(RequiredResourceCount);
 
     var resourceWriteIndex := 0; // current resource array index
     for var cellY := 0 to simSize.cy - 1 do
@@ -306,65 +413,46 @@ begin
         var biomeIndex := markerToIndex[biomeMarker];
         var biome := BiomeList[biomeIndex];
 
-        var edgeFactor := 1.0;
-        if aFactor > 1 then
-        begin
-          // Preserve region boundaries for future stitching. Only soften interior biome boundaries.
-          if (sourceX > 0) and (aRegion.BiomeMap[sourceX - 1, sourceY] <> biomeMarker) then
-            edgeFactor := Min(edgeFactor, EdgeFadeByDistance(localX));
-
-          if (sourceX < sourceSize.cx - 1) and (aRegion.BiomeMap[sourceX + 1, sourceY] <> biomeMarker) then
-            edgeFactor := Min(edgeFactor, EdgeFadeByDistance((aFactor - 1) - localX));
-
-          if (sourceY > 0) and (aRegion.BiomeMap[sourceX, sourceY - 1] <> biomeMarker) then
-            edgeFactor := Min(edgeFactor, EdgeFadeByDistance(localY));
-
-          if (sourceY < sourceSize.cy - 1) and (aRegion.BiomeMap[sourceX, sourceY + 1] <> biomeMarker) then
-            edgeFactor := Min(edgeFactor, EdgeFadeByDistance((aFactor - 1) - localY));
-        end;
+        var edgeFactor := ComputeEdgeFactor(sourceX, sourceY, localX, localY, biomeMarker, sourceSize);
 
 
         // this is not needed currently, or ever
         // Runtime.Environment.Cells[cellIndex].BiomeIndex := biomeIndex;
 
         // agent interaction params for the cell
-        { todo: jitter }
         Runtime.Environment.Cells[cellIndex].Sunlight := SUNLIGHT_FACTOR[biome.Sunlight];
         Runtime.Environment.Cells[cellIndex].Mobility := MOBILITY_COST_PENALTY[biome.Mobility];
 
-        // set the cell's resource data
-        if biome.FoodCount > 0 then
+        Runtime.Environment.Cells[cellIndex].ResourceStart := resourceWriteIndex;
+        Runtime.Environment.Cells[cellIndex].ResourceCount := 0;
+
+        // set sparse cache topology + cache state for this cell
+        for var foodIndex := 0 to biome.FoodCount - 1 do
         begin
-          Runtime.Environment.Cells[cellIndex].ResourceStart := resourceWriteIndex;
-          Runtime.Environment.Cells[cellIndex].ResourceCount := biome.FoodCount;
+          if not ShouldPlaceCache(biome, edgeFactor) then
+            Continue;
 
-          for var foodIndex := 0 to biome.FoodCount - 1 do
-          begin
-            var resIndex := resourceWriteIndex + foodIndex;
+          var resIndex := resourceWriteIndex;
 
-            // the foodList and the substances are in the same order
-            Runtime.Environment.Resources[resIndex].SubstanceIndex := FoodList.IndexOf(biome.Foods[foodIndex]);
-            Runtime.Environment.Resources[resIndex].Amount := 0;
-            Runtime.Environment.Resources[resIndex].Capacity := CAPACITY_FACTOR[biome.Capacity] * edgeFactor;
-            Runtime.Environment.Resources[resIndex].GrowthRate := ResourceGrowthRate(biome.GrowthRate, biome.Foods[foodIndex].GrowthRate) * edgeFactor;
-          end;
+          // the foodList and the substances are in the same order
+          Runtime.Environment.Resources[resIndex].SubstanceIndex := FoodList.IndexOf(biome.Foods[foodIndex]);
 
-          Inc(resourceWriteIndex, biome.FoodCount);
-        end
-        else
-        begin
-          Runtime.Environment.Cells[cellIndex].ResourceStart := 0;
-          Runtime.Environment.Cells[cellIndex].ResourceCount := 0;
+          var cacheCapacity := CacheCapacityValue;
+          Runtime.Environment.Resources[resIndex].Capacity := cacheCapacity;
+          Runtime.Environment.Resources[resIndex].Amount := InitialCacheAmount(cacheCapacity);
+          Runtime.Environment.Resources[resIndex].GrowthRate := ResourceGrowthRate(biome.GrowthRate, biome.Foods[foodIndex].GrowthRate) * edgeFactor;
+
+          Inc(resourceWriteIndex);
+          Inc(Runtime.Environment.Cells[cellIndex].ResourceCount);
         end;
 
 
       end; { grid for }
 
     end;
-
-//    if resourceWriteIndex <> RequiredResourceCount then
-//      raise Exception.CreateFmt('Resource count mismatch. wrote %d, expected %d',
-//        [resourceWriteIndex, RequiredResourceCount]);
+    // Trim to actual sparse cache count now that placement is finalized.
+    RequiredResourceCount := resourceWriteIndex;
+    Runtime.Environment.SetResourceCount(RequiredResourceCount);
 
   finally
     markerToIndex.Free;

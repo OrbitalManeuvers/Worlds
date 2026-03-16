@@ -233,8 +233,8 @@ inherited BiomeEditor: TBiomeEditor
             Height = 42
             AutoSize = False
             Caption = 
-              'Modifies scarcity vs abundance of all natural resources in the b' +
-              'iome.'
+              'Controls how frequently resource caches appear in this biome (spa' +
+              'rse vs dense).' 
             Enabled = False
             WordWrap = True
           end

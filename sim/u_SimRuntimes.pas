@@ -9,14 +9,14 @@ type
   private
     fEnvironment: TSimEnvironment;
     fPopulation: TSimPopulation;
-    procedure SetClockTick(const Value: TClockTick);
+    procedure SetDayTick(const Value: TDayTick);
   public
     constructor Create;
     destructor Destroy; override;
 
     property Environment: TSimEnvironment read fEnvironment;
     property Population: TSimPopulation read fPopulation;
-    property ClockTick: TClockTick write SetClockTick;
+    property DayTick: TDayTick write SetDayTick;
   end;
 
 implementation
@@ -37,9 +37,9 @@ begin
   inherited;
 end;
 
-procedure TSimRuntime.SetClockTick(const Value: TClockTick);
+procedure TSimRuntime.SetDayTick(const Value: TDayTick);
 begin
-  fEnvironment.ClockTick := Value;
+  fEnvironment.DayTick := Value;
 end;
 
 end.
