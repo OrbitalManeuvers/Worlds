@@ -10,6 +10,16 @@ const
   BIOME_GRID_SIZE = 32;
 
 type
+  TRatingNames = array[TRating] of string;
+
+const
+  RATING_NAMES: TRatingNames = ('Worst', 'Horrible', 'Bad', 'Normal', 'Good', 'Great', 'Best');
+  MOLECULE_NAMES: array[TMolecule] of string = ('Alpha', 'Beta', 'Gamma', 'Biomass');
+
+  MOLECULE_COLORS: array[TMolecule] of string = ('#6FA8DC', '#93C47D', '#E69138', '#D3A29C');
+
+
+type
   TGridExtent = 0 .. BIOME_GRID_SIZE - 1;
   TBiomeMarker = Byte;
   TBiomeColorPalette = array[TBiomeMarker] of TColor;

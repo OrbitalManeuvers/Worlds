@@ -2,7 +2,7 @@ unit u_Foods;
 
 interface
 
-uses System.Classes, System.JSON,
+uses System.Classes,
   u_EditorTypes, u_EnvironmentTypes;
 
 type

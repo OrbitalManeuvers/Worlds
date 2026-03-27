@@ -6,8 +6,9 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, fr_ContentFrames, Vcl.StdCtrls, Vcl.ExtCtrls,
 
+  Vcl.Samples.Spin, Vcl.ControlList, Vcl.ComCtrls, Vcl.Buttons, Vcl.Mask,
   u_EnvironmentLibraries, u_SimVisualizer, u_Simulators, u_SimLoggers,
-  Vcl.Samples.Spin, Vcl.ControlList, Vcl.ComCtrls, Vcl.Buttons;
+  u_SimSessions;
 
 type
   TSimFrame = class(TContentFrame)
@@ -19,7 +20,7 @@ type
     Pages: TPageControl;
     tsNoSelection: TTabSheet;
     tsSelection: TTabSheet;
-    RegionList: TControlList;
+    WorldList: TControlList;
     Label2: TLabel;
     gbControls: TGroupBox;
     lblClock: TLabel;
@@ -28,31 +29,41 @@ type
     btnStep5: TSpeedButton;
     btnStep10: TSpeedButton;
     spZoomLevel: TSpinButton;
-    lblRegionName: TLabel;
+    lblWorldName: TLabel;
     btnScrollUp: TSpeedButton;
     btnScrollRight: TSpeedButton;
     btnScrollLeft: TSpeedButton;
     btnScrollDown: TSpeedButton;
+    gbPopulation: TGroupBox;
+    edtAgentCount: TLabeledEdit;
+    btnClose: TButton;
     procedure btnCreateSimClick(Sender: TObject);
     procedure btnStepClick(Sender: TObject);
     procedure spnSubstanceIndexChange(Sender: TObject);
     procedure spZoomLevelDownClick(Sender: TObject);
     procedure spZoomLevelUpClick(Sender: TObject);
     procedure pbVisualizerPaint(Sender: TObject);
-    procedure RegionListItemClick(Sender: TObject);
-    procedure RegionListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
+    procedure WorldListItemClick(Sender: TObject);
+    procedure WorldListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
     procedure ScrollClick(Sender: TObject);
+    procedure btnCloseClick(Sender: TObject);
   private
-    simulator: TSimulator;
+    session: TSimSession;
+//    simulator: TSimulator;
     logger: TSimLogger;
-    visualizer: TSubstanceVisualizer;
+//    visualizer: TSubstanceVisualizer;
     function GetVisualizerColor: TColor;
     procedure Log(const msg: string);
     procedure HandleLogEvent(Sender: TLogger; const aMsg: string);
     procedure BeginLogWrite(Sender: TObject);
     procedure EndLogWrite(Sender: TObject);
     procedure UpdateControls;
+
+    procedure InitSimulator;
+    procedure DoneSimulator;
+    procedure CloseSession;
+
   public
     procedure Init; override;
     procedure Done; override;
@@ -73,42 +84,54 @@ uses System.Types, System.Math,
 procedure TSimFrame.Init;
 begin
   inherited;
-  simulator := TSimulator.Create;
-
-  logger := TSimLogger.Create(simulator);
-  logger.OnLog := HandleLogEvent;
-  logger.OnBeginOutput := BeginLogWrite;
-  logger.OnEndOutput := EndLogWrite;
-
-  visualizer := TSubstanceVisualizer.Create;
-  visualizer.Simulator := simulator;
-  visualizer.DisplayMode := sdmFill;
-
   Pages.ActivePage := tsNoSelection;
   UpdateControls;
 end;
 
 procedure TSimFrame.Done;
 begin
-  visualizer.Free;
-  logger.free;
-  simulator.Free;
+  DoneSimulator;
   inherited;
+end;
+
+procedure TSimFrame.InitSimulator;
+begin
+//  simulator := TSimulator.Create;
+
+//  logger := TSimLogger.Create(simulator);
+//  logger.OnLog := HandleLogEvent;
+//  logger.OnBeginOutput := BeginLogWrite;
+//  logger.OnEndOutput := EndLogWrite;
+//
+//  visualizer := TSubstanceVisualizer.Create;
+//  visualizer.Simulator := simulator;
+//  visualizer.DisplayMode := sdmFill;
+end;
+
+procedure TSimFrame.DoneSimulator;
+begin
+//  if Assigned(simulator) then
+//  begin
+//    visualizer.Free;
+//    logger.free;
+//    simulator.Free;
+//    simulator := nil;
+//  end;
 end;
 
 procedure TSimFrame.pbVisualizerPaint(Sender: TObject);
 begin
-  visualizer.Paint(pbVisualizer.Canvas, GetVisualizerColor, pbVisualizer.ClientRect);
+//  visualizer.Paint(pbVisualizer.Canvas, GetVisualizerColor, pbVisualizer.ClientRect);
 end;
 
-procedure TSimFrame.RegionListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
+procedure TSimFrame.WorldListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
   ARect: TRect; AState: TOwnerDrawState);
 begin
-  if (AIndex > -1) and (AIndex < WorldLibrary.RegionCount) then
-    lblRegionName.Caption := WorldLibrary.Regions[AIndex].Name;
+  if (AIndex > -1) and (AIndex < WorldLibrary.WorldCount) then
+    lblWorldName.Caption := WorldLibrary.Worlds[AIndex].Name;
 end;
 
-procedure TSimFrame.RegionListItemClick(Sender: TObject);
+procedure TSimFrame.WorldListItemClick(Sender: TObject);
 begin
   inherited;
   UpdateControls;
@@ -128,8 +151,8 @@ begin
     4: dir.x := -1;
   end;
 
-  visualizer.PanByCells(dir);
-  pbVisualizer.Invalidate;
+//  visualizer.PanByCells(dir);
+//  pbVisualizer.Invalidate;
 end;
 
 function TSimFrame.GetVisualizerColor: TColor;
@@ -152,34 +175,33 @@ end;
 
 procedure TSimFrame.spnSubstanceIndexChange(Sender: TObject);
 begin
-  var newIndex := spnSubstanceIndex.Value;
-  visualizer.SubstanceIndex := newIndex;
-  pbVisualizer.Invalidate;
+//  var newIndex := spnSubstanceIndex.Value;
+//  visualizer.SubstanceIndex := newIndex;
+//  pbVisualizer.Invalidate;
 end;
 
 procedure TSimFrame.spZoomLevelDownClick(Sender: TObject);
 begin
-  if visualizer.ZoomLevel > Low(TVisualizerZoom) then
-  begin
-    visualizer.ZoomOut;
-    pbVisualizer.Invalidate;
-  end;
+//  if visualizer.ZoomLevel > Low(TVisualizerZoom) then
+//  begin
+//    visualizer.ZoomOut;
+//    pbVisualizer.Invalidate;
+//  end;
 end;
 
 procedure TSimFrame.spZoomLevelUpClick(Sender: TObject);
 begin
-  if visualizer.ZoomLevel < High(TVisualizerZoom) then
-  begin
-    visualizer.ZoomIn;
-    pbVisualizer.Invalidate;
-  end;
+//  if visualizer.ZoomLevel < High(TVisualizerZoom) then
+//  begin
+//    visualizer.ZoomIn;
+//    pbVisualizer.Invalidate;
+//  end;
 end;
 
 procedure TSimFrame.UpdateControls;
 begin
-//  btnStart.Enabled := cmbRegions.ItemIndex <> -1;
-
-  btnCreateSim.Enabled := RegionList.ItemIndex <> -1;
+  var agentCount := StrToIntDef(edtAgentCount.Text, 0);
+  btnCreateSim.Enabled := (WorldList.ItemIndex <> -1) and (agentCount > 0) and (agentCount < 100); // !!
 end;
 
 procedure TSimFrame.ActivateContent;
@@ -188,14 +210,12 @@ begin
 
   if Pages.ActivePage = tsNoSelection then
   begin
-
-    if WorldLibrary.RegionCount <> RegionList.ItemCount then
+    if WorldLibrary.WorldCount <> WorldList.ItemCount then
     begin
-      RegionList.ItemCount := WorldLibrary.RegionCount;
-      if RegionList.ItemCount > 0 then
-        RegionList.ItemIndex := 0;
+      WorldList.ItemCount := WorldLibrary.WorldCount;
+      if WorldList.ItemCount > 0 then
+        WorldList.ItemIndex := 0;
     end;
-
   end;
 
   UpdateControls;
@@ -214,29 +234,69 @@ begin
   LogMemo.Perform(EM_SCROLLCARET, 0, 0);
 end;
 
+procedure TSimFrame.btnCloseClick(Sender: TObject);
+begin
+  // stop the session
+  CloseSession;
+end;
+
+procedure TSimFrame.CloseSession;
+begin
+  Pages.ActivePage := tsNoSelection;
+  logger.Free;
+  logger := nil;
+  session.EndSession;
+  session.Free;
+  session := nil;
+end;
+
 procedure TSimFrame.btnCreateSimClick(Sender: TObject);
 begin
   Pages.ActivePage := tsSelection;
 
-  var upscaler := simulator.Upscaler();
+  // convert UI settings to sim params
+  var params: TSimParams;
+  params.InitDefaults;
+  params.Population.AgentCount := StrToIntDef(edtAgentCount.Text, 1);
 
-  var region := WorldLibrary.Regions[RegionList.ItemIndex];
-  upscaler.UpscaleRegion(region, 8, WorldLibrary);
+  var world := WorldLibrary.Worlds[WorldList.ItemIndex];
 
-  // set up UI controls
-  spnSubstanceIndex.MinValue := 0;
-  spnSubstanceIndex.MaxValue := Length(simulator.Runtime.Environment.Substances);
-  spnSubstanceIndex.Value := 0;
+  { allocation }
+  session := TSimSession.Create(world, params, WorldLibrary);
 
+  { allocation }
+  logger := TSimLogger.Create(session.Simulator);
+  logger.OnLog := HandleLogEvent;
+  logger.OnBeginOutput := BeginLogWrite;
+  logger.OnEndOutput := EndLogWrite;
+
+  // attempt to set the wheels in motion
+  try
+    session.BeginSession;
+  except
+    on E: Exception do
+    begin
+      CloseSession;
+      ShowException(E, nil);
+      Exit;
+    end;
+  end;
+
+
+//  // set up UI controls
+//  spnSubstanceIndex.MinValue := 0;
+//  spnSubstanceIndex.MaxValue := Length(simulator.Runtime.Environment.Substances);
+//  spnSubstanceIndex.Value := 0;
 
   LogMemo.Clear;
-  Log('Upscale of ' + region.Name + ' completed.');
-  Log('Food caches: ' + simulator.Runtime.Environment.ResourceCount.ToString);
+  Log('Session created using ' + world.Name);
+
+//  Log('Food caches: ' + simulator.Runtime.Environment.ResourceCount.ToString);
 
   Log('Substances:');
   logger.LogSubstances;
 
-  pbVisualizer.Invalidate;
+//  pbVisualizer.Invalidate;
 
 end;
 
@@ -250,13 +310,13 @@ begin
   try
     for var stepIndex := 1 to count do
     begin
-      simulator.Clock.Step;
-      lblTime.Caption := Format('%.02d:%.03d', [simulator.Clock.DayNumber, simulator.Clock.DayTick]);
+      session.simulator.Clock.Step;
+      lblTime.Caption := Format('%.02d:%.03d', [session.simulator.Clock.DayNumber, session.simulator.Clock.DayTick]);
       for var x := 3 to 3 do
         logger.LogCell(point(x, 0));
     end;
-
-    pbVisualizer.Invalidate;
+//
+//    pbVisualizer.Invalidate;
 
   finally
     LogMemo.Lines.EndUpdate;
@@ -265,7 +325,6 @@ begin
   LogMemo.SelStart := Length(LogMemo.Text);
   LogMemo.SelLength := 0;
   LogMemo.Perform(EM_SCROLLCARET, 0, 0);
-
 end;
 
 end.

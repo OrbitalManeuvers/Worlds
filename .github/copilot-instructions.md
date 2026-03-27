@@ -6,6 +6,9 @@ These instructions are project-specific and override generic Copilot defaults.
 
 ---
 
+## Project Summary
+`docs\project-summary.md` contains a high-level overview of the project’s purpose, architecture, and key components. It is recommended to review this document to understand the broader context of the codebase.
+
 ## Core Assumptions
 
 - The currently open file(s) and any files explicitly added to chat **are real, complete, and authoritative**.

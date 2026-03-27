@@ -16,7 +16,8 @@ implementation
 uses System.JSON, System.IOUtils,  System.SysUtils, Vcl.Graphics, Vcl.GraphUtil,
   System.Generics.Collections,
 
-  u_EnvironmentTypes, u_EditorTypes, u_Foods, u_Biomes, u_Regions;
+  u_EnvironmentTypes, u_EditorTypes, u_BiologyTypes,
+  u_Foods, u_Biomes, u_Regions, u_Worlds;
 
 
 const
@@ -36,9 +37,20 @@ const
   KEY_SUNLIGHT = 'sunlight';
   KEY_MOBILITY = 'mobility';
 
+  KEY_ALPHA = 'alpha';
+  KEY_BETA = 'beta';
+  KEY_GAMMA = 'gamma';
+  KEY_BIOMASS = 'biomass';
+
+  KEY_LAYOUT = 'layout';
+
   KEY_FOODS = 'foods';
   KEY_BIOMES = 'biomes';
   KEY_REGIONS = 'regions';
+  KEY_RATINGS = 'ratings';
+  KEY_WORLDS = 'worlds';
+
+  REGION_LAYOUT_STRS: array[TRegionLayout] of string = ('Single', 'NorthSouth', 'WestEast', 'Square');
 
 type
   TLibraryHelper = class helper for TEnvironmentLibrary
@@ -49,9 +61,14 @@ type
     procedure LoadFoods(const JSON: TJSONObject);
     procedure LoadBiomes(const JSON: TJSONObject);
     procedure LoadRegions(const JSON: TJSONObject);
+    procedure LoadRatings(const JSON: TJSONObject);
+    procedure LoadWorlds(const JSON: TJSONObject);
+
     procedure SaveFoods(const JSON: TJSONObject);
     procedure SaveBiomes(const JSON: TJSONObject);
     procedure SaveRegions(const JSON: TJSONObject);
+    procedure SaveRatings(const JSON: TJSONObject);
+    procedure SaveWorlds(const JSON: TJSONObject);
   public
     property AsJSON: TJSONObject read getJSON write setJSON;
   end;
@@ -88,6 +105,21 @@ type
     property AsJSON: TJSONObject read getJSON write setJSON;
   end;
 
+  TRatingsHelper = class helper for TMoleculeRatings
+  private
+    function getJSON: TJSONObject;
+    procedure setJSON(const Value: TJSONObject);
+  public
+    property AsJSON: TJSONObject read getJSON write setJSON;
+  end;
+
+  TWorldHelper = class helper for TWorld
+  private
+    function getJSON: TJSONObject;
+    procedure setJSON(const Value: TJSONObject);
+  public
+    property AsJSON: TJSONObject read getJSON write setJSON;
+  end;
 
 
 { TSerializer }
@@ -133,6 +165,8 @@ begin
   SaveFoods(Result);
   SaveBiomes(Result);
   SaveRegions(Result);
+  SaveRatings(Result);
+  SaveWorlds(Result);
 end;
 
 procedure TLibraryHelper.setJSON(const Value: TJSONObject);
@@ -141,6 +175,8 @@ begin
   LoadFoods(Value);
   LoadBiomes(Value);
   LoadRegions(Value);
+  LoadRatings(Value);
+  LoadWorlds(Value);
 end;
 
 
@@ -154,9 +190,15 @@ begin
     begin
       if item is TJSONObject then
       begin
+        // check biome marker before creating a biome - remove after save tested to not write biome 0
+        var arrObj := TJSONObject(item);
+        var marker: TBiomeMarker;
+        if arrObj.TryGetValue(KEY_MARKER, marker) and (marker = 0) then
+          Continue;
+
         var biome := TBiome.Create;
         try
-          biome.AsJSON := TJSONObject(item);
+          biome.AsJSON := arrObj;
 
           // re-attach child objects
           var foodArr: TJSONArray;
@@ -205,6 +247,29 @@ begin
   end;
 end;
 
+procedure TLibraryHelper.LoadRatings(const JSON: TJSONObject);
+var
+  arr: TJSONArray;
+begin
+  if JSON.TryGetValue(KEY_RATINGS, arr) then
+  begin
+    for var item in arr do
+    begin
+      if item is TJSONObject then
+      begin
+        var rating := TMoleculeRatings.Create;
+        try
+          rating.AsJSON := TJSONObject(item);
+          AddRatings(rating);
+        except
+          rating.Free;
+          raise;
+        end;
+      end;
+    end;
+  end;
+end;
+
 procedure TLibraryHelper.LoadRegions(const JSON: TJSONObject);
 var
   arr: TJSONArray;
@@ -227,6 +292,47 @@ begin
   end;
 end;
 
+procedure TLibraryHelper.LoadWorlds(const JSON: TJSONObject);
+var
+  arr: TJSONArray;
+begin
+  if JSON.TryGetValue(KEY_WORLDS, arr) then
+  begin
+    for var item in arr do
+      if item is TJSONObject then
+      begin
+        var world := TWorld.Create;
+        try
+          world.AsJSON := TJSONObject(item);
+
+          // re-attach child objects
+          var regionArr: TJSONArray;
+          if item.TryGetValue(KEY_REGIONS, regionArr) then
+          begin
+            var arrayIndex: Integer := 1;
+            for var regionItem in regionArr do
+            begin
+              var region := Self.FindRegion(regionItem.Value);
+              if Assigned(region) then
+                world.Regions[arrayIndex] := region
+              else
+                world.Regions[arrayIndex] := nil;
+              Inc(arrayIndex);
+            end;
+          end;
+
+          world.OnChange := ChildChanged;
+          AddWorld(world);
+
+        except
+          world.Free;
+          raise;
+        end;
+      end;
+  end;
+end;
+
+
 procedure TLibraryHelper.SaveBiomes(const JSON: TJSONObject);
 var
   arr: TJSONArray;
@@ -234,7 +340,8 @@ begin
   arr := TJSONArray.Create;
   for var biome in _biomeList do
   begin
-    arr.Add(biome.AsJSON);
+    if biome.Marker > 0 then
+      arr.Add(biome.AsJSON);
   end;
   JSON.AddPair(KEY_BIOMES, arr);
 end;
@@ -261,6 +368,30 @@ begin
     arr.Add(region.AsJSON);
   end;
   JSON.AddPair(KEY_REGIONS, arr);
+end;
+
+procedure TLibraryHelper.SaveWorlds(const JSON: TJSONObject);
+var
+  arr: TJSONArray;
+begin
+  arr := TJSONArray.Create;
+  for var world in _worldList do
+  begin
+    arr.Add(world.AsJSON);
+  end;
+  JSON.AddPair(KEY_WORLDS, arr);
+end;
+
+procedure TLibraryHelper.SaveRatings(const JSON: TJSONObject);
+var
+  arr: TJSONArray;
+begin
+  arr := TJSONArray.Create;
+  for var rating in _ratingsList do
+  begin
+    arr.Add(rating.AsJSON);
+  end;
+  JSON.AddPair(KEY_RATINGS, arr);
 end;
 
 
@@ -405,5 +536,93 @@ begin
   end;
 end;
 
+
+{ TRatingsHelper }
+
+function TRatingsHelper.getJSON: TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  Result.AddPair(KEY_NAME, Name);
+  Result.AddPair(KEY_DESCRIPTION, Description);
+  Result.AddPair(KEY_ALPHA, Ratings[Alpha].AsText);
+  Result.AddPair(KEY_BETA, Ratings[Beta].AsText);
+  Result.AddPair(KEY_GAMMA, Ratings[Gamma].AsText);
+  Result.AddPair(KEY_BIOMASS, Ratings[Biomass].AsText);
+end;
+
+procedure TRatingsHelper.setJSON(const Value: TJSONObject);
+var
+  strVal: string;
+  rating: TRating;
+begin
+  if Value.TryGetValue(KEY_NAME, strVal) then
+    Name := strVal;
+  if Value.TryGetValue(KEY_DESCRIPTION, strVal) then
+    Description := strVal;
+  if Value.TryGetValue(KEY_ALPHA, strVal) then
+  begin
+    rating.AsText := strVal;
+    Ratings[Alpha] := rating;
+  end;
+  if Value.TryGetValue(KEY_BETA, strVal) then
+  begin
+    rating.AsText := strVal;
+    Ratings[Beta] := rating;
+  end;
+  if Value.TryGetValue(KEY_GAMMA, strVal) then
+  begin
+    rating.AsText := strVal;
+    Ratings[Gamma] := rating;
+  end;
+  if Value.TryGetValue(KEY_BIOMASS, strVal) then
+  begin
+    rating.AsText := strVal;
+    Ratings[Biomass] := rating;
+  end;
+  Modified := False;
+end;
+
+{ TWorldHelper }
+
+function TWorldHelper.getJSON: TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  Result.AddPair(KEY_NAME, Name);
+  Result.AddPair(KEY_DESCRIPTION, Description);
+  Result.AddPair(KEY_LAYOUT, REGION_LAYOUT_STRS[Layout]);
+
+  var arr := TJSONArray.Create;
+  for var i := 1 to 4 do
+  begin
+    var regionName: string;
+    if Assigned(Regions[i]) then
+      regionName := Regions[i].Name
+    else
+      regionName := '';
+    arr.Add(regionName);
+  end;
+
+  Result.AddPair(KEY_REGIONS, arr);
+end;
+
+procedure TWorldHelper.setJSON(const Value: TJSONObject);
+var
+  strVal: string;
+begin
+  if Value.TryGetValue(KEY_NAME, strVal) then
+    Name := strVal;
+  if Value.TryGetValue(KEY_DESCRIPTION, strVal) then
+    Description := strVal;
+  if Value.TryGetValue(KEY_LAYOUT, strVal) then
+  begin
+    for var l := Low(TRegionLayout) to High(TRegionLayout) do
+      if SameText(REGION_LAYOUT_STRS[l], strVal) then
+      begin
+        Self.Layout := l;
+        Break;
+      end;
+  end;
+
+end;
 
 end.

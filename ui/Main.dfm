@@ -62,8 +62,8 @@ object MainForm: TMainForm
       ExplicitTop = 5
     end
     object btnWorlds: TPngSpeedButton
-      Tag = 3
-      Left = 332
+      Tag = 4
+      Left = 442
       Top = 2
       Width = 110
       Height = 29
@@ -76,8 +76,8 @@ object MainForm: TMainForm
       ExplicitHeight = 39
     end
     object btnSimulator: TPngSpeedButton
-      Tag = 4
-      Left = 442
+      Tag = 5
+      Left = 552
       Top = 2
       Width = 110
       Height = 29
@@ -99,9 +99,7 @@ object MainForm: TMainForm
       GroupIndex = 1
       Caption = 'REGIONS'
       OnClick = ContentSelectorClick
-      ExplicitLeft = 344
-      ExplicitTop = 4
-      ExplicitHeight = 39
+      ExplicitLeft = 324
     end
     object btnSave: TPngSpeedButton
       Tag = 4
@@ -110,9 +108,31 @@ object MainForm: TMainForm
       Width = 75
       Height = 29
       Align = alRight
-      GroupIndex = 1
       Caption = 'Save'
       OnClick = btnSaveClick
+      ExplicitLeft = 717
+    end
+    object btnBiology: TPngSpeedButton
+      Tag = 3
+      Left = 332
+      Top = 2
+      Width = 110
+      Height = 29
+      Align = alLeft
+      GroupIndex = 1
+      Caption = 'BIOLOGY'
+      OnClick = ContentSelectorClick
+      ExplicitLeft = 340
+    end
+    object btnTest: TPngSpeedButton
+      Tag = 4
+      Left = 1163
+      Top = 2
+      Width = 75
+      Height = 29
+      Align = alRight
+      Caption = 'Test'
+      OnClick = btnTestClick
       ExplicitLeft = 717
     end
   end

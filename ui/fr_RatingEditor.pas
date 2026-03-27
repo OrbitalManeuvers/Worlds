@@ -8,7 +8,7 @@ uses
   PngImageList, PngSpeedButton, Vcl.ExtCtrls,
   System.ImageList, Vcl.ImgList, Vcl.Buttons,
 
-  u_EnvironmentTypes;
+  u_EnvironmentTypes, u_EditorTypes;
 
 type
   TRatingEditorFrame = class(TFrame)
@@ -22,13 +22,16 @@ type
     fRating: TRating;
     fIsReadOnly: Boolean;
     fOnChange: TNotifyEvent;
+    fCaptions: TRatingNames;
     procedure SetRating(const Value: TRating);
     procedure UpdateControls;
     procedure SetIsReadOnly(const Value: Boolean);
   public
+    constructor Create(AOwner: TComponent); override;
     property Rating: TRating read fRating write SetRating;
     property OnChange: TNotifyEvent read fOnChange write fOnChange;
     property IsReadOnly: Boolean write SetIsReadOnly;
+    property RatingNames: TRatingNames read fCaptions write fCaptions;
   end;
 
 implementation
@@ -49,9 +52,15 @@ begin
     fOnChange(Self);
 end;
 
+constructor TRatingEditorFrame.Create(AOwner: TComponent);
+begin
+  inherited;
+  fCaptions := RATING_NAMES;
+end;
+
 procedure TRatingEditorFrame.pbRatingPaint(Sender: TObject);
 begin
-  pbRating.Render(fRating);
+  pbRating.Render(fRating, fCaptions[fRating]);
 end;
 
 procedure TRatingEditorFrame.SetIsReadOnly(const Value: Boolean);

@@ -58,7 +58,7 @@ begin
   inherited Create;
   fFoods := TList<TFood>.Create; // objects we don't own
   fMarker := High(TBiomeMarker);
-  Sunlight := Normal;
+  Sunlight := Great;
   Mobility := Normal;
   Capacity := Normal;
   GrowthRate := Normal;

@@ -198,7 +198,7 @@ inherited BiomeEditor: TBiomeEditor
             Width = 220
             Height = 42
             AutoSize = False
-            Caption = 'Modifies the rate of food growth within this biome.'
+            Caption = 'Can anything grow here?'
             Enabled = False
             WordWrap = True
           end
@@ -208,9 +208,7 @@ inherited BiomeEditor: TBiomeEditor
             Width = 220
             Height = 42
             AutoSize = False
-            Caption = 
-              'Dampens or enhances the natural amount of sunlight within this b' +
-              'iome.'
+            Caption = 'How far are you from California?'
             Color = clGrayText
             Enabled = False
             ParentColor = False
@@ -222,7 +220,7 @@ inherited BiomeEditor: TBiomeEditor
             Width = 220
             Height = 42
             AutoSize = False
-            Caption = 'Modifies movement cost within this biome.'
+            Caption = 'What'#39's it like moving through here?'
             Enabled = False
             WordWrap = True
           end
@@ -232,9 +230,7 @@ inherited BiomeEditor: TBiomeEditor
             Width = 220
             Height = 42
             AutoSize = False
-            Caption = 
-              'Controls how frequently resource caches appear in this biome (spa' +
-              'rse vs dense).' 
+            Caption = 'How easy is it to find food?'
             Enabled = False
             WordWrap = True
           end

@@ -56,7 +56,6 @@ type
   public
     procedure Init; override;
     procedure ActivateContent; override;
-    destructor Destroy; override;
   end;
 
 implementation
@@ -67,11 +66,6 @@ uses u_ControlRendering, u_EnvironmentLibraries;
 
 
 { TFoodEditor }
-
-destructor TFoodEditor.Destroy;
-begin
-  inherited;
-end;
 
 procedure TFoodEditor.Init;
 begin

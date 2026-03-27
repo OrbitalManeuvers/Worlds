@@ -369,7 +369,7 @@ begin
             sdmAmount:
               metric := env.Resources[resIndex].Amount;
             sdmCapacity:
-              metric := env.Resources[resIndex].Capacity;
+              metric := env.ResourceCacheMaxAmount;
           end;
 
           if metric > fFrameMaxMetric then
@@ -412,7 +412,7 @@ begin
     if (resIndex >= 0) and (resIndex < Length(env.Resources)) and
        (env.Resources[resIndex].SubstanceIndex = fSubstanceIndex) then
     begin
-      var capacity := env.Resources[resIndex].Capacity;
+      var capacity := env.ResourceCacheMaxAmount;
       var amount := env.Resources[resIndex].Amount;
       var lumaUnit := 0.0;
 
@@ -442,17 +442,11 @@ end;
 
 procedure TSubstanceVisualizer.SetSubstanceIndex(const Value: Integer);
 begin
-  if fSubstanceIndex = Value then
-    Exit;
-
   fSubstanceIndex := Value;
 end;
 
 procedure TSubstanceVisualizer.SetDisplayMode(const Value: TSubstanceDisplayMode);
 begin
-  if fDisplayMode = Value then
-    Exit;
-
   fDisplayMode := Value;
 end;
 

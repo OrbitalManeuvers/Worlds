@@ -4,7 +4,6 @@ interface
 
 uses System.Classes;
 
-
 type
   // low-res, easy, relative scoring
   TRating = (Worst, Horrible, Bad, Normal, Good, Great, Best);
@@ -12,12 +11,8 @@ type
 
 type
   TMolecule = (Alpha, Beta, Gamma, Biomass);
+  TMolecules = set of TMolecule;
   TGrowableMolecule = TMolecule.Alpha .. TMolecule.Gamma;
-
-const
-  RATING_NAMES: array[TRating] of string = ('Worst', 'Horrible', 'Bad', 'Normal', 'Good', 'Great', 'Best');
-  MOLECULE_NAMES: array[TMolecule] of string = ('Alpha', 'Beta', 'Gamma', 'Biomass');
-
 
 type
   TEnvironmentObject = class
@@ -91,7 +86,7 @@ begin
   if Value <> fName then
   begin
     fName := Value;
-    Modified := True;
+    Changed;
   end;
 end;
 

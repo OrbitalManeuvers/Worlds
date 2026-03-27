@@ -80,11 +80,74 @@ type
 implementation
 
 uses Vcl.Themes,
-  u_ControlRendering, u_EnvironmentLibraries;
+  u_ControlRendering, u_EnvironmentLibraries, u_EditorTypes;
 
 {$R *.dfm}
 
+const
+  SunlightCaptions: TRatingNames = (
+   'Jungle Canopy',
+   'Overcast',
+   'Cloudy',
+   'Some Clouds',
+   'Light Clouds',
+   'Usually Sunny',
+   'Always Sunny'
+  );
+  MobilityCaptions: TRatingNames = (
+   'Steep Cliffs',
+   'L.A. Traffic',
+   'Swampy',
+   'Beach',
+   'Gravel',
+   'ToeStubber',
+   'FlatEarth'
+  );
+  GrowthCaptions: TRatingNames = (
+   'Dirty Concrete',
+   'Quite Dry',
+   'Bit Rocky',
+   'Normal',
+   'Good Soil',
+   'Well Fertilized',
+   'Mostly Poop'
+  );
+  CapacityCaptions: TRatingNames = (
+   'None for Miles',
+   'Long Drive',
+   'Special Order',
+   'Normal',
+   'Every Corner',
+   'Over-Stocked',
+   'Everywhere'
+  );
+
+// GrowthRate Rating: from below sim avg to above sim avg
+
 { TBiomeEditor }
+
+procedure TBiomeEditor.Init;
+begin
+  inherited;
+
+  Biome := nil;
+  BiomePages.ActivePage := tsNoSelection;
+  BiomeList.ItemCount := WorldLibrary.BiomeCount;
+
+  FoodList.ItemCount := WorldLibrary.FoodCount;
+  lblFoodName.StyleElements := lblFoodName.StyleElements - [seFont];
+
+  SunlightEditor.OnChange := SunlightClick;
+  SunlightEditor.RatingNames := SunlightCaptions;
+  MobilityEditor.OnChange := MobilityClick;
+  MobilityEditor.RatingNames := MobilityCaptions;
+  GrowthEditor.OnChange := GrowthRateClick;
+  GrowthEditor.RatingNames := GrowthCaptions;
+  CapacityEditor.OnChange := CapacityClick;
+  CapacityEditor.RatingNames := CapacityCaptions;
+
+  UpdateControls;
+end;
 
 procedure TBiomeEditor.ActivateContent;
 begin
@@ -203,25 +266,6 @@ begin
 
 end;
 
-procedure TBiomeEditor.Init;
-begin
-  inherited;
-
-  Biome := nil;
-  BiomePages.ActivePage := tsNoSelection;
-  BiomeList.ItemCount := WorldLibrary.BiomeCount;
-
-  FoodList.ItemCount := WorldLibrary.FoodCount;
-  lblFoodName.StyleElements := lblFoodName.StyleElements - [seFont];
-
-  SunlightEditor.OnChange := SunlightClick;
-  MobilityEditor.OnChange := MobilityClick;
-  GrowthEditor.OnChange := GrowthRateClick;
-  CapacityEditor.OnChange := CapacityClick;
-
-  UpdateControls;
-end;
-
 procedure TBiomeEditor.pbPresetsMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
@@ -259,8 +303,6 @@ begin
   MobilityEditor.IsReadOnly := Biome.Marker = 0;
   CapacityEditor.IsReadOnly := Biome.Marker = 0;
   GrowthEditor.IsReadOnly := Biome.Marker = 0;
-
-
 end;
 
 procedure TBiomeEditor.ItemChanged;

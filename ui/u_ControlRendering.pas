@@ -19,7 +19,7 @@ type
     end;
     function GetColorGridLayout(): TLayout;
   public
-    procedure Render(Rating: TRating); overload;
+    procedure Render(Rating: TRating; const aCaption: string); overload;
 
     procedure Render(Recipe: TRecipe); overload;
     procedure Render(Recipe: TRecipe; Molecule: TGrowableMolecule); overload;
@@ -33,11 +33,10 @@ type
 
 implementation
 
-uses System.Types, Vcl.Themes, Vcl.GraphUtil, System.Math;
+uses System.Types, Vcl.Themes, Vcl.GraphUtil, System.Math,
+  u_EditorTypes;
 
 const
-  MoleculeColors: array[TGrowableMolecule] of string = ('#6FA8DC', '#93C47D', '#E69138');
-
   PresetBiomeColors: array[0..9] of string = (
     '#D8BFA6','#B3D8A6','#D47349','#BE9974','#4F7CAC',
     '#87BE74','#99734D','#60994D','#6FA3A8','#C75538'
@@ -73,7 +72,7 @@ begin
       colRect.Right := colRect.Left + colWidth;
 
       bitmap.Canvas.Brush.Style := bsSolid;
-      bitmap.Canvas.Brush.Color := WebColorStrToColor(MoleculeColors[gm]);
+      bitmap.Canvas.Brush.Color := WebColorStrToColor(MOLECULE_COLORS[gm]);
       bitmap.Canvas.FillRect(colRect);
 
       colRect.Top := r.Top;
@@ -90,7 +89,7 @@ begin
   end;
 end;
 
-procedure TPaintboxHelper.Render(Rating: TRating);
+procedure TPaintboxHelper.Render(Rating: TRating; const aCaption: string);
 begin
   var r := Self.ClientRect;
 
@@ -109,7 +108,7 @@ begin
     const vert_margin = 2;
 
     // draw caption
-    var caption := RATING_NAMES[Rating];
+    var caption := aCaption;
     bitmap.canvas.Font := Self.Font;
     bitmap.canvas.Font.Color := StyleServices.GetStyleFontColor(sfButtonTextNormal);
     var captionSize := bitmap.canvas.TextExtent(caption);
@@ -219,7 +218,7 @@ begin
         else if segmentValue > currentValue then
           bitmap.Canvas.Brush.Color := clGray
         else
-          bitmap.Canvas.Brush.Color := WebColorStrToColor(MoleculeColors[Molecule]);
+          bitmap.Canvas.Brush.Color := WebColorStrToColor(MOLECULE_COLORS[Molecule]);
         if segmentValue > currentValue then
           bitmap.Canvas.FrameRect(r)
         else

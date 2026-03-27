@@ -33,7 +33,7 @@ type
     TClockControlEvent = procedure (Sender: TObject; const NextTick: Cardinal; var CanContinue: Boolean) of object;
   private
     fTick: Cardinal;
-    fInfo: TClockInfo; // not implemented
+//    fInfo: TClockInfo; // not implemented
     fStopped: Boolean;
     fOnControl: TClockControlEvent;
     fTickSubscribers: TList<TClockTickEvent>;

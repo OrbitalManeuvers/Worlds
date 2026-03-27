@@ -6,9 +6,11 @@ uses System.Classes, System.SysUtils, System.JSON, System.Generics.Collections,
 
   u_EditorTypes,
   u_EnvironmentTypes,
+  u_BiologyTypes,
   u_Foods,
   u_Biomes,
-  u_Regions;
+  u_Regions,
+  u_Worlds;
 
 type
   TEnvironmentLibrary = class(TEnvironmentObject)
@@ -16,6 +18,8 @@ type
     fFoods: TObjectList<TFood>;
     fBiomes: TObjectList<TBiome>;
     fRegions: TObjectList<TRegion>;
+    fMoleculeRatings: TObjectList<TMoleculeRatings>;
+    fWorlds: TObjectList<TWorld>;
   private
     // foods
     function GetFood(I: Integer): TFood;
@@ -28,11 +32,22 @@ type
     // regions
     function GetRegion(I: Integer): TRegion;
     function GetRegionCount: Integer;
+
+    // ratings
+    function GetRatings(I: Integer): TMoleculeRatings;
+    function GetRatingsCount: Integer;
+    function GetWorld(I: Integer): TWorld;
+    function GetWorldCount: Integer;
+
+    // worlds
+
   protected
     // non property access for descendents/helpers
     property _foodList: TObjectList<TFood> read fFoods;
     property _biomeList: TObjectList<TBiome> read fBiomes;
     property _regionList: TObjectList<TRegion> read fRegions;
+    property _ratingsList: TObjectList<TMoleculeRatings> read fMoleculeRatings;
+    property _worldList: TObjectList<TWorld> read fWorlds;
   public
     constructor Create;
     destructor Destroy; override;
@@ -52,8 +67,20 @@ type
 
     // regions
     procedure AddRegion(aRegion: TRegion);
+    function FindRegion(const aName: string): TRegion;
+    function IndexOfRegion(const aName: string): Integer;
     property RegionCount: Integer read GetRegionCount;
     property Regions[I: Integer]: TRegion read GetRegion;
+
+    // molecule ratings
+    procedure AddRatings(aRatings: TMoleculeRatings);
+    property RatingsCount: Integer read GetRatingsCount;
+    property Ratings[I: Integer]: TMoleculeRatings read GetRatings;
+
+    // worlds
+    procedure AddWorld(aWorld: TWorld);
+    property WorldCount: Integer read GetWorldCount;
+    property Worlds[I: Integer]: TWorld read GetWorld;
 
     //
     procedure UpdateBiomeColorPalette(var aPalette: TBiomeColorPalette);
@@ -75,10 +102,15 @@ begin
   fFoods := TObjectList<TFood>.Create(True);
   fBiomes := TObjectList<TBiome>.Create(True);
   fRegions := TObjectList<TRegion>.Create(True);
+  fMoleculeRatings := TObjectList<TMoleculeRatings>.Create(True);
+  fWorlds := TObjectList<TWorld>.Create(True);
+  Clear;
 end;
 
 destructor TEnvironmentLibrary.Destroy;
 begin
+  fWorlds.Free;
+  fMoleculeRatings.Free;
   fRegions.Free;
   fBiomes.Free;
   fFoods.Free;
@@ -98,10 +130,10 @@ begin
     ground.Description := 'Default surface, no foods here!';
     ground.Marker := 0;
     ground.Color := clBlack;
-    ground.Sunlight := Normal;
-    ground.Mobility := Normal;
-    ground.Capacity := Worst;
-    ground.GrowthRate := Worst;
+    ground.Sunlight := Best;    // i.e. unmodified
+    ground.Mobility := Best;    // i.e. unmodified
+    ground.Capacity := Worst;   // doesn't really matter
+    ground.GrowthRate := Worst; // doesn't really matter
     AddBiome(ground);
   except
     ground.Free;
@@ -141,10 +173,24 @@ begin
   Changed;
 end;
 
+procedure TEnvironmentLibrary.AddRatings(aRatings: TMoleculeRatings);
+begin
+  aRatings.OnChange := ChildChanged;
+  fMoleculeRatings.Add(aRatings);
+  Changed;
+end;
+
 procedure TEnvironmentLibrary.AddRegion(aRegion: TRegion);
 begin
   aRegion.OnChange := ChildChanged;
   fRegions.Add(aRegion);
+  Changed;
+end;
+
+procedure TEnvironmentLibrary.AddWorld(aWorld: TWorld);
+begin
+  aWorld.OnChange := ChildChanged;
+  fWorlds.Add(aWorld);
   Changed;
 end;
 
@@ -160,8 +206,25 @@ function TEnvironmentLibrary.FindFood(const aName: string): TFood;
 begin
   Result := nil;
   for var food in fFoods do
-    if SameText(Food.Name, aName) then
+    if SameText(food.Name, aName) then
       Exit(food);
+end;
+
+function TEnvironmentLibrary.FindRegion(const aName: string): TRegion;
+begin
+  var index := IndexOfRegion(aName);
+  if index <> -1 then
+    Result := Regions[index]
+  else
+    Result := nil;
+end;
+
+function TEnvironmentLibrary.IndexOfRegion(const aName: string): Integer;
+begin
+  Result := -1;
+  for var index := 0 to Self.RegionCount - 1 do
+    if SameText(Regions[index].Name, aName) then
+      Exit(Index);
 end;
 
 function TEnvironmentLibrary.GetBiome(I: Integer): TBiome;
@@ -184,6 +247,16 @@ begin
   Result := fFoods.Count;
 end;
 
+function TEnvironmentLibrary.GetRatings(I: Integer): TMoleculeRatings;
+begin
+  Result := fMoleculeRatings[I];
+end;
+
+function TEnvironmentLibrary.GetRatingsCount: Integer;
+begin
+  Result := fMoleculeRatings.Count;
+end;
+
 function TEnvironmentLibrary.GetRegion(I: Integer): TRegion;
 begin
   Result := fRegions[I];
@@ -192,6 +265,16 @@ end;
 function TEnvironmentLibrary.GetRegionCount: Integer;
 begin
   Result := fRegions.Count;
+end;
+
+function TEnvironmentLibrary.GetWorld(I: Integer): TWorld;
+begin
+  Result := fWorlds[I];
+end;
+
+function TEnvironmentLibrary.GetWorldCount: Integer;
+begin
+  Result := fWorlds.Count;
 end;
 
 end.

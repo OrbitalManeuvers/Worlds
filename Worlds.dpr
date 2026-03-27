@@ -31,7 +31,23 @@ uses
   fr_SimFrame in 'ui\fr_SimFrame.pas' {SimFrame: TFrame},
   u_CellVisualizers in 'ui\u_CellVisualizers.pas',
   u_SimLoggers in 'sim\u_SimLoggers.pas',
-  u_SimVisualizer in 'ui\u_SimVisualizer.pas';
+  u_SimVisualizer in 'ui\u_SimVisualizer.pas',
+  fr_BiologyEditor in 'ui\fr_BiologyEditor.pas' {BiologyEditor: TFrame},
+  u_AgentTypes in 'agents\u_AgentTypes.pas',
+  u_BiologyTypes in 'common\u_BiologyTypes.pas',
+  u_AgentGenome in 'agents\u_AgentGenome.pas',
+  u_Sight in 'agents\u_Sight.pas',
+  u_SimQueriesIntf in 'sim\u_SimQueriesIntf.pas',
+  u_Smell in 'agents\u_Smell.pas',
+  u_AgentState in 'agents\u_AgentState.pas',
+  u_SimQueriesImpl in 'sim\u_SimQueriesImpl.pas',
+  u_Foraging in 'agents\u_Foraging.pas',
+  u_AgentBrain in 'agents\u_AgentBrain.pas',
+  fr_WorldEditor in 'ui\fr_WorldEditor.pas' {WorldEditor: TFrame},
+  u_Worlds in 'common\u_Worlds.pas',
+  u_GraphicButtonBars in 'ui\u_GraphicButtonBars.pas',
+  u_WorldLayouts in 'common\u_WorldLayouts.pas',
+  u_SimSessions in 'sim\u_SimSessions.pas';
 
 {$R *.res}
 

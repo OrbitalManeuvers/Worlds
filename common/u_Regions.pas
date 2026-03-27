@@ -2,8 +2,8 @@ unit u_Regions;
 
 interface
 
-uses System.JSON,
-  u_EditorTypes, u_EnvironmentTypes, u_BiomeMaps;
+uses
+  u_EnvironmentTypes, u_BiomeMaps;
 
 type
   TRegion = class(TNamedEnvironmentObject)

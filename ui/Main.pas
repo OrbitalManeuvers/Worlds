@@ -11,7 +11,7 @@ uses
 
 
 type
-  TContentFrameType = (cfFood, cfBiomes, cfRegions, cfWorlds, cfSimulator);
+  TContentFrameType = (cfFood, cfBiomes, cfRegions, cfBiology, cfWorlds, cfSimulator);
 
   TMainForm = class(TForm)
     StatusBar: TStatusBar;
@@ -23,12 +23,15 @@ type
     btnSimulator: TPngSpeedButton;
     btnRegions: TPngSpeedButton;
     btnSave: TPngSpeedButton;
+    btnBiology: TPngSpeedButton;
+    btnTest: TPngSpeedButton;
     procedure FormCreate(Sender: TObject);
     procedure AppEventsHint(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure FormDestroy(Sender: TObject);
     procedure ContentSelectorClick(Sender: TObject);
     procedure btnSaveClick(Sender: TObject);
+    procedure btnTestClick(Sender: TObject);
   private
     ActiveFrameType: TContentFrameType;
     ContentFrames: array[TContentFrameType] of TContentFrame;
@@ -45,11 +48,13 @@ var
 implementation
 
 uses System.IOUtils, System.UITypes, Vcl.GraphUtil, Vcl.Themes,
-  u_EnvironmentLibraries, u_Serialization,
+  u_EnvironmentLibraries, u_Serialization, u_AgentTypes,
   fr_FoodEditor,
   fr_BiomeEditor,
   fr_RegionEditor,
-  fr_SimFrame;
+  fr_BiologyEditor,
+  fr_WorldEditor,
+  fr_SimFrame, u_WorldLayouts;
 
 {$R *.dfm}
 
@@ -58,7 +63,8 @@ const
     TFoodEditor,
     TBiomeEditor,
     TRegionEditor,
-    nil, { world }
+    TBiologyEditor,
+    TWorldEditor,
     TSimFrame
   );
 
@@ -85,6 +91,7 @@ begin
   btnFood.Tag := Ord(cfFood);
   btnBiomes.Tag := Ord(cfBiomes);
   btnRegions.Tag := Ord(cfRegions);
+  btnBiology.Tag := Ord(cfBiology);
   btnWorlds.Tag := Ord(cfWorlds);
   btnSimulator.Tag := Ord(cfSimulator);
 
@@ -162,7 +169,7 @@ begin
     ContentFrames[ActiveFrameType].Show;
 
     // if we need to someday, on the sim page we can free the other content pages
-    // and nill out the instance pointers.
+    // and nil out the instance pointers.
     // consider adding another virtual pair to TContentFrame for save/restore
 
 
@@ -199,5 +206,19 @@ procedure TMainForm.AppEventsHint(Sender: TObject);
 begin
   StatusBar.SimpleText := Application.Hint;
 end;
+
+procedure TMainForm.btnTestClick(Sender: TObject);
+begin
+
+//  var layout := TWorldMap.Create(WorldLibrary.Worlds[0], WorldLibrary);
+//  try
+//
+//  finally
+//    layout.Free;
+//  end;
+
+end;
+
+
 
 end.

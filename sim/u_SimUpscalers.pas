@@ -5,7 +5,7 @@ interface
 uses System.Classes, System.Generics.Collections,
   u_Regions, u_EnvironmentTypes, u_EnvironmentLibraries,
   u_Biomes, u_Foods,
-  u_SimParams, u_SimRuntimes;
+  u_SimParams, u_SimRuntimes, u_WorldLayouts;
 
 type
   TSimUpscaler = class
@@ -29,8 +29,7 @@ type
     constructor Create(aRuntime: TSimRuntime; aParams: TSimParams);
     destructor Destroy; override;
 
-    // this interface is temporary, and will be replaced by a world type (1x1,2x1,1x2,or 2x2 of region)
-    procedure UpscaleRegion(aRegion: TRegion; aFactor: Integer; aLibrary: TEnvironmentLibrary);
+    procedure UpscaleRegion(aRegion: TRegion; aLibrary: TEnvironmentLibrary);
 
     property BiomeMapping: TList<TBiome> read BiomeMappingOrder;
     property FoodMapping: TList<TFood> read FoodMappingOrder;
@@ -47,6 +46,21 @@ type
     property Foods[RuntimeIndex: Integer]: TFood read GetFood;
 
   end;
+
+  TWorldUpscaler = class
+  private
+    Params: TSimParams;
+    Runtime: TSimRuntime;
+    RequiredResourceCount: Integer;
+    function ResourceGrowthRate(aBiomeRating, aFoodRating: TRating): Single;
+  public
+    constructor Create(aRuntime: TSimRuntime; aParams: TSimParams);
+
+    procedure UpscaleWorld(aLayout: TWorldLayout);
+
+    property ResourceCount: Integer read RequiredResourceCount;
+  end;
+
 
 implementation
 
@@ -90,11 +104,24 @@ const
   // E.g. yourDensityChance = baseChance * CAPACITY_DENSITY_FACTOR[rating]
   CAPACITY_DENSITY_FACTOR: array[TRating] of Single = (0.01, 0.03, 0.06, 0.10, 0.11, 0.118, 0.135);
 
-  // Fallback defaults used when SimParams are not configured.
-  DEFAULT_BASE_CACHE_CAPACITY = 1.0;
-  DEFAULT_CACHE_CAPACITY_JITTER_PCT = 0.12;
-  DEFAULT_CACHE_FILL_MIN = 0.0;
-  DEFAULT_CACHE_FILL_MAX = 0.0;
+
+{ TBiomeHelper }
+
+function TBiomeHelper._getFoodList: TList<TFood>;
+begin
+  Result := _foodList;
+end;
+
+{ TFoodHelper }
+
+function TFoodHelper.ToSubstance: TSubstance;
+begin
+  Result[Alpha] := Self.Recipe.Percents[Alpha];
+  Result[Beta] := Self.Recipe.Percents[Beta];
+  Result[Gamma] := Self.Recipe.Percents[Gamma];
+  Result[Biomass] := 0;
+end;
+
 
 
 { TSimUpscaler }
@@ -263,35 +290,7 @@ begin
   end;
 end;
 
-procedure TSimUpscaler.UpscaleRegion(aRegion: TRegion; aFactor: Integer; aLibrary: TEnvironmentLibrary);
-
-  function ResolveBaseCacheCapacity: Single;
-  begin
-    Result := Params.BaseCacheCapacity;
-    if Result <= 0 then
-      Result := DEFAULT_BASE_CACHE_CAPACITY;
-  end;
-
-  function ResolveCapacityJitterPct: Single;
-  begin
-    Result := EnsureRange(Params.CacheCapacityJitterPct, 0.0, 0.95);
-    if Result = 0 then
-      Result := DEFAULT_CACHE_CAPACITY_JITTER_PCT;
-  end;
-
-  function ResolveInitialFillMin: Single;
-  begin
-    Result := EnsureRange(Params.CacheInitialFillMin, 0.0, 1.0);
-    if Result = 0 then
-      Result := DEFAULT_CACHE_FILL_MIN;
-  end;
-
-  function ResolveInitialFillMax: Single;
-  begin
-    Result := EnsureRange(Params.CacheInitialFillMax, 0.0, 1.0);
-    if Result = 0 then
-      Result := DEFAULT_CACHE_FILL_MAX;
-  end;
+procedure TSimUpscaler.UpscaleRegion(aRegion: TRegion; aLibrary: TEnvironmentLibrary);
 
   function CacheOccupancyChance(const aBiome: TBiome; const aEdgeFactor: Single): Single;
   begin
@@ -308,7 +307,7 @@ procedure TSimUpscaler.UpscaleRegion(aRegion: TRegion; aFactor: Integer; aLibrar
     const aBiomeMarker: TBiomeMarker; const aSourceSize: TSize): Single;
   begin
     Result := 1.0;
-    if aFactor <= 1 then
+    if Params.Factor <= 1 then
       Exit;
 
     // Preserve region boundaries for future stitching. Only soften interior biome boundaries.
@@ -316,47 +315,27 @@ procedure TSimUpscaler.UpscaleRegion(aRegion: TRegion; aFactor: Integer; aLibrar
       Result := Min(Result, EdgeFadeByDistance(aLocalX));
 
     if (aSourceX < aSourceSize.cx - 1) and (aRegion.BiomeMap[aSourceX + 1, aSourceY] <> aBiomeMarker) then
-      Result := Min(Result, EdgeFadeByDistance((aFactor - 1) - aLocalX));
+      Result := Min(Result, EdgeFadeByDistance((Params.Factor - 1) - aLocalX));
 
     if (aSourceY > 0) and (aRegion.BiomeMap[aSourceX, aSourceY - 1] <> aBiomeMarker) then
       Result := Min(Result, EdgeFadeByDistance(aLocalY));
 
     if (aSourceY < aSourceSize.cy - 1) and (aRegion.BiomeMap[aSourceX, aSourceY + 1] <> aBiomeMarker) then
-      Result := Min(Result, EdgeFadeByDistance((aFactor - 1) - aLocalY));
+      Result := Min(Result, EdgeFadeByDistance((Params.Factor - 1) - aLocalY));
   end;
 
-  function CacheCapacityValue: Single;
+  function InitialCacheAmount: Single;
   begin
-    var jitterPct := ResolveCapacityJitterPct;
-    var noise := Random;
-    var signedNoise := (noise * 2.0) - 1.0;
-
-    Result := ResolveBaseCacheCapacity * (1.0 + (signedNoise * jitterPct));
-    Result := Max(Result, 0.01);
-  end;
-
-  function InitialCacheAmount(const aCacheCapacity: Single): Single;
-  begin
-    var fillMin := ResolveInitialFillMin;
-    var fillMax := ResolveInitialFillMax;
-    if fillMin > fillMax then
-    begin
-      var temp := fillMin;
-      fillMin := fillMax;
-      fillMax := temp;
-    end;
-
-    var fillNoise := Random;
-    var fillRatio := fillMin + ((fillMax - fillMin) * fillNoise);
-    Result := aCacheCapacity * EnsureRange(fillRatio, 0.0, 1.0);
+    // Capacity is normalized to 1.0; initial fill is randomized across full range.
+    Result := Runtime.Environment.ResourceCacheMaxAmount * Random;
   end;
 
 begin
 
   // determine upscaled sim size
   var simSize := aRegion.BiomeMap.Size;
-  simSize.cx := simSize.cx * aFactor;
-  simSize.cy := simSize.cy * aFactor;
+  simSize.cx := simSize.cx * Params.Factor;
+  simSize.cy := simSize.cy * Params.Factor;
 
   // scan the region to extract the biome list we'll need
   GatherBiomeInfo(aRegion, aLibrary);
@@ -368,6 +347,7 @@ begin
 
   // set the sim runtime dimensions up front; resource count is determined by sparse placement pass
   Runtime.Environment.SetDimensions(simSize);
+  Runtime.Environment.ResourceCacheMaxAmount := DEFAULT_RESOURCE_CACHE_MAX_AMOUNT;
 
   // need a lookup between the authored biomemap and the index of the biome in the dense list
   var markerToIndex := TDictionary<TBiomeMarker, Integer>.Create;
@@ -382,8 +362,8 @@ begin
     begin
       for var cellX := 0 to simSize.cx - 1 do
       begin
-        var sourceX := cellX div aFactor;
-        var sourceY := cellY div aFactor;
+        var sourceX := cellX div Params.Factor;
+        var sourceY := cellY div Params.Factor;
 
         var biomeMarker := aRegion.BiomeMap[sourceX, sourceY];
         var biomeIndex := markerToIndex[biomeMarker];
@@ -404,10 +384,10 @@ begin
         var cellIndex := (cellY * simSize.cx) + cellX;
 
         // retrieve the biomeMarker from the region
-        var sourceX := cellX div aFactor;
-        var sourceY := cellY div aFactor;
-        var localX := cellX mod aFactor;
-        var localY := cellY mod aFactor;
+        var sourceX := cellX div Params.Factor;
+        var sourceY := cellY div Params.Factor;
+        var localX := cellX mod Params.Factor;
+        var localY := cellY mod Params.Factor;
 
         var biomeMarker := aRegion.BiomeMap[sourceX, sourceY];
         var biomeIndex := markerToIndex[biomeMarker];
@@ -437,9 +417,7 @@ begin
           // the foodList and the substances are in the same order
           Runtime.Environment.Resources[resIndex].SubstanceIndex := FoodList.IndexOf(biome.Foods[foodIndex]);
 
-          var cacheCapacity := CacheCapacityValue;
-          Runtime.Environment.Resources[resIndex].Capacity := cacheCapacity;
-          Runtime.Environment.Resources[resIndex].Amount := InitialCacheAmount(cacheCapacity);
+          Runtime.Environment.Resources[resIndex].Amount := InitialCacheAmount;
           Runtime.Environment.Resources[resIndex].GrowthRate := ResourceGrowthRate(biome.GrowthRate, biome.Foods[foodIndex].GrowthRate) * edgeFactor;
 
           Inc(resourceWriteIndex);
@@ -459,22 +437,150 @@ begin
   end;
 end;
 
+{ TWorldUpscaler }
 
-{ TBiomeHelper }
-
-function TBiomeHelper._getFoodList: TList<TFood>;
+constructor TWorldUpscaler.Create(aRuntime: TSimRuntime; aParams: TSimParams);
 begin
-  Result := _foodList;
+  inherited Create;
+  Runtime := aRuntime;
+  Params := aParams;
 end;
 
-{ TFoodHelper }
-
-function TFoodHelper.ToSubstance: TSubstance;
+function TWorldUpscaler.ResourceGrowthRate(aBiomeRating, aFoodRating: TRating): Single;
+const
+  BIOME_WEIGHT = 0.45;
+  FOOD_WEIGHT = 0.55;
+  BAD_SYNERGY = 0.60;
+  JITTER_MAX_PERCENT = 0.08;
+  MIN_RATE = 0.05;
+  MAX_RATE = 2.00;
+var
+  biomeFactor: Single;
+  foodFactor: Single;
+  combined: Single;
+  biomeDeficit: Single;
+  foodDeficit: Single;
+  jitterMultiplier: Single;
 begin
-  Result[Alpha] := Self.Recipe.Percents[Alpha];
-  Result[Beta] := Self.Recipe.Percents[Beta];
-  Result[Gamma] := Self.Recipe.Percents[Gamma];
-  Result[Biomass] := 0;
+  biomeFactor := GROWTH_FACTOR[aBiomeRating];
+  foodFactor := GROWTH_FACTOR[aFoodRating];
+
+  combined := Exp((BIOME_WEIGHT * Ln(biomeFactor)) + (FOOD_WEIGHT * Ln(foodFactor)));
+
+  if (biomeFactor < 1.0) and (foodFactor < 1.0) then
+  begin
+    biomeDeficit := 1.0 - biomeFactor;
+    foodDeficit := 1.0 - foodFactor;
+    combined := combined * (1.0 - (BAD_SYNERGY * biomeDeficit * foodDeficit));
+  end;
+
+  jitterMultiplier := 1.0 + ((Random * 2.0 - 1.0) * JITTER_MAX_PERCENT);
+  combined := combined * jitterMultiplier;
+
+  Result := EnsureRange(combined, MIN_RATE, MAX_RATE);
 end;
+
+procedure TWorldUpscaler.UpscaleWorld(aLayout: TWorldLayout);
+
+  function CacheOccupancyChance(const aBiome: TBiome): Single;
+  begin
+    Result := EnsureRange(CAPACITY_DENSITY_FACTOR[aBiome.Capacity], 0.0, 1.0);
+  end;
+
+  function ShouldPlaceCache(const aBiome: TBiome): Boolean;
+  begin
+    Result := Random < CacheOccupancyChance(aBiome);
+  end;
+
+  function InitialCacheAmount: Single;
+  begin
+    Result := Runtime.Environment.ResourceCacheMaxAmount * Random;
+  end;
+
+begin
+  if not Assigned(aLayout) then
+    raise EArgumentNilException.Create('World layout is required.');
+
+  if Params.Factor <= 0 then
+    raise EArgumentOutOfRangeException.Create('Scale factor must be greater than zero.');
+
+  var sourceSize := aLayout.Dimensions;
+  var simSize := sourceSize;
+  simSize.cx := simSize.cx * Params.Factor;
+  simSize.cy := simSize.cy * Params.Factor;
+
+  Runtime.Environment.SetSubstanceCount(aLayout.Foods.Count);
+  for var subIndex := 0 to aLayout.Foods.Count - 1 do
+    Runtime.Environment.SetSubstance(subIndex, aLayout.Foods[subIndex].ToSubstance);
+
+  Runtime.Environment.SetDimensions(simSize);
+  Runtime.Environment.ResourceCacheMaxAmount := DEFAULT_RESOURCE_CACHE_MAX_AMOUNT;
+
+  RequiredResourceCount := 0;
+  for var cellY := 0 to simSize.cy - 1 do
+  begin
+    for var cellX := 0 to simSize.cx - 1 do
+    begin
+      var sourceX := cellX div Params.Factor;
+      var sourceY := cellY div Params.Factor;
+      var sourceCellIndex := (sourceY * sourceSize.cx) + sourceX;
+
+      var biomeIndex := aLayout.Cells[sourceCellIndex];
+      Inc(RequiredResourceCount, Length(aLayout.BiomeFoodIndexes[biomeIndex]));
+    end;
+  end;
+
+  Runtime.Environment.SetResourceCount(RequiredResourceCount);
+
+  var resourceWriteIndex := 0;
+  for var cellY := 0 to simSize.cy - 1 do
+  begin
+    for var cellX := 0 to simSize.cx - 1 do
+    begin
+      var cellIndex := (cellY * simSize.cx) + cellX;
+
+      var sourceX := cellX div Params.Factor;
+      var sourceY := cellY div Params.Factor;
+      var sourceCellIndex := (sourceY * sourceSize.cx) + sourceX;
+
+      var biomeIndex := aLayout.Cells[sourceCellIndex];
+      var biome := aLayout.Biomes[biomeIndex];
+
+      if resourceWriteIndex > High(Word) then
+        raise ERangeError.Create('ResourceStart exceeds TCell.Word range.');
+
+      Runtime.Environment.Cells[cellIndex].Sunlight := SUNLIGHT_FACTOR[biome.Sunlight];
+      Runtime.Environment.Cells[cellIndex].Mobility := MOBILITY_COST_PENALTY[biome.Mobility];
+      Runtime.Environment.Cells[cellIndex].ResourceStart := resourceWriteIndex;
+      Runtime.Environment.Cells[cellIndex].ResourceCount := 0;
+
+      var biomeFoods := aLayout.BiomeFoodIndexes[biomeIndex];
+      for var i := 0 to Length(biomeFoods) - 1 do
+      begin
+        if not ShouldPlaceCache(biome) then
+          Continue;
+
+        var resIndex := resourceWriteIndex;
+        var foodIndex := biomeFoods[i];
+
+        Runtime.Environment.Resources[resIndex].SubstanceIndex := foodIndex;
+        Runtime.Environment.Resources[resIndex].Amount := InitialCacheAmount;
+        Runtime.Environment.Resources[resIndex].GrowthRate :=
+          ResourceGrowthRate(biome.GrowthRate, aLayout.Foods[foodIndex].GrowthRate);
+
+        Inc(resourceWriteIndex);
+
+        if Runtime.Environment.Cells[cellIndex].ResourceCount = High(Word) then
+          raise ERangeError.Create('ResourceCount exceeds TCell.Word range.');
+        Inc(Runtime.Environment.Cells[cellIndex].ResourceCount);
+      end;
+    end;
+  end;
+
+  RequiredResourceCount := resourceWriteIndex;
+  Runtime.Environment.SetResourceCount(RequiredResourceCount);
+end;
+
+
 
 end.

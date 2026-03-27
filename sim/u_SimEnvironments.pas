@@ -6,6 +6,9 @@ uses System.Types, u_SimClocks,
 
   u_EnvironmentTypes;
 
+const
+  DEFAULT_RESOURCE_CACHE_MAX_AMOUNT = 1.0;
+
 type
   // something that can be found on the ground
   TSubstance = array[TMolecule] of TPercentage;
@@ -14,7 +17,6 @@ type
   TResourceCache = record
     SubstanceIndex: Word;    // index into Substances array
     Amount: Single;          // mutable simulation state
-    Capacity: Single;        // fixed modifiers...
     GrowthRate: Single;      // incorporates Biome.GrowthRate and Food.GrowthRate
   end;
 
@@ -38,6 +40,7 @@ type
     fResourceCount: Integer; // read only cache for instrumentation
     fSubstances: TSubstanceArray;
     fSolarFlux: Single;
+    fResourceCacheMaxAmount: Single;
     procedure SetDayTick(const Value: TDayTick);
     procedure UpdateResources(const aDayTick: TDayTick);
   public
@@ -52,12 +55,18 @@ type
     procedure SetDimensions(aSize: TSize);
     procedure SetResourceCount(aCount: Integer);
 
+    // Hook for runtime death events. BiomassAmount is currently caller-selected.
+    // Future expansion: derive this from richer agent death metadata (mass, composition, etc.).
+    procedure NotifyAgentDeath(Location: Cardinal; BiomassAmount: Single);
+
     property Cells: TCellArray read fCells;
 
     property Resources: TResourceArray read fResources;
     property ResourceCount: Integer read fResourceCount;
 
     property Substances: TSubstanceArray read fSubstances;
+
+    property ResourceCacheMaxAmount: Single read fResourceCacheMaxAmount write fResourceCacheMaxAmount;
 
     property SolarFlux: Single read fSolarFlux write fSolarFlux;
     property DayTick: TDayTick write SetDayTick;
@@ -87,6 +96,7 @@ end;
 constructor TSimEnvironment.Create;
 begin
   inherited;
+  fResourceCacheMaxAmount := DEFAULT_RESOURCE_CACHE_MAX_AMOUNT;
 
 end;
 
@@ -110,7 +120,7 @@ const
   GROWABLE_NO_SUNLIGHT_DECAY_PER_TICK = 0.056;
 begin
   // Resource growth pass is driven by current SolarFlux and per-cell modifiers.
-  // Growth slows as a cache approaches capacity, making full-cap saturation rarer.
+  // Growth slows as a cache approaches max amount, making full-cap saturation rarer.
 
   for var cellIndex := 0 to High(fCells) do
   begin
@@ -121,7 +131,7 @@ begin
     for var i := 0 to count - 1 do
     begin
       var resIndex := start + i;
-      var capacity := fResources[resIndex].Capacity;
+      var capacity := fResourceCacheMaxAmount;
       var amount := fResources[resIndex].Amount;
       var fill := 0.0;
       if capacity > 0 then
@@ -163,6 +173,12 @@ end;
 procedure TSimEnvironment.SetSubstanceCount(aCount: Integer);
 begin
   SetLength(fSubstances, aCount);
+end;
+
+procedure TSimEnvironment.NotifyAgentDeath(Location: Cardinal; BiomassAmount: Single);
+begin
+  // Biomass insertion is intentionally deferred; runtime now has a formal hook.
+  // TODO: route to biomass store when that subsystem is implemented.
 end;
 
 end.
