@@ -2,8 +2,9 @@ unit u_SimSessions;
 
 interface
 
-uses u_Worlds, u_EnvironmentTypes, u_EnvironmentLibraries,
- u_Simulators, u_SimParams;
+uses System.Generics.Collections,
+ u_Worlds, u_EnvironmentTypes, u_EnvironmentLibraries,
+ u_Simulators, u_SimParams, u_Foods;
 
 type
   TSimSession = class
@@ -12,6 +13,7 @@ type
     fLibrary: TEnvironmentLibrary;
     fSim: TSimulator;
     fParams: TSimParams;
+    fFoods: TList<TFood>;
   public
     constructor Create(aWorld: TWorld; const aParams: TSimParams; aLibrary: TEnvironmentLibrary);
     destructor Destroy; override;
@@ -20,6 +22,7 @@ type
     procedure EndSession;
 
     property Simulator: TSimulator read fSim;
+    property Foods: TList<TFood> read fFoods;
   end;
 
 implementation
@@ -37,10 +40,12 @@ begin
 
   //
   fSim := TSimulator.Create;
+  fFoods := TList<TFood>.Create;
 end;
 
 destructor TSimSession.Destroy;
 begin
+  fFoods.Free;
   fSim.Free;
   inherited;
 end;
@@ -59,14 +64,13 @@ begin
       upscaler.Free;
     end;
 
-    // save off the list of biomes for later instrumentation
-
+    // save off the list of foods for later instrumentation
+    for var f in layout.Foods do
+      Self.fFoods.Add(f);
 
   finally
     layout.free;
   end;
-
-
 end;
 
 procedure TSimSession.EndSession;

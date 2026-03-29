@@ -14,7 +14,6 @@ const
 
 type
   TVisualizerGrid = array[0..VisualizerSize - 1, 0..VisualizerSize - 1] of Byte;
-  TSubstanceDisplayMode = (sdmFill, sdmAmount, sdmCapacity);
 
   TSimVisualizer = class
   private
@@ -22,15 +21,11 @@ type
     fBitmap: TBitmap;
     fZoomLevel: TVisualizerZoom;
     fAnchorCell: TPoint;
-    fOnZoomChanged: TNotifyEvent;
-    fOnAnchorChanged: TNotifyEvent;
     procedure SetSimulator(const Value: TSimulator);
     procedure SetZoomLevel(const Value: TVisualizerZoom);
     procedure SetAnchorCell(const Value: TPoint);
     function GetZoomPixelsPerCell: Integer;
     function GetVisibleCellSize: TSize;
-    procedure DoZoomChanged;
-    procedure DoAnchorChanged;
   protected
     fCells: TVisualizerGrid;
     procedure DataRequired(DataRect: TRect); virtual;
@@ -57,24 +52,17 @@ type
     property AnchorCell: TPoint read fAnchorCell write SetAnchorCell;
     property ZoomPixelsPerCell: Integer read GetZoomPixelsPerCell;
     property VisibleCellSize: TSize read GetVisibleCellSize;
-    property OnZoomChanged: TNotifyEvent read fOnZoomChanged write fOnZoomChanged;
-    property OnAnchorChanged: TNotifyEvent read fOnAnchorChanged write fOnAnchorChanged;
   end;
 
   TSubstanceVisualizer = class(TSimVisualizer)
   private
     fSubstanceIndex: Integer;
-    fDisplayMode: TSubstanceDisplayMode;
-    fFrameMaxMetric: Single;
     procedure SetSubstanceIndex(const Value: Integer);
-    procedure SetDisplayMode(const Value: TSubstanceDisplayMode);
   protected
-    procedure BeforeDataRequired(DataRect: TRect); override;
     function SampleCellLuma(const CellX, CellY: Integer): Byte; override;
   public
     constructor Create;
     property SubstanceIndex: Integer read fSubstanceIndex write SetSubstanceIndex;
-    property DisplayMode: TSubstanceDisplayMode read fDisplayMode write SetDisplayMode;
   end;
 
 
@@ -85,6 +73,9 @@ uses Vcl.Themes, System.Math;
 const
   SubcellsPerCell = 32;
 
+type
+  TCardinalArray = array[0..(MaxInt div SizeOf(Cardinal)) - 1] of Cardinal;
+  PCardinalArray = ^TCardinalArray;
 
 function ModulateColor(const BaseColor: TColor; const Luma: Byte): TColor;
 begin
@@ -110,7 +101,7 @@ constructor TSimVisualizer.Create;
 begin
   inherited Create;
   fBitmap := TBitmap.Create;
-  fBitmap.PixelFormat := pf24bit;
+  fBitmap.PixelFormat := pf32bit;
   fBitmap.SetSize(Length(fCells), Length(fCells[0]));
   fZoomLevel := vz1;
   fAnchorCell := Point(0, 0);
@@ -158,16 +149,23 @@ begin
   var zoomPixelsPerCell := ZoomPixelsPerCell;
   var originSubX := fAnchorCell.X * SubcellsPerCell;
   var originSubY := fAnchorCell.Y * SubcellsPerCell;
-
   for var y := paintRect.Top to paintRect.Bottom - 1 do
   begin
+    var worldSubY := originSubY + ((y * SubcellsPerCell) div zoomPixelsPerCell);
+    var worldY := worldSubY div SubcellsPerCell;
+    var lastWorldX: Integer := -1;
+    var lastLuma: Byte := 0;
+
     for var x := paintRect.Left to paintRect.Right - 1 do
     begin
       var worldSubX := originSubX + ((x * SubcellsPerCell) div zoomPixelsPerCell);
-      var worldSubY := originSubY + ((y * SubcellsPerCell) div zoomPixelsPerCell);
       var worldX := worldSubX div SubcellsPerCell;
-      var worldY := worldSubY div SubcellsPerCell;
-      fCells[x, y] := SampleCellLuma(worldX, worldY);
+      if worldX <> lastWorldX then
+      begin
+        lastLuma := SampleCellLuma(worldX, worldY);
+        lastWorldX := worldX;
+      end;
+      fCells[x, y] := lastLuma;
     end;
   end;
 end;
@@ -196,26 +194,26 @@ begin
   fullRect := Rect(0, 0, fBitmap.Width, fBitmap.Height);
   DataRequired(fullRect);
 
+  // faster pixel fill using ScanLine + color LUT (32-bit bitmap expected)
+  if fBitmap.PixelFormat <> pf32bit then
+    fBitmap.PixelFormat := pf32bit;
+
+  var ColorLUT: array[0..255] of Cardinal;
+  for var i := 0 to 255 do
+    ColorLUT[i] := Cardinal(ColorToRGB(ModulateColor(ABaseColor, Byte(i))));
+
   for var y := fullRect.Top to fullRect.Bottom - 1 do
   begin
+    var Row := PCardinalArray(fBitmap.ScanLine[y]);
     for var x := fullRect.Left to fullRect.Right - 1 do
-      fBitmap.Canvas.Pixels[x, y] := ModulateColor(ABaseColor, fCells[x, y]);
+    begin
+      var cellLuma := fCells[x, y];
+      Row[x] := ColorLUT[cellLuma];
+    end;
   end;
 
   // Stretch to destination so caller can render anywhere/any size.
   ACanvas.StretchDraw(ATargetRect, fBitmap);
-end;
-
-procedure TSimVisualizer.DoZoomChanged;
-begin
-  if Assigned(fOnZoomChanged) then
-    fOnZoomChanged(Self);
-end;
-
-procedure TSimVisualizer.DoAnchorChanged;
-begin
-  if Assigned(fOnAnchorChanged) then
-    fOnAnchorChanged(Self);
 end;
 
 function TSimVisualizer.GetEnvironmentDimensions: TSize;
@@ -256,12 +254,6 @@ begin
   fZoomLevel := vz1;
   fAnchorCell := Point(0, 0);
   ClampAnchorCell;
-
-  if (oldAnchor.X <> fAnchorCell.X) or (oldAnchor.Y <> fAnchorCell.Y) then
-    DoAnchorChanged;
-
-  if oldZoom <> fZoomLevel then
-    DoZoomChanged;
 end;
 
 function TSimVisualizer.SampleCellLuma(const CellX, CellY: Integer): Byte;
@@ -288,11 +280,6 @@ begin
   var oldAnchor := fAnchorCell;
   fZoomLevel := Value;
   ClampAnchorCell;
-
-  if (oldAnchor.X <> fAnchorCell.X) or (oldAnchor.Y <> fAnchorCell.Y) then
-    DoAnchorChanged;
-
-  DoZoomChanged;
 end;
 
 procedure TSimVisualizer.SetAnchorCell(const Value: TPoint);
@@ -300,11 +287,6 @@ begin
   var oldAnchor := fAnchorCell;
   fAnchorCell := Value;
   ClampAnchorCell;
-
-  if (oldAnchor.X = fAnchorCell.X) and (oldAnchor.Y = fAnchorCell.Y) then
-    Exit;
-
-  DoAnchorChanged;
 end;
 
 procedure TSimVisualizer.ZoomIn;
@@ -325,60 +307,6 @@ end;
 constructor TSubstanceVisualizer.Create;
 begin
   inherited;
-  fDisplayMode := sdmFill;
-  fFrameMaxMetric := 0;
-end;
-
-procedure TSubstanceVisualizer.BeforeDataRequired(DataRect: TRect);
-begin
-  inherited;
-  fFrameMaxMetric := 0;
-
-  if fDisplayMode = sdmFill then
-    Exit;
-
-  if not Assigned(Simulator) then
-    Exit;
-
-  var env := Simulator.Runtime.Environment;
-  var envWidth := env.Dimensions.cx;
-  var envHeight := env.Dimensions.cy;
-  var cellCount := Length(env.Cells);
-  if (fSubstanceIndex < 0) or (fSubstanceIndex >= Length(env.Substances)) or (cellCount = 0) then
-    Exit;
-
-  for var y := 0 to envHeight - 1 do
-  begin
-    for var x := 0 to envWidth - 1 do
-    begin
-      var cellIndex := (y * envWidth) + x;
-      if (cellIndex < 0) or (cellIndex >= cellCount) then
-        Continue;
-
-      var start := env.Cells[cellIndex].ResourceStart;
-      var count := env.Cells[cellIndex].ResourceCount;
-
-      for var i := 0 to count - 1 do
-      begin
-        var resIndex := start + i;
-        if (resIndex >= 0) and (resIndex < Length(env.Resources)) and
-           (env.Resources[resIndex].SubstanceIndex = fSubstanceIndex) then
-        begin
-          var metric := 0.0;
-          case fDisplayMode of
-            sdmAmount:
-              metric := env.Resources[resIndex].Amount;
-            sdmCapacity:
-              metric := env.ResourceCacheMaxAmount;
-          end;
-
-          if metric > fFrameMaxMetric then
-            fFrameMaxMetric := metric;
-          Break;
-        end;
-      end;
-    end;
-  end;
 end;
 
 function TSubstanceVisualizer.SampleCellLuma(const CellX, CellY: Integer): Byte;
@@ -405,6 +333,13 @@ begin
 
   var start := env.Cells[cellIndex].ResourceStart;
   var count := env.Cells[cellIndex].ResourceCount;
+  if count = 0 then
+    Exit;
+
+  var capacity := env.ResourceCacheMaxAmount;
+  var mult := 255.0;
+  if capacity > 0 then
+    mult := 255.0 / capacity;
 
   for var i := 0 to count - 1 do
   begin
@@ -412,30 +347,9 @@ begin
     if (resIndex >= 0) and (resIndex < Length(env.Resources)) and
        (env.Resources[resIndex].SubstanceIndex = fSubstanceIndex) then
     begin
-      var capacity := env.ResourceCacheMaxAmount;
       var amount := env.Resources[resIndex].Amount;
-      var lumaUnit := 0.0;
-
-      case fDisplayMode of
-        sdmFill:
-        begin
-          if capacity > 0 then
-            lumaUnit := EnsureRange(amount / capacity, 0.0, 1.0);
-        end;
-        sdmAmount:
-        begin
-          if fFrameMaxMetric > 0 then
-            lumaUnit := EnsureRange(amount / fFrameMaxMetric, 0.0, 1.0);
-        end;
-        sdmCapacity:
-        begin
-          if fFrameMaxMetric > 0 then
-            lumaUnit := EnsureRange(capacity / fFrameMaxMetric, 0.0, 1.0);
-        end;
-      end;
-
-      Result := Round(lumaUnit * 255.0);
-      Break;
+      Result := Byte(Round(EnsureRange(amount * mult, 0.0, 255.0)));
+      Exit;
     end;
   end;
 end;
@@ -443,11 +357,6 @@ end;
 procedure TSubstanceVisualizer.SetSubstanceIndex(const Value: Integer);
 begin
   fSubstanceIndex := Value;
-end;
-
-procedure TSubstanceVisualizer.SetDisplayMode(const Value: TSubstanceDisplayMode);
-begin
-  fDisplayMode := Value;
 end;
 
 end.

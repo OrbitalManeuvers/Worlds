@@ -3,20 +3,18 @@ unit fr_SimFrame;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, fr_ContentFrames, Vcl.StdCtrls, Vcl.ExtCtrls,
+  System.Generics.Collections,
 
   Vcl.Samples.Spin, Vcl.ControlList, Vcl.ComCtrls, Vcl.Buttons, Vcl.Mask,
   u_EnvironmentLibraries, u_SimVisualizer, u_Simulators, u_SimLoggers,
-  u_SimSessions;
+  u_SimSessions, fr_ResourceVisualizer;
 
 type
   TSimFrame = class(TContentFrame)
     LogMemo: TMemo;
     btnCreateSim: TButton;
-    pbVisualizer: TPaintBox;
-    spnSubstanceIndex: TSpinEdit;
-    Label1: TLabel;
     Pages: TPageControl;
     tsNoSelection: TTabSheet;
     tsSelection: TTabSheet;
@@ -28,41 +26,34 @@ type
     btnStep1: TSpeedButton;
     btnStep5: TSpeedButton;
     btnStep10: TSpeedButton;
-    spZoomLevel: TSpinButton;
     lblWorldName: TLabel;
-    btnScrollUp: TSpeedButton;
-    btnScrollRight: TSpeedButton;
-    btnScrollLeft: TSpeedButton;
-    btnScrollDown: TSpeedButton;
     gbPopulation: TGroupBox;
     edtAgentCount: TLabeledEdit;
     btnClose: TButton;
+    phV1: TShape;
+    phV2: TShape;
     procedure btnCreateSimClick(Sender: TObject);
     procedure btnStepClick(Sender: TObject);
-    procedure spnSubstanceIndexChange(Sender: TObject);
-    procedure spZoomLevelDownClick(Sender: TObject);
-    procedure spZoomLevelUpClick(Sender: TObject);
-    procedure pbVisualizerPaint(Sender: TObject);
     procedure WorldListItemClick(Sender: TObject);
     procedure WorldListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
-    procedure ScrollClick(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
   private
-    session: TSimSession;
-//    simulator: TSimulator;
-    logger: TSimLogger;
-//    visualizer: TSubstanceVisualizer;
-    function GetVisualizerColor: TColor;
+    fSession: TSimSession;
+    fViewers: TList<TResViewFrame>;
+
+    fLogger: TSimLogger;
+    fVisualizer: TSubstanceVisualizer;
     procedure Log(const msg: string);
     procedure HandleLogEvent(Sender: TLogger; const aMsg: string);
     procedure BeginLogWrite(Sender: TObject);
     procedure EndLogWrite(Sender: TObject);
     procedure UpdateControls;
 
-    procedure InitSimulator;
-    procedure DoneSimulator;
-    procedure CloseSession;
+    procedure InitSession;
+    procedure DoneSession;
+    function CreateViewer(aPlaceholder: TShape): TResViewFrame;
+    procedure HandleViewerPaint(Sender: TObject);
 
   public
     procedure Init; override;
@@ -75,8 +66,8 @@ implementation
 
 {$R *.dfm}
 
-uses System.Types, System.Math,
-  u_SimUpscalers, u_SimRuntimes, u_SimParams,
+uses System.Types, System.Math, Vcl.GraphUtil,
+  u_SimUpscalers, u_SimRuntimes, u_SimParams, u_EditorTypes,
   u_Regions;
 
 { TSimFrame }
@@ -84,44 +75,118 @@ uses System.Types, System.Math,
 procedure TSimFrame.Init;
 begin
   inherited;
+  fViewers := TList<TResViewFrame>.Create;
+  var f := CreateViewer(phV1);
+  f := CreateViewer(phV2);
+
+
+
+//  fVisualizer := TResVisFrame.Create(Self);
+//  fVisualizer.Parent := Self;
+//  fVisualizer.BoundsRect := Shape1.BoundsRect;
+
   Pages.ActivePage := tsNoSelection;
   UpdateControls;
 end;
 
 procedure TSimFrame.Done;
 begin
-  DoneSimulator;
+  DoneSession;
   inherited;
 end;
 
-procedure TSimFrame.InitSimulator;
+function TSimFrame.CreateViewer(aPlaceholder: TShape): TResViewFrame;
 begin
-//  simulator := TSimulator.Create;
+  aPlaceholder.Visible := False;
 
-//  logger := TSimLogger.Create(simulator);
-//  logger.OnLog := HandleLogEvent;
-//  logger.OnBeginOutput := BeginLogWrite;
-//  logger.OnEndOutput := EndLogWrite;
-//
-//  visualizer := TSubstanceVisualizer.Create;
-//  visualizer.Simulator := simulator;
-//  visualizer.DisplayMode := sdmFill;
+  Result := TResViewFrame.Create(Self);
+  Result.Name := 'resview' + fViewers.Count.ToString;
+  Result.IsActive := False;
+  Result.Parent := aPlaceholder.Parent;
+  Result.BoundsRect := aPlaceholder.BoundsRect;
+  Result.Visible := True;
+  Result.OnPaint := HandleViewerPaint;
+  fViewers.Add(Result);
 end;
 
-procedure TSimFrame.DoneSimulator;
+procedure TSimFrame.InitSession;
 begin
-//  if Assigned(simulator) then
-//  begin
-//    visualizer.Free;
-//    logger.free;
-//    simulator.Free;
-//    simulator := nil;
-//  end;
+  Pages.ActivePage := tsSelection;
+
+  // convert UI settings to sim params
+  var params: TSimParams;
+  params.InitDefaults;
+  params.Population.AgentCount := StrToIntDef(edtAgentCount.Text, 1);
+
+  var world := WorldLibrary.Worlds[WorldList.ItemIndex];
+
+  { allocation }
+  fSession := TSimSession.Create(world, params, WorldLibrary);
+
+  { allocation }
+  fLogger := TSimLogger.Create(fSession.Simulator);
+  fLogger.OnLog := HandleLogEvent;
+  fLogger.OnBeginOutput := BeginLogWrite;
+  fLogger.OnEndOutput := EndLogWrite;
+
+  // attempt to set the wheels in motion
+  try
+    fSession.BeginSession;
+  except
+    on E: Exception do
+    begin
+      DoneSession;
+      ShowException(E, nil);
+      Exit;
+    end;
+  end;
+
+  Log('Session created using ' + world.Name);
+
+  Log('Substances:');
+  fLogger.LogSubstances;
+
+  fVisualizer := TSubstanceVisualizer.Create;
+  fVisualizer.Simulator := fSession.Simulator;
+
+  var foodNames := TStringList.Create(dupAccept, False, False);
+  try
+    for var food in fSession.Foods do
+      foodNames.Add(food.Name);
+
+    // connect the substance viewer frames
+    for var viewer in fViewers do
+    begin
+      viewer.IsActive := True;
+      viewer.SubstanceNames := foodNames;
+      viewer.OnPaint := HandleViewerPaint;
+    end;
+
+  finally
+    foodNames.Free;
+  end;
+
 end;
 
-procedure TSimFrame.pbVisualizerPaint(Sender: TObject);
+procedure TSimFrame.DoneSession;
 begin
-//  visualizer.Paint(pbVisualizer.Canvas, GetVisualizerColor, pbVisualizer.ClientRect);
+  Pages.ActivePage := tsNoSelection;
+  if Assigned(fSession) then
+  begin
+    for var view in fViewers do
+      view.IsActive := False;
+
+    fSession.EndSession;
+
+    fVisualizer.Free;
+    fVisualizer := nil;
+
+    fLogger.Free;
+    fLogger := nil;
+
+    fSession.Free;
+    fSession := nil;
+  end;
 end;
 
 procedure TSimFrame.WorldListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
@@ -137,65 +202,35 @@ begin
   UpdateControls;
 end;
 
-procedure TSimFrame.ScrollClick(Sender: TObject);
-begin
-  if not (Sender is TComponent) then
-    Exit;
-
-  var dirFlag := TComponent(Sender).Tag;
-  var dir := Point(0, 0);
-  case dirFlag of
-    1: dir.y := -1;
-    2: dir.x := 1;
-    3: dir.y := 1;
-    4: dir.x := -1;
-  end;
-
-//  visualizer.PanByCells(dir);
-//  pbVisualizer.Invalidate;
-end;
-
-function TSimFrame.GetVisualizerColor: TColor;
-const
-  Colors: array[0..3] of TColor = (clSkyBlue, clMoneyGreen, clWebOrange, clWebGold);
-begin
-  var idx := EnsureRange(spnSubstanceIndex.Value, Low(Colors), High(Colors));
-  Result := Colors[idx];
-end;
-
 procedure TSimFrame.HandleLogEvent(Sender: TLogger; const aMsg: string);
 begin
   Log(aMsg);
 end;
 
+procedure TSimFrame.HandleViewerPaint(Sender: TObject);
+const
+  FOOD_COLORS: array[0..5] of TColor = (clWebDodgerBlue, clWebDarkSeaGreen, clWebDarkKhaki, clWebGold, clWebTomato, clWebSienna);
+begin
+  if not (Sender is TResViewFrame) then
+    Exit;
+
+  var view := TResViewFrame(Sender);
+  fVisualizer.ZoomLevel := TVisualizerZoom(view.ZoomFactor);
+  fVisualizer.SubstanceIndex := view.SubstanceIndex;
+
+  var food := fSession.Foods[view.SubstanceIndex];
+  var foodColor: TColor := FOOD_COLORS[view.SubstanceIndex];
+
+//  food.Recipe.Percents[]
+//   MOLECULE_COLORS: array[TMolecule] of string = ('#6FA8DC', '#93C47D', '#E69138', '#D3A29C');
+
+
+  fVisualizer.Paint(view.Canvas, foodColor);
+end;
+
 procedure TSimFrame.Log(const msg: string);
 begin
   LogMemo.Lines.Add(msg);
-end;
-
-procedure TSimFrame.spnSubstanceIndexChange(Sender: TObject);
-begin
-//  var newIndex := spnSubstanceIndex.Value;
-//  visualizer.SubstanceIndex := newIndex;
-//  pbVisualizer.Invalidate;
-end;
-
-procedure TSimFrame.spZoomLevelDownClick(Sender: TObject);
-begin
-//  if visualizer.ZoomLevel > Low(TVisualizerZoom) then
-//  begin
-//    visualizer.ZoomOut;
-//    pbVisualizer.Invalidate;
-//  end;
-end;
-
-procedure TSimFrame.spZoomLevelUpClick(Sender: TObject);
-begin
-//  if visualizer.ZoomLevel < High(TVisualizerZoom) then
-//  begin
-//    visualizer.ZoomIn;
-//    pbVisualizer.Invalidate;
-//  end;
 end;
 
 procedure TSimFrame.UpdateControls;
@@ -237,66 +272,13 @@ end;
 procedure TSimFrame.btnCloseClick(Sender: TObject);
 begin
   // stop the session
-  CloseSession;
-end;
-
-procedure TSimFrame.CloseSession;
-begin
-  Pages.ActivePage := tsNoSelection;
-  logger.Free;
-  logger := nil;
-  session.EndSession;
-  session.Free;
-  session := nil;
+  DoneSession;
 end;
 
 procedure TSimFrame.btnCreateSimClick(Sender: TObject);
 begin
-  Pages.ActivePage := tsSelection;
-
-  // convert UI settings to sim params
-  var params: TSimParams;
-  params.InitDefaults;
-  params.Population.AgentCount := StrToIntDef(edtAgentCount.Text, 1);
-
-  var world := WorldLibrary.Worlds[WorldList.ItemIndex];
-
-  { allocation }
-  session := TSimSession.Create(world, params, WorldLibrary);
-
-  { allocation }
-  logger := TSimLogger.Create(session.Simulator);
-  logger.OnLog := HandleLogEvent;
-  logger.OnBeginOutput := BeginLogWrite;
-  logger.OnEndOutput := EndLogWrite;
-
-  // attempt to set the wheels in motion
-  try
-    session.BeginSession;
-  except
-    on E: Exception do
-    begin
-      CloseSession;
-      ShowException(E, nil);
-      Exit;
-    end;
-  end;
-
-
-//  // set up UI controls
-//  spnSubstanceIndex.MinValue := 0;
-//  spnSubstanceIndex.MaxValue := Length(simulator.Runtime.Environment.Substances);
-//  spnSubstanceIndex.Value := 0;
-
   LogMemo.Clear;
-  Log('Session created using ' + world.Name);
-
-//  Log('Food caches: ' + simulator.Runtime.Environment.ResourceCount.ToString);
-
-  Log('Substances:');
-  logger.LogSubstances;
-
-//  pbVisualizer.Invalidate;
+  InitSession;
 
 end;
 
@@ -310,13 +292,14 @@ begin
   try
     for var stepIndex := 1 to count do
     begin
-      session.simulator.Clock.Step;
-      lblTime.Caption := Format('%.02d:%.03d', [session.simulator.Clock.DayNumber, session.simulator.Clock.DayTick]);
-      for var x := 3 to 3 do
-        logger.LogCell(point(x, 0));
+      fSession.simulator.Clock.Step;
+      lblTime.Caption := Format('%.02d:%.03d', [fSession.simulator.Clock.DayNumber, fSession.simulator.Clock.DayTick]);
+//      for var x := 3 to 3 do
+//        fLogger.LogCell(point(x, 0));
     end;
-//
-//    pbVisualizer.Invalidate;
+
+    for var f in fViewers do
+      f.pbVis.Invalidate;  // replace this with a public method
 
   finally
     LogMemo.Lines.EndUpdate;

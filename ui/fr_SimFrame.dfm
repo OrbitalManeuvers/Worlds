@@ -44,7 +44,7 @@ inherited SimFrame: TSimFrame
           Left = 4
           Top = 2
           Width = 165
-          Height = 41
+          Height = -4
           Margins.Left = 4
           Margins.Top = 2
           Margins.Bottom = 2
@@ -52,6 +52,7 @@ inherited SimFrame: TSimFrame
           AutoSize = False
           Caption = '[world]'
           Layout = tlCenter
+          ExplicitHeight = 41
         end
       end
       object btnCreateSim: TButton
@@ -89,18 +90,27 @@ inherited SimFrame: TSimFrame
       DoubleBufferedMode = dbmRequested
       ImageIndex = 1
       TabVisible = False
-      object pbVisualizer: TPaintBox
-        Left = 296
-        Top = 13
-        Width = 256
-        Height = 256
-        OnPaint = pbVisualizerPaint
+      object phV1: TShape
+        Left = 200
+        Top = 26
+        Width = 300
+        Height = 330
+        Brush.Color = clDimgray
+        Pen.Style = psClear
+      end
+      object phV2: TShape
+        Left = 512
+        Top = 26
+        Width = 300
+        Height = 330
+        Brush.Color = clDimgray
+        Pen.Style = psClear
       end
       object LogMemo: TMemo
         Left = 0
-        Top = 320
+        Top = 384
         Width = 982
-        Height = 378
+        Height = 314
         Align = alBottom
         Font.Charset = ANSI_CHARSET
         Font.Color = clWindowText
@@ -115,8 +125,8 @@ inherited SimFrame: TSimFrame
       object gbControls: TGroupBox
         Left = 8
         Top = 8
-        Width = 241
-        Height = 261
+        Width = 169
+        Height = 105
         TabOrder = 1
         object lblClock: TLabel
           Left = 16
@@ -168,93 +178,10 @@ inherited SimFrame: TSimFrame
           Transparent = False
           OnClick = btnStepClick
         end
-        object Label1: TLabel
-          Left = 28
-          Top = 128
-          Width = 62
-          Height = 17
-          Caption = 'Substance:'
-        end
-        object btnScrollUp: TSpeedButton
-          Tag = 1
-          Left = 88
-          Top = 183
-          Width = 23
-          Height = 22
-          Caption = '^'
-          OnClick = ScrollClick
-        end
-        object btnScrollRight: TSpeedButton
-          Tag = 2
-          Left = 112
-          Top = 200
-          Width = 23
-          Height = 22
-          Caption = '>'
-          OnClick = ScrollClick
-        end
-        object btnScrollLeft: TSpeedButton
-          Tag = 4
-          Left = 67
-          Top = 200
-          Width = 23
-          Height = 22
-          Caption = '<'
-          OnClick = ScrollClick
-        end
-        object btnScrollDown: TSpeedButton
-          Tag = 3
-          Left = 88
-          Top = 213
-          Width = 23
-          Height = 22
-          Caption = 'v'
-          OnClick = ScrollClick
-        end
-        object spZoomLevel: TSpinButton
-          Left = 175
-          Top = 125
-          Width = 26
-          Height = 30
-          DownGlyph.Data = {
-            0E010000424D0E01000000000000360000002800000009000000060000000100
-            200000000000D800000000000000000000000000000000000000008080000080
-            8000008080000080800000808000008080000080800000808000008080000080
-            8000008080000080800000808000000000000080800000808000008080000080
-            8000008080000080800000808000000000000000000000000000008080000080
-            8000008080000080800000808000000000000000000000000000000000000000
-            0000008080000080800000808000000000000000000000000000000000000000
-            0000000000000000000000808000008080000080800000808000008080000080
-            800000808000008080000080800000808000}
-          TabOrder = 0
-          UpGlyph.Data = {
-            0E010000424D0E01000000000000360000002800000009000000060000000100
-            200000000000D800000000000000000000000000000000000000008080000080
-            8000008080000080800000808000008080000080800000808000008080000080
-            8000000000000000000000000000000000000000000000000000000000000080
-            8000008080000080800000000000000000000000000000000000000000000080
-            8000008080000080800000808000008080000000000000000000000000000080
-            8000008080000080800000808000008080000080800000808000000000000080
-            8000008080000080800000808000008080000080800000808000008080000080
-            800000808000008080000080800000808000}
-          OnDownClick = spZoomLevelDownClick
-          OnUpClick = spZoomLevelUpClick
-        end
-        object spnSubstanceIndex: TSpinEdit
-          Left = 104
-          Top = 125
-          Width = 49
-          Height = 27
-          MaxValue = 0
-          MinValue = 0
-          TabOrder = 1
-          Value = 0
-          OnChange = spnSubstanceIndexChange
-        end
       end
       object btnClose: TButton
-        Left = 584
-        Top = 24
+        Left = 8
+        Top = 327
         Width = 75
         Height = 25
         Caption = 'Close'

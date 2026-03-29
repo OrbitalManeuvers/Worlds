@@ -135,15 +135,7 @@
             <Form>MainForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="common\u_Worlds.Types.pas"/>
-        <DCCReference Include="common\u_Environment.Types.pas"/>
-        <DCCReference Include="common\u_Environment.JSON.pas"/>
-        <DCCReference Include="ui\fr_WorldFrame.pas">
-            <Form>WorldFrame</Form>
-            <FormType>dfm</FormType>
-            <DesignClass>TFrame</DesignClass>
-        </DCCReference>
-        <DCCReference Include="common\u_Worlds.pas"/>
+        <DCCReference Include="common\u_EnvironmentTypes.pas"/>
         <DCCReference Include="ui\fr_ContentFrames.pas">
             <Form>ContentFrame</Form>
             <FormType>dfm</FormType>
@@ -155,19 +147,74 @@
             <DesignClass>TFrame</DesignClass>
         </DCCReference>
         <DCCReference Include="ui\u_ControlRendering.pas"/>
-        <DCCReference Include="common\u_Worlds.JSON.pas"/>
         <DCCReference Include="ui\fr_BiomeEditor.pas">
             <Form>BiomeEditor</Form>
             <FormType>dfm</FormType>
             <DesignClass>TFrame</DesignClass>
         </DCCReference>
-        <DCCReference Include="common\u_EditorObjects.pas"/>
+        <DCCReference Include="common\u_EditorTypes.pas"/>
         <DCCReference Include="common\u_Foods.pas"/>
         <DCCReference Include="common\u_Biomes.pas"/>
         <DCCReference Include="common\u_Regions.pas"/>
         <DCCReference Include="common\u_EnvironmentLibraries.pas"/>
-        <DCCReference Include="common\u_Foods.JSON.pas"/>
-        <DCCReference Include="common\u_Biomes.JSON.pas"/>
+        <DCCReference Include="ui\fr_RatingEditor.pas">
+            <Form>RatingEditorFrame</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
+        <DCCReference Include="ui\fr_RegionEditor.pas">
+            <Form>RegionEditor</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
+        <DCCReference Include="ui\u_MapEditors.pas"/>
+        <DCCReference Include="common\u_Serialization.pas"/>
+        <DCCReference Include="common\u_BiomeMaps.pas"/>
+        <DCCReference Include="sim\u_Simulators.pas"/>
+        <DCCReference Include="sim\u_SimParams.pas"/>
+        <DCCReference Include="sim\u_SimControllers.pas"/>
+        <DCCReference Include="sim\u_SimClocks.pas"/>
+        <DCCReference Include="sim\u_SimRuntimes.pas"/>
+        <DCCReference Include="sim\u_SimUpscalers.pas"/>
+        <DCCReference Include="sim\u_SimEnvironments.pas"/>
+        <DCCReference Include="sim\u_SimPopulations.pas"/>
+        <DCCReference Include="ui\fr_SimFrame.pas">
+            <Form>SimFrame</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
+        <DCCReference Include="ui\u_CellVisualizers.pas"/>
+        <DCCReference Include="sim\u_SimLoggers.pas"/>
+        <DCCReference Include="ui\u_SimVisualizer.pas"/>
+        <DCCReference Include="ui\fr_BiologyEditor.pas">
+            <Form>BiologyEditor</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
+        <DCCReference Include="agents\u_AgentTypes.pas"/>
+        <DCCReference Include="common\u_BiologyTypes.pas"/>
+        <DCCReference Include="agents\u_AgentGenome.pas"/>
+        <DCCReference Include="agents\u_Sight.pas"/>
+        <DCCReference Include="sim\u_SimQueriesIntf.pas"/>
+        <DCCReference Include="agents\u_Smell.pas"/>
+        <DCCReference Include="agents\u_AgentState.pas"/>
+        <DCCReference Include="sim\u_SimQueriesImpl.pas"/>
+        <DCCReference Include="agents\u_Foraging.pas"/>
+        <DCCReference Include="agents\u_AgentBrain.pas"/>
+        <DCCReference Include="ui\fr_WorldEditor.pas">
+            <Form>WorldEditor</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
+        <DCCReference Include="common\u_Worlds.pas"/>
+        <DCCReference Include="ui\u_GraphicButtonBars.pas"/>
+        <DCCReference Include="common\u_WorldLayouts.pas"/>
+        <DCCReference Include="sim\u_SimSessions.pas"/>
+        <DCCReference Include="ui\fr_ResourceVisualizer.pas">
+            <Form>ResVisFrame</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

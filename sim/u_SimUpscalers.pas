@@ -417,7 +417,7 @@ begin
           // the foodList and the substances are in the same order
           Runtime.Environment.Resources[resIndex].SubstanceIndex := FoodList.IndexOf(biome.Foods[foodIndex]);
 
-          Runtime.Environment.Resources[resIndex].Amount := InitialCacheAmount;
+          Runtime.Environment.Resources[resIndex].Amount := 0.0; // InitialCacheAmount;
           Runtime.Environment.Resources[resIndex].GrowthRate := ResourceGrowthRate(biome.GrowthRate, biome.Foods[foodIndex].GrowthRate) * edgeFactor;
 
           Inc(resourceWriteIndex);
@@ -564,7 +564,7 @@ begin
         var foodIndex := biomeFoods[i];
 
         Runtime.Environment.Resources[resIndex].SubstanceIndex := foodIndex;
-        Runtime.Environment.Resources[resIndex].Amount := InitialCacheAmount;
+        Runtime.Environment.Resources[resIndex].Amount := 0.0;
         Runtime.Environment.Resources[resIndex].GrowthRate :=
           ResourceGrowthRate(biome.GrowthRate, aLayout.Foods[foodIndex].GrowthRate);
 

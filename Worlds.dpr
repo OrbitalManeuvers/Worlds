@@ -47,7 +47,8 @@ uses
   u_Worlds in 'common\u_Worlds.pas',
   u_GraphicButtonBars in 'ui\u_GraphicButtonBars.pas',
   u_WorldLayouts in 'common\u_WorldLayouts.pas',
-  u_SimSessions in 'sim\u_SimSessions.pas';
+  u_SimSessions in 'sim\u_SimSessions.pas',
+  fr_ResourceVisualizer in 'ui\fr_ResourceVisualizer.pas' {ResVisFrame: TFrame};
 
 {$R *.res}
 
