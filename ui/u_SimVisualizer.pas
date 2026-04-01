@@ -246,10 +246,8 @@ end;
 
 procedure TSimVisualizer.ResetView;
 var
-  oldZoom: TVisualizerZoom;
   oldAnchor: TPoint;
 begin
-  oldZoom := fZoomLevel;
   oldAnchor := fAnchorCell;
   fZoomLevel := vz1;
   fAnchorCell := Point(0, 0);

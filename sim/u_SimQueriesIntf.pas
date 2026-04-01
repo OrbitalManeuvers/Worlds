@@ -36,6 +36,22 @@ type
     procedure FillLocalFoodCaches(Location: Cardinal; Range: Single; var Buffer: TSmellCacheInfos; out Count: Integer);
   end;
 
+
+  TSightInfo = record
+    AgentId: Cardinal;
+    Location: Cardinal;
+    Distance: Cardinal;
+  end;
+
+  TSightInfos = array of TSightInfo;
+
+  IPopulationSightQuery = interface(IPopulationQuery)
+    ['{5E8FE2D0-AA3F-4ECC-9258-741C7927128A}']
+    // Caller owns Buffer and can reuse it across ticks to reduce allocations.
+    // Count is the number of valid items populated in Buffer[0..Count-1].
+    procedure FillLocalAgents(Location: Cardinal; Range: Single; var Buffer: TSightInfos; out Count: Integer);
+  end;
+
 implementation
 
 end.

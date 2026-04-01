@@ -36,9 +36,9 @@ uses
   u_AgentTypes in 'agents\u_AgentTypes.pas',
   u_BiologyTypes in 'common\u_BiologyTypes.pas',
   u_AgentGenome in 'agents\u_AgentGenome.pas',
-  u_Sight in 'agents\u_Sight.pas',
+  u_SightGenes in 'agents\u_SightGenes.pas',
   u_SimQueriesIntf in 'sim\u_SimQueriesIntf.pas',
-  u_Smell in 'agents\u_Smell.pas',
+  u_SmellGenes in 'agents\u_SmellGenes.pas',
   u_AgentState in 'agents\u_AgentState.pas',
   u_SimQueriesImpl in 'sim\u_SimQueriesImpl.pas',
   u_Foraging in 'agents\u_Foraging.pas',
@@ -48,7 +48,8 @@ uses
   u_GraphicButtonBars in 'ui\u_GraphicButtonBars.pas',
   u_WorldLayouts in 'common\u_WorldLayouts.pas',
   u_SimSessions in 'sim\u_SimSessions.pas',
-  fr_ResourceVisualizer in 'ui\fr_ResourceVisualizer.pas' {ResVisFrame: TFrame};
+  fr_ResourceVisualizer in 'ui\fr_ResourceVisualizer.pas' {ResVisFrame: TFrame},
+  u_SimPopulators in 'sim\u_SimPopulators.pas';
 
 {$R *.res}
 

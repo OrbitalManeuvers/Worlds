@@ -76,8 +76,8 @@ procedure TSimFrame.Init;
 begin
   inherited;
   fViewers := TList<TResViewFrame>.Create;
-  var f := CreateViewer(phV1);
-  f := CreateViewer(phV2);
+  CreateViewer(phV1);
+  CreateViewer(phV2);
 
 
 
@@ -218,12 +218,9 @@ begin
   fVisualizer.ZoomLevel := TVisualizerZoom(view.ZoomFactor);
   fVisualizer.SubstanceIndex := view.SubstanceIndex;
 
-  var food := fSession.Foods[view.SubstanceIndex];
-  var foodColor: TColor := FOOD_COLORS[view.SubstanceIndex];
-
-//  food.Recipe.Percents[]
-//   MOLECULE_COLORS: array[TMolecule] of string = ('#6FA8DC', '#93C47D', '#E69138', '#D3A29C');
-
+  var foodColor: TColor := clLime;
+  if view.SubstanceIndex <= High(FOOD_COLORS) then
+    foodColor := FOOD_COLORS[view.SubstanceIndex];
 
   fVisualizer.Paint(view.Canvas, foodColor);
 end;

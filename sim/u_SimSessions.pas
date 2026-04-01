@@ -27,7 +27,7 @@ type
 
 implementation
 
-uses u_WorldLayouts, u_SimUpscalers;
+uses u_WorldLayouts, u_SimUpscalers, u_SimPopulators;
 
 { TSimSession }
 
@@ -53,11 +53,12 @@ end;
 procedure TSimSession.BeginSession;
 begin
 
+  // Environment
   // create the stitched-together world of selected regions
   var layout := TWorldLayout.Create(fWorld, fLibrary);
   try
     // the layout feeds the upscaler
-    var upscaler := TWorldUpscaler.Create(fSim.Runtime, fParams);
+    var upscaler := TWorldUpscaler.Create(fSim.Runtime.Environment, fParams);
     try
       upscaler.UpscaleWorld(layout);
     finally
@@ -71,6 +72,12 @@ begin
   finally
     layout.free;
   end;
+
+
+  // Population
+  TWorldPopulator.Populate(fSim.Runtime.Population, fParams);
+
+
 end;
 
 procedure TSimSession.EndSession;

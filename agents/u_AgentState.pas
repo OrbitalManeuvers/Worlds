@@ -22,7 +22,7 @@ type
     // Current action
     Action: TAgentAction;
     ActionProgress: Integer;  // ticks spent on current action
-    ActionTarget: TAgentTarget;
+    ActionTarget: TTarget;
 
     // Learned state (decision weights)
     DecisionWeights: array of Single;  // indexed by (action x context)

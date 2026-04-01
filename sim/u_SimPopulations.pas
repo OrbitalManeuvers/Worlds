@@ -9,10 +9,10 @@ type
   private
     fAgents: TArray<TAgentState>;
     fScratch: TAgentScratch;
+    procedure SetAgentCount(aCount: Integer);
+    function GetAgentCount: Integer;
   public
     constructor Create;
-
-    procedure SetAgentCount(aCount: Integer);
 
     function TryGetAgentState(aIndex: Integer; out State: TAgentState): Boolean;
     procedure UpdateAgentState(aIndex: Integer; const State: TAgentState);
@@ -23,7 +23,7 @@ type
 
     procedure Tick(const Input: TBrainTickInput);
 
-    function AgentCount: Integer;
+    property AgentCount: Integer read GetAgentCount write SetAgentCount;
     property Agents: TArray<TAgentState> read fAgents;
 
   end;
@@ -37,7 +37,7 @@ begin
   inherited;
 end;
 
-function TSimPopulation.AgentCount: Integer;
+function TSimPopulation.GetAgentCount: Integer;
 begin
   Result := Length(fAgents);
 end;

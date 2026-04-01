@@ -16,6 +16,60 @@ type
     Ratings: TMoleculeFactors;
   end;
 
+  // Caller-owned workspace reused across ticks for smell scan queries.
+  TSmellScanScratch = record
+    Buffer: TSmellCacheInfos;
+    Count: Integer;
+  end;
+
+  // Caller-owned workspace reused across ticks for sight scan queries.
+  TSightScanScratch = record
+    Buffer: TSightInfos;
+    Count: Integer;
+  end;
+
+  TSensorScanScratch = record
+    Smell: TSmellScanScratch;
+    Sight: TSightScanScratch;
+  end;
+
+  // Action-specific evaluator inputs keep evaluator contracts narrow.
+  TForageEvalInput = record
+    IsNight: Boolean;
+    Reserves: TEnergyLevel;
+    CurrentAction: TAgentAction;
+    Smell: TSmellReport;
+  end;
+
+  TShelterEvalInput = record
+    IsNight: Boolean;
+    Reserves: TEnergyLevel;
+    CurrentAction: TAgentAction;
+    Sight: TSightReport;
+  end;
+
+  TReproduceEvalInput = record
+    IsNight: Boolean;
+    Reserves: TEnergyLevel;
+    CurrentAction: TAgentAction;
+  end;
+
+  // Evaluators own their own workspace contract, even when empty for now.
+  TForageEvalScratch = record
+  end;
+
+  TShelterEvalScratch = record
+  end;
+
+  TReproduceEvalScratch = record
+  end;
+
+  TEvaluatorScratch = record
+    Forage: TForageEvalScratch;
+    Shelter: TShelterEvalScratch;
+    Reproduce: TReproduceEvalScratch;
+  end;
+
   TGene = class
   public
     class function GetGenerationCode: Char; virtual; // first gen gets 'A' by default
@@ -31,14 +85,16 @@ type
   // Smell
   TSmellGene = class(TGene)
   public
-    class function Scan(Location: Cardinal; const Params: TSmellParams; const Query: ISimQuery): TSmellReport; virtual; abstract;
+    class function Scan(Location: Cardinal; const Params: TSmellParams; const Query: ISimQuery;
+      var Scratch: TSmellScanScratch): TSmellReport; virtual; abstract;
   end;
   TSmellGeneClass = class of TSmellGene;
 
   // Sight
   TSightGene = class(TGene)
   public
-    class function Scan(Location: Cardinal; Range: Single; const Query: ISimQuery): TSightReport; virtual; abstract;
+    class function Scan(Location: Cardinal; Range: Single; const Query: ISimQuery;
+      var Scratch: TSightScanScratch): TSightReport; virtual; abstract;
   end;
   TSightGeneClass = class of TSightGene;
 
@@ -50,17 +106,19 @@ type
 
   // Forage evaluation
   TForageEvalGene = class(TGene)
-    class function Score(const Context: TDecisionContext): Single; virtual; abstract;
+    class function Score(const Input: TForageEvalInput; var Scratch: TForageEvalScratch): Single; virtual; abstract;
   end;
   TForageEvalGeneClass = class of TForageEvalGene;
 
   // Shelter evaluation
   TShelterEvalGene = class(TGene)
+    class function Score(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): Single; virtual; abstract;
   end;
   TShelterEvalGeneClass = class of TShelterEvalGene;
 
   // Reproduction evaluation
   TReproduceEvalGene = class(TGene)
+    class function Score(const Input: TReproduceEvalInput; var Scratch: TReproduceEvalScratch): Single; virtual; abstract;
   end;
   TReproduceEvalGeneClass = class of TReproduceEvalGene;
 

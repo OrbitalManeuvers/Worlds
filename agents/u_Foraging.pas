@@ -6,7 +6,7 @@ uses u_AgentTypes, u_AgentGenome, u_SimQueriesIntf;
 
 type
   TForagingGene = class(TForageEvalGene)
-    class function Score(const Context: TDecisionContext): Single; override;
+    class function Score(const Input: TForageEvalInput; var Scratch: TForageEvalScratch): Single; override;
   end;
 
 
@@ -16,15 +16,16 @@ uses u_EnvironmentTypes;
 
 { TForagingGene }
 
-class function TForagingGene.Score(const Context: TDecisionContext): Single;
+class function TForagingGene.Score(const Input: TForageEvalInput; var Scratch: TForageEvalScratch): Single;
 begin
+  Scratch := Default(TForageEvalScratch);
   Result := 0.0;
 
-  if Context.Smell.Count <= 0 then
+  if Input.Smell.Count <= 0 then
     Exit;
 
   // Evaluator focuses on opportunity strength; cognition handles broader trade-offs.
-  for var detail in Context.Smell.Details do
+  for var detail in Input.Smell.Details do
   begin
     var targetSignal := 0.0;
     for var molecule := Low(TMolecule) to High(TMolecule) do
@@ -43,7 +44,7 @@ begin
   end;
 
   // If count exists but details are not populated yet, keep a small positive affordance.
-  if (Result = 0.0) and (Context.Smell.Count > 0) then
+  if (Result = 0.0) and (Input.Smell.Count > 0) then
     Result := 0.01;
 end;
 

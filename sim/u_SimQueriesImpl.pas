@@ -3,15 +3,22 @@ unit u_SimQueriesImpl;
 interface
 
 uses System.SysUtils,
-  u_EnvironmentTypes, u_SimEnvironments, u_SimQueriesIntf;
+  u_EnvironmentTypes, u_SimPopulations, u_SimEnvironments, u_SimQueriesIntf;
 
 type
-  TSimQuery = class(TInterfacedObject, ISimQuery, IEnvironmentSmellQuery)
+  TSimQuery = class(TInterfacedObject, ISimQuery, IEnvironmentSmellQuery, IPopulationSightQuery)
   private
     fEnvironment: TSimEnvironment;
+    fPopulation: TSimPopulation;
+
+    { IEnvironmentSmellQuery }
     procedure FillLocalFoodCaches(Location: Cardinal; Range: Single; var Buffer: TSmellCacheInfos; out Count: Integer);
+
+    { IPopulationSightQuery }
+    procedure FillLocalAgents(Location: Cardinal; Range: Single; var Buffer: TSightInfos; out Count: Integer);
+
   public
-    constructor Create(aEnvironment: TSimEnvironment);
+    constructor Create(aEnvironment: TSimEnvironment; aPopulation: TSimPopulation);
     destructor Destroy; override;
   end;
 
@@ -19,10 +26,11 @@ implementation
 
 { TSimQuery }
 
-constructor TSimQuery.Create(aEnvironment: TSimEnvironment);
+constructor TSimQuery.Create(aEnvironment: TSimEnvironment; aPopulation: TSimPopulation);
 begin
   inherited Create;
   fEnvironment := aEnvironment;
+  fPopulation := aPopulation;
 end;
 
 destructor TSimQuery.Destroy;
@@ -30,6 +38,7 @@ begin
 
   inherited;
 end;
+
 
 procedure TSimQuery.FillLocalFoodCaches(Location: Cardinal; Range: Single; var Buffer: TSmellCacheInfos; out Count: Integer);
 begin
@@ -68,6 +77,13 @@ begin
 
     Inc(Count);
   end;
+end;
+
+
+procedure TSimQuery.FillLocalAgents(Location: Cardinal; Range: Single; var Buffer: TSightInfos; out Count: Integer);
+begin
+  Count := 0;
+
 end;
 
 end.

@@ -12,7 +12,7 @@ type
   TEnergyLevel = (elEmpty, elLow, elMedium, elHigh, elFull);
 
   TTargetType = (ttCell, ttCache);
-  TAgentTarget = record
+  TTarget = record
     case TType: TTargetType of
       ttCell: (Cell: Cardinal);
       ttCache: (CacheId: Cardinal)
@@ -25,6 +25,7 @@ type
   end;
 
   TSightDetails = record
+    // consider what else can be "seen" about agents
     Directions: TDirections;
   end;
 

@@ -40,7 +40,7 @@ begin
   inherited;
   fEnvironment := TSimEnvironment.Create;
   fPopulation := TSimPopulation.Create;
-  fSimQuery := TSimQuery.Create(fEnvironment);
+  fSimQuery := TSimQuery.Create(fEnvironment, fPopulation);
 end;
 
 destructor TSimRuntime.Destroy;
