@@ -34,7 +34,7 @@ type
 
 implementation
 
-uses System.Math, Vcl.GraphUtil, Vcl.Themes;
+uses System.Types, System.Math, Vcl.GraphUtil, Vcl.Themes;
 
 { TButtonBar }
 
@@ -123,7 +123,7 @@ begin
       fBitmap.Canvas.Pen.Style := psSolid;
       fBitmap.Canvas.Pen.Width := 1;
       fBitmap.Canvas.Pen.Color := GetHighlightColor(StyleServices.GetSystemColor(clHighlight), 15);
-      fBitmap.Canvas.Polyline([Point(r.Left + 1, r.Bottom - 1), Point(r.Right - 1, r.Bottom - 1), point(r.Right - 1, R.Top)]);
+      fBitmap.Canvas.Polyline([Point(r.Left + 1, r.Bottom - 1), Point(r.Right - 1, r.Bottom - 1), Point(r.Right - 1, R.Top)]);
 
       fBitmap.Canvas.Font.Color := StyleServices.GetSystemColor(clHighlightText);
       fBitmap.Canvas.Brush.Style := bsClear;

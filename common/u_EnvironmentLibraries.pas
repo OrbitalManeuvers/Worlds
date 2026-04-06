@@ -36,10 +36,10 @@ type
     // ratings
     function GetRatings(I: Integer): TMoleculeRatings;
     function GetRatingsCount: Integer;
-    function GetWorld(I: Integer): TWorld;
-    function GetWorldCount: Integer;
 
     // worlds
+    function GetWorld(I: Integer): TWorld;
+    function GetWorldCount: Integer;
 
   protected
     // non property access for descendents/helpers

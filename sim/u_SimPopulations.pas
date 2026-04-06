@@ -50,8 +50,7 @@ begin
   SetLength(fAgents, aCount);
 end;
 
-function TSimPopulation.TryGetAgentState(aIndex: Integer;
-  out State: TAgentState): Boolean;
+function TSimPopulation.TryGetAgentState(aIndex: Integer; out State: TAgentState): Boolean;
 begin
   Result := (aIndex >= 0) and (aIndex <= High(fAgents));
   if Result then
@@ -60,8 +59,7 @@ begin
     State := Default(TAgentState);
 end;
 
-procedure TSimPopulation.UpdateAgentState(aIndex: Integer;
-  const State: TAgentState);
+procedure TSimPopulation.UpdateAgentState(aIndex: Integer; const State: TAgentState);
 begin
   if (aIndex < 0) or (aIndex > High(fAgents)) then
     Exit;

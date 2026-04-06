@@ -37,6 +37,7 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+    procedure InvalidateView;
 
     property IsActive: Boolean read fIsActive write SetIsActive;
     property OnPaint: TNotifyEvent read fOnPaint write fOnPaint;
@@ -154,6 +155,12 @@ end;
 procedure TResViewFrame.spZoomFactorChange(Sender: TObject);
 begin
   pbVis.Invalidate;
+end;
+
+procedure TResViewFrame.InvalidateView;
+begin
+  if fIsActive then
+    pbVis.Invalidate;
 end;
 
 end.

@@ -36,6 +36,7 @@ begin
       // Direction scaffolding: local-cell scan currently reports distance 0.
       Result.Details[i].Directions.Direction := mdNorth;
       Result.Details[i].Directions.Distance := 0;
+      Result.Details[i].CacheId := Scratch.Buffer[i].CacheId;
 
       Result.Details[i].MoleculesPresent := [];
       for var molecule := Low(TMolecule) to High(TMolecule) do

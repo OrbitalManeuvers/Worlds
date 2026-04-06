@@ -5,7 +5,7 @@ interface
 uses u_AgentTypes, u_AgentState, u_AgentGenome, u_SimQueriesIntf;
 
 type
-  TActionScores = array[TAgentAction] of Single;
+  TActionScores = TCognitionActionScores;
 
   // Runtime-owned inputs for one brain decision pass.
   TBrainTickInput = record
@@ -41,28 +41,41 @@ implementation
 function BuildForageEvalInput(const Context: TDecisionContext): TForageEvalInput;
 begin
   Result.IsNight := Context.IsNight;
-  Result.Reserves := Context.Reserves;
+  Result.EnergyLevel := Context.EnergyLevel;
   Result.CurrentAction := Context.CurrentAction;
   Result.Smell := Context.Smell;
 end;
 
-function DeriveReserveLevel(const Reserves: Single): TEnergyLevel;
+function BuildEnergyInput(const State: TAgentState): TEnergyInput;
 begin
-  // Placeholder buckets while reserves are treated as the canonical energy state.
-  if Reserves <= 0.0 then
-    Exit(elEmpty);
-
-  if Reserves < 25.0 then
-    Exit(elLow);
-
-  if Reserves < 50.0 then
-    Exit(elMedium);
-
-  if Reserves < 75.0 then
-    Exit(elHigh);
-
-  Result := elFull;
+  Result.Reserves := State.Reserves;
 end;
+
+function BuildCognitionInput(const Context: TDecisionContext; const ActionScores: TActionScores;
+  const CurrentTarget: TTarget): TCognitionInput;
+begin
+  Result.Context := Context;
+  Result.ActionScores := ActionScores;
+  Result.CurrentTarget := CurrentTarget;
+end;
+
+//function DeriveReserveLevel(const Reserves: Single): TEnergyLevel;
+//begin
+//  // Placeholder buckets while reserves are treated as the canonical energy state.
+//  if Reserves <= 0.0 then
+//    Exit(elEmpty);
+//
+//  if Reserves < 25.0 then
+//    Exit(elLow);
+//
+//  if Reserves < 50.0 then
+//    Exit(elMedium);
+//
+//  if Reserves < 75.0 then
+//    Exit(elHigh);
+//
+//  Result := elFull;
+//end;
 
 { TAgentScratch }
 
@@ -76,7 +89,7 @@ begin
   DecisionContext.Location := State.Location;
   DecisionContext.IsNight := Input.IsNight;
   DecisionContext.CurrentAction := State.Action;
-  DecisionContext.Reserves := DeriveReserveLevel(State.Reserves);
+  DecisionContext.EnergyLevel := Low(TEnergyLevel);
 
   for var action := Low(TAgentAction) to High(TAgentAction) do
     ActionScores[action] := 0.0;
@@ -88,24 +101,31 @@ class function TAgentBrain.Think(const State: TAgentState; const Input: TBrainTi
 begin
   Scratch.BeginTick(State, Input);
 
+  // remove this eventually, but for now make sure what we expect is here.
+  // There should not be any unassigned genes (eventually), all should have a Basic implementation.
+  Assert(Assigned(State.Genome.GeneMap.Energy));
+  Assert(Assigned(State.Genome.GeneMap.Smell));
+//  Assert(Assigned(State.Genome.GeneMap.ForageEval));
+  Assert(Assigned(State.Genome.GeneMap.Cognition));
+
+
   // Observation stage: enrich context from available genes.
 
   // 1. Energy
+  var energyInput := BuildEnergyInput(State);
+  Scratch.DecisionContext.EnergyLevel := State.Genome.GeneMap.Energy.EvaluateEnergyLevel(energyInput);
 
   // 2. Smell
-  if Assigned(State.Genome.GeneMap.Smell) then
-  begin
-    // allow parameters to adjust the gene's operation
-    var smellParams: TSmellParams;
-    smellParams.Range := State.Genome.SmellRange;
-    smellParams.Ratings := State.Genome.SmellRatings;
+  // allow parameters to adjust the gene's operation
+  var smellParams: TSmellParams;
+  smellParams.Range := State.Genome.SmellRange;
+  smellParams.Ratings := State.Genome.SmellRatings;
 
-    // activate the gene and save its reply
-    var smellGene := State.Genome.GeneMap.Smell;
-    var smellReport := smellGene.Scan(State.Location, smellParams, Input.Query, Scratch.SensorScratch.Smell);
+  // activate the gene and save its reply
+  var smellGene := State.Genome.GeneMap.Smell;
+  var smellReport := smellGene.Scan(State.Location, smellParams, Input.Query, Scratch.SensorScratch.Smell);
 
-    Scratch.DecisionContext.Smell := smellReport;
-  end;
+  Scratch.DecisionContext.Smell := smellReport;
 
   // 3. Sight
   if Assigned(State.Genome.GeneMap.Sight) then
@@ -118,9 +138,10 @@ begin
 
   // Evaluation stage: score available actions.
 
-//    MoveEval: TMoveEvalGeneClass;
+  // 1. Movement
 
-  // Foraging
+
+  // 2. Foraging
   var forageEval := State.Genome.GeneMap.ForageEval;
   if Assigned(forageEval) then
   begin
@@ -128,24 +149,33 @@ begin
     Scratch.ActionScores[acForage] := forageEval.Score(forageInput, Scratch.EvaluatorScratch.Forage);
   end;
 
-  // shelter
+  // 3. Shelter
   var shelterEval := State.Genome.GeneMap.ShelterEval;
   if Assigned(shelterEval) then
     Scratch.ActionScores[acShelter] := 0; // shelterEval.
 
-  // reproduction
+  // 4. Reproduction
   var reproduceEval := State.Genome.GeneMap.ReproduceEval;
   if Assigned(reproduceEval) then
     Scratch.ActionScores[acReproduce] := 0; // reproduceEval.
 
 
-  // cognition
+  // finally, Cognition
+  var cognitionGene := State.Genome.GeneMap.Cognition;
+  if Assigned(cognitionGene) then
+  begin
+    var cognitionInput := BuildCognitionInput(Scratch.DecisionContext, Scratch.ActionScores, State.ActionTarget);
+    var cognitionOutput := cognitionGene.Decide(cognitionInput, Scratch.EvaluatorScratch.Cognition);
 
+    Result.RequestedAction := cognitionOutput.RequestedAction;
+    Result.RequestedTarget := cognitionOutput.RequestedTarget;
+  end
+  else
+  begin
+    Result.RequestedAction := State.Action;
+    Result.RequestedTarget := State.ActionTarget;
+  end;
 
-
-  // Decision stage placeholder: keep current action until cognition is wired.
-  Result.RequestedAction := State.Action;
-  Result.RequestedTarget := State.ActionTarget;
   Result.Scores := Scratch.ActionScores;
 end;
 

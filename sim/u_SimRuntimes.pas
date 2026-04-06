@@ -3,7 +3,10 @@ unit u_SimRuntimes;
 interface
 
 uses u_AgentState, u_SimEnvironments, u_SimPopulations, u_SimClocks, u_SimQueriesIntf,
-  u_AgentBrain;
+  u_SimCommandsIntf, u_AgentBrain;
+
+const
+  AGENT_BITE_SIZE = 0.1;  // temporary. move to sim params/genome
 
 type
   TSimRuntime = class
@@ -13,10 +16,11 @@ type
     fEnvironment: TSimEnvironment;
     fPopulation: TSimPopulation;
     fSimQuery: ISimQuery;
+    fSimCommand: ISimCommand;
     function CalculateAgentTickCost(const State: TAgentState): Single;
+    function CalculateForageGain(const Reply: TConsumeCacheReply): Single;
     function ApplyAgentUpkeep(var State: TAgentState): Boolean;
-    function ResolveRequestedStep(aIndex: Integer; const Requested: TBrainTickOutput;
-      const Input: TBrainTickInput): TBrainTickOutput;
+    function ResolveRequestedStep(var State: TAgentState; const Requested: TBrainTickOutput): TBrainTickOutput;
     procedure ProcessAgentTick(aIndex: Integer; const Input: TBrainTickInput);
     procedure SetDayTick(const Value: TDayTick);
   public
@@ -31,7 +35,8 @@ type
 
 implementation
 
-uses System.Math, u_AgentGenome, u_AgentTypes, u_SimQueriesImpl;
+uses System.Math, System.SysUtils, u_AgentGenome, u_AgentTypes, u_SimQueriesImpl,
+  u_SimCommandsImpl;
 
 { TSimRuntime }
 
@@ -41,11 +46,13 @@ begin
   fEnvironment := TSimEnvironment.Create;
   fPopulation := TSimPopulation.Create;
   fSimQuery := TSimQuery.Create(fEnvironment, fPopulation);
+  fSimCommand := TSimCommand.Create(fEnvironment);
 end;
 
 destructor TSimRuntime.Destroy;
 begin
   fSimQuery := nil;
+  fSimCommand := nil;
   fEnvironment.Free;
   fPopulation.Free;
   inherited;
@@ -91,12 +98,40 @@ begin
     State.Reserves := 0.0;
 end;
 
-function TSimRuntime.ResolveRequestedStep(aIndex: Integer;
-  const Requested: TBrainTickOutput; const Input: TBrainTickInput): TBrainTickOutput;
+function TSimRuntime.CalculateForageGain(const Reply: TConsumeCacheReply): Single;
+begin
+  // V0 digestion placeholder: reserve gain tracks consumed cache amount.
+  Result := Reply.ConsumedAmount;
+end;
+
+function TSimRuntime.ResolveRequestedStep(var State: TAgentState;
+  const Requested: TBrainTickOutput): TBrainTickOutput;
 begin
   // Runtime resolution hook: adjust or reject requested actions based on world rules.
-  // Current scaffold is pass-through.
   Result := Requested;
+
+  if (Requested.RequestedAction = acForage) and (Requested.RequestedTarget.TType = ttCache) then
+  begin
+    var forageCommand: IEnvironmentForageCommand;
+    if Supports(fSimCommand, IEnvironmentForageCommand, forageCommand) then
+    begin
+      var reply: TConsumeCacheReply := Default(TConsumeCacheReply);
+
+      var request: TConsumeCacheRequest;
+      request.CacheId := Requested.RequestedTarget.CacheId;
+      request.RequestedAmount := AGENT_BITE_SIZE;
+
+      if forageCommand.TryConsumeCache(request, reply) then
+      begin
+        State.Reserves := State.Reserves + CalculateForageGain(reply);
+      end
+      else
+      begin
+        // Failed consume attempts should not pin the agent in an unavailable forage.
+        Result.RequestedAction := acIdle;
+      end;
+    end;
+  end;
 end;
 
 procedure TSimRuntime.ProcessAgentTick(aIndex: Integer; const Input: TBrainTickInput);
@@ -128,7 +163,8 @@ begin
   fPopulation.UpdateAgentState(aIndex, state);
 
   var requested := fPopulation.RequestAgentStep(aIndex, Input);
-  var resolved := ResolveRequestedStep(aIndex, requested, Input);
+  var resolved := ResolveRequestedStep(state, requested);
+  fPopulation.UpdateAgentState(aIndex, state);
   fPopulation.ApplyAgentStep(aIndex, resolved);
 end;
 

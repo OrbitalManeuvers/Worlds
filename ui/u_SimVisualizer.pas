@@ -334,19 +334,14 @@ begin
   if count = 0 then
     Exit;
 
-  var capacity := env.ResourceCacheMaxAmount;
-  var mult := 255.0;
-  if capacity > 0 then
-    mult := 255.0 / capacity;
-
   for var i := 0 to count - 1 do
   begin
     var resIndex := start + i;
-    if (resIndex >= 0) and (resIndex < Length(env.Resources)) and
+    if (resIndex < Length(env.Resources)) and
        (env.Resources[resIndex].SubstanceIndex = fSubstanceIndex) then
     begin
       var amount := env.Resources[resIndex].Amount;
-      Result := Byte(Round(EnsureRange(amount * mult, 0.0, 255.0)));
+      Result := Byte(Round(EnsureRange(amount * 255.0, 0.0, 255.0)));
       Exit;
     end;
   end;

@@ -33,25 +33,43 @@ type
     Sight: TSightScanScratch;
   end;
 
+  // Self-state observed by the Energy module.
+  TEnergyInput = record
+    Reserves: Single;
+  end;
+
   // Action-specific evaluator inputs keep evaluator contracts narrow.
   TForageEvalInput = record
     IsNight: Boolean;
-    Reserves: TEnergyLevel;
+    EnergyLevel: TEnergyLevel;
     CurrentAction: TAgentAction;
     Smell: TSmellReport;
   end;
 
   TShelterEvalInput = record
     IsNight: Boolean;
-    Reserves: TEnergyLevel;
+    EnergyLevel: TEnergyLevel;
     CurrentAction: TAgentAction;
     Sight: TSightReport;
   end;
 
   TReproduceEvalInput = record
     IsNight: Boolean;
-    Reserves: TEnergyLevel;
+    EnergyLevel: TEnergyLevel;
     CurrentAction: TAgentAction;
+  end;
+
+  TCognitionActionScores = array[TAgentAction] of Single;
+
+  TCognitionInput = record
+    Context: TDecisionContext;
+    ActionScores: TCognitionActionScores;
+    CurrentTarget: TTarget;
+  end;
+
+  TCognitionOutput = record
+    RequestedAction: TAgentAction;
+    RequestedTarget: TTarget;
   end;
 
   // Evaluators own their own workspace contract, even when empty for now.
@@ -64,10 +82,14 @@ type
   TReproduceEvalScratch = record
   end;
 
+  TCognitionScratch = record
+  end;
+
   TEvaluatorScratch = record
     Forage: TForageEvalScratch;
     Shelter: TShelterEvalScratch;
     Reproduce: TReproduceEvalScratch;
+    Cognition: TCognitionScratch;
   end;
 
   TGene = class
@@ -78,7 +100,7 @@ type
 
   // Energy
   TEnergyGene = class(TGene)
-    class function EvaluateEnergyLevel: TEnergyLevel; virtual; abstract;
+    class function EvaluateEnergyLevel(const Input: TEnergyInput): TEnergyLevel; virtual; abstract;
   end;
   TEnergyGeneClass = class of TEnergyGene;
 
@@ -124,6 +146,7 @@ type
 
   // Cognition gene
   TCognitionGene = class(TGene)
+    class function Decide(const Input: TCognitionInput; var Scratch: TCognitionScratch): TCognitionOutput; virtual; abstract;
   end;
   TCognitionGeneClass = class of TCognitionGene;
 
@@ -328,6 +351,7 @@ class procedure TGeneSequencer.Populate(var aMap: TGeneMap; const aSequence: TGe
 begin
   var geneClass: TGeneClass;
 
+  // observation
   geneClass := GlobalGeneRegistry.FindGeneration(TEnergyGene, aSequence.Energy);
   aMap.Energy := TEnergyGeneClass(geneClass);
 
@@ -337,10 +361,24 @@ begin
   geneClass := GlobalGeneRegistry.FindGeneration(TSightGene, aSequence.Sight);
   aMap.Sight := TSightGeneClass(geneClass);
 
+  // evaluation
+
   geneClass := GlobalGeneRegistry.FindGeneration(TMoveEvalGene, aSequence.Movement);
   aMap.MoveEval := TMoveEvalGeneClass(geneClass);
 
-  // etc
+  geneClass := GlobalGeneRegistry.FindGeneration(TForageEvalGene, aSequence.Forage);
+  aMap.ForageEval := TForageEvalGeneClass(geneClass);
+
+
+  // decision
+  geneClass := GlobalGeneRegistry.FindGeneration(TCognitionGene, aSequence.Cognition);
+  aMap.Cognition := TCognitionGeneClass(geneClass);
+
+
+
+  // digestion
+
+
 
 end;
 

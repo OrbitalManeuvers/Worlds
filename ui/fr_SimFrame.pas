@@ -8,8 +8,8 @@ uses
   System.Generics.Collections,
 
   Vcl.Samples.Spin, Vcl.ControlList, Vcl.ComCtrls, Vcl.Buttons, Vcl.Mask,
-  u_EnvironmentLibraries, u_SimVisualizer, u_Simulators, u_SimLoggers,
-  u_SimSessions, fr_ResourceVisualizer;
+  u_EnvironmentLibraries, u_SimVisualizer, u_Simulators,
+  u_SimSessions, fr_ResourceVisualizer, u_SimWatches;
 
 type
   TSimFrame = class(TContentFrame)
@@ -32,6 +32,12 @@ type
     btnClose: TButton;
     phV1: TShape;
     phV2: TShape;
+    lblStep: TLabel;
+    grpSeeds: TGroupBox;
+    Label1: TLabel;
+    edtSeedName: TEdit;
+    btnSaveSeed: TSpeedButton;
+    ViewerGridPanel: TGridPanel;
     procedure btnCreateSimClick(Sender: TObject);
     procedure btnStepClick(Sender: TObject);
     procedure WorldListItemClick(Sender: TObject);
@@ -42,16 +48,18 @@ type
     fSession: TSimSession;
     fViewers: TList<TResViewFrame>;
 
-    fLogger: TSimLogger;
     fVisualizer: TSubstanceVisualizer;
-    procedure Log(const msg: string);
-    procedure HandleLogEvent(Sender: TLogger; const aMsg: string);
-    procedure BeginLogWrite(Sender: TObject);
-    procedure EndLogWrite(Sender: TObject);
+//    procedure Log(const msg: string);
+
+    procedure HandleLogEvent(Sender: TObject; const aMsg: string);
+    procedure HandleSessionAfterStep(Sender: TObject);
+    procedure HandleWatchChanged(Sender: TObject; Watch: TSimWatch);
+
     procedure UpdateControls;
 
     procedure InitSession;
     procedure DoneSession;
+
     function CreateViewer(aPlaceholder: TShape): TResViewFrame;
     procedure HandleViewerPaint(Sender: TObject);
 
@@ -96,16 +104,26 @@ begin
 end;
 
 function TSimFrame.CreateViewer(aPlaceholder: TShape): TResViewFrame;
+const
+  VIEWER_SIZE_X = 300;
+  VIEWER_SIZE_Y = 330;
 begin
   aPlaceholder.Visible := False;
 
   Result := TResViewFrame.Create(Self);
   Result.Name := 'resview' + fViewers.Count.ToString;
   Result.IsActive := False;
-  Result.Parent := aPlaceholder.Parent;
-  Result.BoundsRect := aPlaceholder.BoundsRect;
+  Result.Width := VIEWER_SIZE_X;
+  Result.Height := VIEWER_SIZE_Y;
+
+  Result.Parent := ViewerGridPanel;
+
+//  Result.Parent := aPlaceholder.Parent;
+//  Result.BoundsRect := aPlaceholder.BoundsRect;
+
   Result.Visible := True;
   Result.OnPaint := HandleViewerPaint;
+
   fViewers.Add(Result);
 end;
 
@@ -122,16 +140,21 @@ begin
 
   { allocation }
   fSession := TSimSession.Create(world, params, WorldLibrary);
-
-  { allocation }
-  fLogger := TSimLogger.Create(fSession.Simulator);
-  fLogger.OnLog := HandleLogEvent;
-  fLogger.OnBeginOutput := BeginLogWrite;
-  fLogger.OnEndOutput := EndLogWrite;
+  fSession.OnLog := HandleLogEvent;
+  fSession.OnAfterStep := HandleSessionAfterStep;
+  fSession.OnWatchChange := HandleWatchChanged;
 
   // attempt to set the wheels in motion
   try
     fSession.BeginSession;
+
+    var w := fSession.AddAgentWatch(0);
+
+    // add a cell watch where the agent ended up
+    var loc := fSession.Simulator.Runtime.Population.Agents[0].Location;
+    var c := fSession.AddCellWatch(loc);
+
+
   except
     on E: Exception do
     begin
@@ -141,10 +164,10 @@ begin
     end;
   end;
 
-  Log('Session created using ' + world.Name);
+//  Log('Session created using ' + world.Name);
 
-  Log('Substances:');
-  fLogger.LogSubstances;
+//  Log('Substances:');
+//  fLogger.LogSubstances;
 
   fVisualizer := TSubstanceVisualizer.Create;
   fVisualizer.Simulator := fSession.Simulator;
@@ -181,9 +204,6 @@ begin
     fVisualizer.Free;
     fVisualizer := nil;
 
-    fLogger.Free;
-    fLogger := nil;
-
     fSession.Free;
     fSession := nil;
   end;
@@ -202,13 +222,20 @@ begin
   UpdateControls;
 end;
 
-procedure TSimFrame.HandleLogEvent(Sender: TLogger; const aMsg: string);
+procedure TSimFrame.HandleLogEvent(Sender: TObject; const aMsg: string);
 begin
-  Log(aMsg);
+  LogMemo.Lines.Add(aMsg);
+end;
+
+procedure TSimFrame.HandleSessionAfterStep(Sender: TObject);
+begin
+  for var viewer in fViewers do
+    viewer.InvalidateView;
 end;
 
 procedure TSimFrame.HandleViewerPaint(Sender: TObject);
 const
+  // !! needs refactor
   FOOD_COLORS: array[0..5] of TColor = (clWebDodgerBlue, clWebDarkSeaGreen, clWebDarkKhaki, clWebGold, clWebTomato, clWebSienna);
 begin
   if not (Sender is TResViewFrame) then
@@ -225,9 +252,22 @@ begin
   fVisualizer.Paint(view.Canvas, foodColor);
 end;
 
-procedure TSimFrame.Log(const msg: string);
+procedure TSimFrame.HandleWatchChanged(Sender: TObject; Watch: TSimWatch);
 begin
-  LogMemo.Lines.Add(msg);
+
+  if Watch is TAgentWatch then
+  begin
+    var w := TAgentWatch(Watch);
+    var line := Format('[A%d] R:%4f ', [w.AgentId, w.LastChange.CurrentState.Reserves]);
+    LogMemo.Lines.Add(line);
+  end
+  else if Watch is TCellWatch then
+  begin
+    var c := TCellWatch(Watch);
+    var line := Format('[C%d] A:%4f', [c.CellIndex, c.LastChange.CurrentAmount]);
+    LogMemo.Lines.Add(line);
+  end;
+
 end;
 
 procedure TSimFrame.UpdateControls;
@@ -253,19 +293,6 @@ begin
   UpdateControls;
 end;
 
-procedure TSimFrame.BeginLogWrite(Sender: TObject);
-begin
-  LogMemo.Lines.BeginUpdate;
-end;
-
-procedure TSimFrame.EndLogWrite(Sender: TObject);
-begin
-  LogMemo.Lines.EndUpdate;
-  LogMemo.SelStart := Length(LogMemo.Text);
-  LogMemo.SelLength := 0;
-  LogMemo.Perform(EM_SCROLLCARET, 0, 0);
-end;
-
 procedure TSimFrame.btnCloseClick(Sender: TObject);
 begin
   // stop the session
@@ -276,7 +303,6 @@ procedure TSimFrame.btnCreateSimClick(Sender: TObject);
 begin
   LogMemo.Clear;
   InitSession;
-
 end;
 
 procedure TSimFrame.btnStepClick(Sender: TObject);
@@ -289,14 +315,9 @@ begin
   try
     for var stepIndex := 1 to count do
     begin
-      fSession.simulator.Clock.Step;
+      fSession.Step;
       lblTime.Caption := Format('%.02d:%.03d', [fSession.simulator.Clock.DayNumber, fSession.simulator.Clock.DayTick]);
-//      for var x := 3 to 3 do
-//        fLogger.LogCell(point(x, 0));
     end;
-
-    for var f in fViewers do
-      f.pbVis.Invalidate;  // replace this with a public method
 
   finally
     LogMemo.Lines.EndUpdate;

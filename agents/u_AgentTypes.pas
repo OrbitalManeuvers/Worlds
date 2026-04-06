@@ -14,8 +14,8 @@ type
   TTargetType = (ttCell, ttCache);
   TTarget = record
     case TType: TTargetType of
-      ttCell: (Cell: Cardinal);
-      ttCache: (CacheId: Cardinal)
+      ttCell: (Cell: Integer);
+      ttCache: (CacheId: Integer);
   end;
 
   TMoveDirection = (mdNorth, mdNorthEast, mdEast, mdSouthEast, mdSouth, mdSouthWest, mdWest, mdNorthWest);
@@ -35,8 +35,8 @@ type
   end;
 
   // what the agent detects about a resource cache.
-  // not all gene levels can fill in all fields
   TSmellDetails = record
+    CacheId: Integer;
     Directions: TDirections;
     MoleculesPresent: TMolecules;
     MoleculeStrength: array[TMolecule] of Single;
@@ -48,10 +48,10 @@ type
   end;
 
   TDecisionContext = record
-    Location: Cardinal;
+    Location: Integer;
     IsNight: Boolean;
 
-    Reserves: TEnergyLevel;
+    EnergyLevel: TEnergyLevel;
     Smell: TSmellReport;
     Sight: TSightReport;
 

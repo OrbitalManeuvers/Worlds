@@ -7,17 +7,13 @@ uses u_AgentTypes, u_AgentGenome;
 type
   TAgentState = record
     // Identity
-    AgentId: Cardinal;
-    Location: Cardinal;
+    AgentId: Integer;
+    Location: Integer;
 
     // Lifecycle
     Age: Cardinal;  // in ticks
-
-    // pick one:
     Reserves: Single;  // energy
-    EnergyLevel: TEnergyLevel; 
-
-    TicksSinceReproduction: Cardinal;
+    TicksSinceReproduction: Integer;
 
     // Current action
     Action: TAgentAction;

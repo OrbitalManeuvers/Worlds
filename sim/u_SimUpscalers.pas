@@ -155,7 +155,6 @@ begin
     Environment.SetSubstance(subIndex, aLayout.Foods[subIndex].ToSubstance);
 
   Environment.SetDimensions(simSize);
-  Environment.ResourceCacheMaxAmount := DEFAULT_RESOURCE_CACHE_MAX_AMOUNT;
 
   RequiredResourceCount := 0;
   for var cellY := 0 to simSize.cy - 1 do

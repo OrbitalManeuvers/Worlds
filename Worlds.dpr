@@ -48,8 +48,13 @@ uses
   u_GraphicButtonBars in 'ui\u_GraphicButtonBars.pas',
   u_WorldLayouts in 'common\u_WorldLayouts.pas',
   u_SimSessions in 'sim\u_SimSessions.pas',
+  u_SimWatches in 'sim\u_SimWatches.pas',
   fr_ResourceVisualizer in 'ui\fr_ResourceVisualizer.pas' {ResVisFrame: TFrame},
-  u_SimPopulators in 'sim\u_SimPopulators.pas';
+  u_SimPopulators in 'sim\u_SimPopulators.pas',
+  u_EnergyGenes in 'agents\u_EnergyGenes.pas',
+  u_CognitionGenes in 'agents\u_CognitionGenes.pas',
+  u_SimCommandsIntf in 'sim\u_SimCommandsIntf.pas',
+  u_SimCommandsImpl in 'sim\u_SimCommandsImpl.pas';
 
 {$R *.res}
 

@@ -19,28 +19,29 @@ type
     ['{26B58A40-2454-4B93-A77B-039AD0F3AE4E}']
   end;
 
+  // Smell cache info for a single substance at a location. SubstanceIndex provides composition identity.
   TSmellCacheInfo = record
     CacheId: Cardinal;
-    SubstanceIndex: Word;
     Amount: Single;
     Substance: TSubstance;
   end;
 
+  // Caller-owned buffer of smell cache infos. Caller can reuse the buffer across ticks to reduce allocations.
   TSmellCacheInfos = array of TSmellCacheInfo;
 
-  // Smell contract for environment lookups. Provides composition identity via SubstanceIndex.
+  // Smell contract for environment lookups.
   IEnvironmentSmellQuery = interface(IEnvironmentQuery)
     ['{BCFB2EFB-C6F9-4FCA-A4CE-D40CD8A1A72C}']
     // Caller owns Buffer and can reuse it across ticks to reduce allocations.
     // Count is the number of valid items populated in Buffer[0..Count-1].
-    procedure FillLocalFoodCaches(Location: Cardinal; Range: Single; var Buffer: TSmellCacheInfos; out Count: Integer);
+    procedure FillLocalFoodCaches(Location: Integer; Range: Single; var Buffer: TSmellCacheInfos; out Count: Integer);
   end;
 
 
   TSightInfo = record
-    AgentId: Cardinal;
-    Location: Cardinal;
-    Distance: Cardinal;
+    AgentId: Integer;
+    Location: Integer;
+    Distance: Integer;
   end;
 
   TSightInfos = array of TSightInfo;
@@ -49,7 +50,7 @@ type
     ['{5E8FE2D0-AA3F-4ECC-9258-741C7927128A}']
     // Caller owns Buffer and can reuse it across ticks to reduce allocations.
     // Count is the number of valid items populated in Buffer[0..Count-1].
-    procedure FillLocalAgents(Location: Cardinal; Range: Single; var Buffer: TSightInfos; out Count: Integer);
+    procedure FillLocalAgents(Location: Integer; Range: Single; var Buffer: TSightInfos; out Count: Integer);
   end;
 
 implementation

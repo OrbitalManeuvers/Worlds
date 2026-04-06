@@ -34,7 +34,8 @@ begin
 
 
 // Energy, Smell, Sight, Movement, Forage, Shelter, Reproduce, Cognition, Convert
-  sequence.AsText := 'AABAAAAAA';
+//  sequence.AsText := 'AABAAAAAA';
+  sequence.AsText := 'AAAAAAAAA';
 
   for var i := 0 to aPopulation.AgentCount - 1 do
   begin

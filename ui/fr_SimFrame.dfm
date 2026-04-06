@@ -99,7 +99,7 @@ inherited SimFrame: TSimFrame
         Pen.Style = psClear
       end
       object phV2: TShape
-        Left = 512
+        Left = 592
         Top = 26
         Width = 300
         Height = 330
@@ -129,29 +129,29 @@ inherited SimFrame: TSimFrame
         Height = 105
         TabOrder = 1
         object lblClock: TLabel
-          Left = 16
+          Left = 8
           Top = 16
           Width = 59
           Height = 17
           Caption = 'Sim Clock:'
         end
         object lblTime: TLabel
-          Left = 96
-          Top = 18
-          Width = 42
-          Height = 15
+          Left = 88
+          Top = 16
+          Width = 48
+          Height = 18
           Caption = '00:000'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWindowText
-          Font.Height = -13
+          Font.Height = -15
           Font.Name = 'Consolas'
           Font.Style = []
           ParentFont = False
         end
         object btnStep1: TSpeedButton
           Tag = 1
-          Left = 16
-          Top = 48
+          Left = 8
+          Top = 61
           Width = 41
           Height = 33
           Caption = '[ 1 ]'
@@ -160,8 +160,8 @@ inherited SimFrame: TSimFrame
         end
         object btnStep5: TSpeedButton
           Tag = 5
-          Left = 64
-          Top = 48
+          Left = 56
+          Top = 61
           Width = 41
           Height = 33
           Caption = '[ 5 ]'
@@ -170,13 +170,20 @@ inherited SimFrame: TSimFrame
         end
         object btnStep10: TSpeedButton
           Tag = 10
-          Left = 112
-          Top = 48
+          Left = 104
+          Top = 61
           Width = 41
           Height = 33
           Caption = '[ 10 ]'
           Transparent = False
           OnClick = btnStepClick
+        end
+        object lblStep: TLabel
+          Left = 8
+          Top = 40
+          Width = 35
+          Height = 17
+          Caption = 'Steps:'
         end
       end
       object btnClose: TButton
@@ -187,6 +194,57 @@ inherited SimFrame: TSimFrame
         Caption = 'Close'
         TabOrder = 2
         OnClick = btnCloseClick
+      end
+      object grpSeeds: TGroupBox
+        Left = 8
+        Top = 128
+        Width = 169
+        Height = 113
+        TabOrder = 3
+        object Label1: TLabel
+          Left = 8
+          Top = 8
+          Width = 70
+          Height = 17
+          Caption = 'Seed in use:'
+        end
+        object btnSaveSeed: TSpeedButton
+          Left = 8
+          Top = 64
+          Width = 77
+          Height = 25
+          Caption = 'Save As ...'
+        end
+        object edtSeedName: TEdit
+          Left = 8
+          Top = 32
+          Width = 140
+          Height = 25
+          TabOrder = 0
+          Text = '(unnamed)'
+        end
+      end
+      object ViewerGridPanel: TGridPanel
+        Left = 194
+        Top = 20
+        Width = 655
+        Height = 340
+        Caption = 'ViewerGridPanel'
+        ColumnCollection = <
+          item
+            Value = 50.000000000000000000
+          end
+          item
+            Value = 50.000000000000000000
+          end>
+        ControlCollection = <>
+        ExpandStyle = emAddColumns
+        FullRepaint = False
+        RowCollection = <
+          item
+            Value = 100.000000000000000000
+          end>
+        TabOrder = 4
       end
     end
   end

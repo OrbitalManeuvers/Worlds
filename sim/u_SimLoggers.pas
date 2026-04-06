@@ -55,19 +55,14 @@ uses System.SysUtils, System.StrUtils;
 
 function SubstanceToStr(const sub: TSubstance): string;
 const
-  mchars: array[TMolecule] of char = ('A', 'B', 'G', 'X');
+  fmt = 'A%.3d B%.3d G%.3d X%.3d ';
 begin
-  Result := '';
-  for var m := Low(TMolecule) to High(TMolecule) do
-  begin
-    Result := Result + mchars[m];
-    var digit := sub[m] div 10;
-    var s := '';
-    if digit = 0 then s := '.'
-    else if digit = 10 then s := '!'
-    else s := digit.ToString;
-    Result := Result + s[1];
-  end;
+  Result := Format(fmt, [
+    sub[Alpha],
+    sub[Beta],
+    sub[Gamma],
+    sub[Biomass]
+  ]);
 end;
 
 { TLogger }

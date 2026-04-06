@@ -6,9 +6,6 @@ uses System.Types, u_SimClocks,
 
   u_EnvironmentTypes;
 
-const
-  DEFAULT_RESOURCE_CACHE_MAX_AMOUNT = 1.0;
-
 type
   // something that can be found on the ground
   TSubstance = array[TMolecule] of TPercentage;
@@ -22,7 +19,7 @@ type
 
   // Grid is made up of TCell
   TCell = record
-    ResourceStart: Word;  // not all cells have resources. needs to be discussed
+    ResourceStart: Integer;
     ResourceCount: Word;
     Sunlight: Single;
     Mobility: Single;
@@ -40,7 +37,6 @@ type
     fResourceCount: Integer; // read only cache for instrumentation
     fSubstances: TSubstanceArray;
     fSolarFlux: Single;
-    fResourceCacheMaxAmount: Single;
     procedure SetDayTick(const Value: TDayTick);
     procedure UpdateResources(const aDayTick: TDayTick);
   public
@@ -57,7 +53,7 @@ type
 
     // Hook for runtime death events. BiomassAmount is currently caller-selected.
     // Future expansion: derive this from richer agent death metadata (mass, composition, etc.).
-    procedure NotifyAgentDeath(Location: Cardinal; BiomassAmount: Single);
+    procedure NotifyAgentDeath(Location: Integer; BiomassAmount: Single);
 
     property Cells: TCellArray read fCells;
 
@@ -65,8 +61,6 @@ type
     property ResourceCount: Integer read fResourceCount;
 
     property Substances: TSubstanceArray read fSubstances;
-
-    property ResourceCacheMaxAmount: Single read fResourceCacheMaxAmount write fResourceCacheMaxAmount;
 
     property SolarFlux: Single read fSolarFlux write fSolarFlux;
     property DayTick: TDayTick write SetDayTick;
@@ -96,8 +90,6 @@ end;
 constructor TSimEnvironment.Create;
 begin
   inherited;
-  fResourceCacheMaxAmount := DEFAULT_RESOURCE_CACHE_MAX_AMOUNT;
-
 end;
 
 destructor TSimEnvironment.Destroy;
@@ -131,11 +123,8 @@ begin
     for var i := 0 to count - 1 do
     begin
       var resIndex := start + i;
-      var capacity := fResourceCacheMaxAmount;
       var amount := fResources[resIndex].Amount;
-      var fill := 0.0;
-      if capacity > 0 then
-        fill := EnsureRange(amount / capacity, 0.0, 1.0);
+      var fill := EnsureRange(amount, 0.0, 1.0);
 
       // Soft cap: growth fades out as the cache fills.
       var growth := light * fResources[resIndex].GrowthRate * (1.0 - fill);
@@ -147,7 +136,7 @@ begin
       fResources[resIndex].Amount := EnsureRange(
         amount + growth - decay,
         0.0,
-        capacity
+        1.0
       );
     end;
   end;
@@ -175,7 +164,7 @@ begin
   SetLength(fSubstances, aCount);
 end;
 
-procedure TSimEnvironment.NotifyAgentDeath(Location: Cardinal; BiomassAmount: Single);
+procedure TSimEnvironment.NotifyAgentDeath(Location: Integer; BiomassAmount: Single);
 begin
   // Biomass insertion is intentionally deferred; runtime now has a formal hook.
   // TODO: route to biomass store when that subsystem is implemented.

@@ -12,10 +12,10 @@ type
     fPopulation: TSimPopulation;
 
     { IEnvironmentSmellQuery }
-    procedure FillLocalFoodCaches(Location: Cardinal; Range: Single; var Buffer: TSmellCacheInfos; out Count: Integer);
+    procedure FillLocalFoodCaches(Location: Integer; Range: Single; var Buffer: TSmellCacheInfos; out Count: Integer);
 
     { IPopulationSightQuery }
-    procedure FillLocalAgents(Location: Cardinal; Range: Single; var Buffer: TSightInfos; out Count: Integer);
+    procedure FillLocalAgents(Location: Integer; Range: Single; var Buffer: TSightInfos; out Count: Integer);
 
   public
     constructor Create(aEnvironment: TSimEnvironment; aPopulation: TSimPopulation);
@@ -40,7 +40,7 @@ begin
 end;
 
 
-procedure TSimQuery.FillLocalFoodCaches(Location: Cardinal; Range: Single; var Buffer: TSmellCacheInfos; out Count: Integer);
+procedure TSimQuery.FillLocalFoodCaches(Location: Integer; Range: Single; var Buffer: TSmellCacheInfos; out Count: Integer);
 begin
   Count := 0;
 
@@ -49,7 +49,7 @@ begin
 
   // Current scaffold: treat Location as a flat cell index and scan only that cell.
   // Range support can expand to neighboring cells once movement geometry is finalized.
-  if Location > Cardinal(High(fEnvironment.Cells)) then
+  if (Location < 0) or (Location > High(fEnvironment.Cells)) then
     Exit;
 
   var cell := fEnvironment.Cells[Location];
@@ -67,20 +67,15 @@ begin
       Continue;
 
     Buffer[Count].CacheId := resourceIndex;
-    Buffer[Count].SubstanceIndex := resource.SubstanceIndex;
     Buffer[Count].Amount := resource.Amount;
-
-    if resource.SubstanceIndex <= High(fEnvironment.Substances) then
-      Buffer[Count].Substance := fEnvironment.Substances[resource.SubstanceIndex]
-    else
-      Buffer[Count].Substance := Default(TSubstance);
+    Buffer[Count].Substance := fEnvironment.Substances[resource.SubstanceIndex];
 
     Inc(Count);
   end;
 end;
 
 
-procedure TSimQuery.FillLocalAgents(Location: Cardinal; Range: Single; var Buffer: TSightInfos; out Count: Integer);
+procedure TSimQuery.FillLocalAgents(Location: Integer; Range: Single; var Buffer: TSightInfos; out Count: Integer);
 begin
   Count := 0;
 

@@ -14,7 +14,7 @@ type
     fBitmap: TBitmap;
     fEnvironment: TSimEnvironment;
     fTarget: TPoint;
-    fCellIndex: Cardinal;
+    fCellIndex: Integer;
     fMode: TCellDisplayMode;
     procedure DisplayPaint(Sender: TObject);
     procedure SetTarget(const Value: TPoint);
