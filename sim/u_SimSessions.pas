@@ -15,6 +15,7 @@ type
     fLibrary: TEnvironmentLibrary;
     fSim: TSimulator;
     fParams: TSimParams;
+    fSeed: Integer;
     fFoods: TList<TFood>;
     fWatches: TObjectList<TSimWatch>;
     fNextWatchId: Integer;
@@ -43,6 +44,7 @@ type
 
     property Simulator: TSimulator read fSim;
     property Foods: TList<TFood> read fFoods;
+    property Seed: Integer read fSeed;
 
     property OnLog: TLogEvent read fOnLog write fOnLog;
     property OnBeforeStep: TNotifyEvent read fOnBeforeStep write fOnBeforeStep;
@@ -134,6 +136,16 @@ end;
 
 procedure TSimSession.BeginSession;
 begin
+  // Session seed policy:
+  // - Params.Seed <> 0: force deterministic run by setting RTL seed.
+  // - Params.Seed = 0: preserve current RTL seed and capture it as in-use value.
+  if fParams.Seed <> 0 then
+  begin
+    RandSeed := fParams.Seed;
+    fSeed := fParams.Seed;
+  end
+  else
+    fSeed := RandSeed;
 
   // Environment
   // create the stitched-together world of selected regions
@@ -177,7 +189,7 @@ begin
     Log('Substances:');
     for var i := 0 to Self.Foods.Count - 1 do
     begin
-      var line := '[%.2d] %s %s';
+      var line := '[%.2d] %s  Food: %s';
       Log(line, [
         i,
         SubstanceToStr(fSim.Runtime.Environment.Substances[i]),

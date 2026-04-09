@@ -106,28 +106,12 @@ inherited SimFrame: TSimFrame
         Brush.Color = clDimgray
         Pen.Style = psClear
       end
-      object LogMemo: TMemo
-        Left = 0
-        Top = 384
-        Width = 982
-        Height = 314
-        Align = alBottom
-        Font.Charset = ANSI_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -13
-        Font.Name = 'Lucida Console'
-        Font.Style = []
-        ParentFont = False
-        ScrollBars = ssBoth
-        TabOrder = 0
-        WordWrap = False
-      end
       object gbControls: TGroupBox
         Left = 8
         Top = 8
         Width = 169
         Height = 105
-        TabOrder = 1
+        TabOrder = 0
         object lblClock: TLabel
           Left = 8
           Top = 16
@@ -192,7 +176,7 @@ inherited SimFrame: TSimFrame
         Width = 75
         Height = 25
         Caption = 'Close'
-        TabOrder = 2
+        TabOrder = 1
         OnClick = btnCloseClick
       end
       object grpSeeds: TGroupBox
@@ -200,7 +184,7 @@ inherited SimFrame: TSimFrame
         Top = 128
         Width = 169
         Height = 113
-        TabOrder = 3
+        TabOrder = 2
         object Label1: TLabel
           Left = 8
           Top = 8
@@ -244,7 +228,43 @@ inherited SimFrame: TSimFrame
           item
             Value = 100.000000000000000000
           end>
+        TabOrder = 3
+      end
+      object PageControl1: TPageControl
+        Left = 0
+        Top = 376
+        Width = 982
+        Height = 322
+        ActivePage = tsAgentLog
+        Align = alBottom
         TabOrder = 4
+        object tsAgentLog: TTabSheet
+          Caption = 'Agents'
+          object AgentLog: TMemo
+            Left = 0
+            Top = 0
+            Width = 974
+            Height = 290
+            Align = alClient
+            Font.Charset = ANSI_CHARSET
+            Font.Color = clWindowText
+            Font.Height = -13
+            Font.Name = 'Lucida Console'
+            Font.Style = []
+            ParentFont = False
+            ScrollBars = ssBoth
+            TabOrder = 0
+            WordWrap = False
+            ExplicitLeft = -349
+            ExplicitTop = -121
+            ExplicitWidth = 694
+            ExplicitHeight = 242
+          end
+        end
+        object TabSheet2: TTabSheet
+          Caption = 'Cells'
+          ImageIndex = 1
+        end
       end
     end
   end

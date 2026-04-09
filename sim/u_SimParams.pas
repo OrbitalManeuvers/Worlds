@@ -15,6 +15,7 @@ type
   end;
 
   TSimParams = record
+    Seed: Integer; // 0 = use current RTL seed; non-zero = force deterministic session seed
 
     Factor: Integer;
 
@@ -37,6 +38,7 @@ implementation
 
 procedure TSimParams.InitDefaults;
 begin
+  Seed := 0;
   Factor := 8;
   Population.AgentCount := 1;
   Population.DOAChance := 0;

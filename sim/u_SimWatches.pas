@@ -22,6 +22,7 @@ type
     function Evaluate(const Sim: TSimulator; const Tick: Cardinal): Boolean;
     procedure Reset; virtual;
     procedure Notify(Sender: TObject);
+    function ActionToStr(aAction: TAgentAction): string;
 
     property WatchId: Integer read fWatchId write fWatchId;
     property Enabled: Boolean read fEnabled write fEnabled;
@@ -100,6 +101,13 @@ begin
   Result := fEnabled and Assigned(Sim) and EvaluateChange(Sim, Tick);
 end;
 
+function TSimWatch.ActionToStr(aAction: TAgentAction): string;
+const
+  action_strs: array[TAgentAction] of string = ('Move', 'Forage', 'Shelter', 'Reproduce', 'Idle');
+begin
+  Result := action_strs[aAction];
+end;
+
 procedure TSimWatch.Notify(Sender: TObject);
 begin
   if Assigned(fOnChange) then
@@ -119,8 +127,7 @@ begin
   fAgentId := aAgentId;
 end;
 
-function TAgentWatch.BuildChangeSet(const PreviousState,
-  CurrentState: TAgentState): TAgentWatchFields;
+function TAgentWatch.BuildChangeSet(const PreviousState, CurrentState: TAgentState): TAgentWatchFields;
 begin
   Result := [];
 
@@ -143,8 +150,7 @@ begin
     Include(Result, awfAlive);
 end;
 
-function TAgentWatch.EvaluateChange(const Sim: TSimulator;
-  const Tick: Cardinal): Boolean;
+function TAgentWatch.EvaluateChange(const Sim: TSimulator; const Tick: Cardinal): Boolean;
 begin
   Result := False;
 
@@ -195,8 +201,7 @@ begin
   end;
 end;
 
-function TAgentWatch.TryReadState(const Sim: TSimulator;
-  out State: TAgentState): Boolean;
+function TAgentWatch.TryReadState(const Sim: TSimulator; out State: TAgentState): Boolean;
 begin
   Result := Sim.Runtime.Population.TryGetAgentState(fAgentId, State);
 end;
@@ -211,8 +216,7 @@ begin
   fMinDelta := 0.000001;
 end;
 
-function TCellWatch.EvaluateChange(const Sim: TSimulator;
-  const Tick: Cardinal): Boolean;
+function TCellWatch.EvaluateChange(const Sim: TSimulator; const Tick: Cardinal): Boolean;
 begin
   Result := False;
 

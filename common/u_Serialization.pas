@@ -17,11 +17,12 @@ uses System.JSON, System.IOUtils,  System.SysUtils, Vcl.Graphics, Vcl.GraphUtil,
   System.Generics.Collections,
 
   u_EnvironmentTypes, u_EditorTypes, u_BiologyTypes,
-  u_Foods, u_Biomes, u_Regions, u_Worlds;
+  u_Foods, u_Seeds, u_Biomes, u_Regions, u_Worlds;
 
 
 const
   KEY_NAME = 'name';
+  KEY_VALUE = 'value';
   KEY_DESCRIPTION = 'description';
 
   KEY_MOLECULE = 'molecule';
@@ -45,6 +46,7 @@ const
   KEY_LAYOUT = 'layout';
 
   KEY_FOODS = 'foods';
+  KEY_SEEDS = 'seeds';
   KEY_BIOMES = 'biomes';
   KEY_REGIONS = 'regions';
   KEY_RATINGS = 'ratings';
@@ -59,12 +61,14 @@ type
     procedure setJSON(const Value: TJSONObject);
 
     procedure LoadFoods(const JSON: TJSONObject);
+    procedure LoadSeeds(const JSON: TJSONObject);
     procedure LoadBiomes(const JSON: TJSONObject);
     procedure LoadRegions(const JSON: TJSONObject);
     procedure LoadRatings(const JSON: TJSONObject);
     procedure LoadWorlds(const JSON: TJSONObject);
 
     procedure SaveFoods(const JSON: TJSONObject);
+    procedure SaveSeeds(const JSON: TJSONObject);
     procedure SaveBiomes(const JSON: TJSONObject);
     procedure SaveRegions(const JSON: TJSONObject);
     procedure SaveRatings(const JSON: TJSONObject);
@@ -74,6 +78,14 @@ type
   end;
 
   TFoodHelper = class helper for TFood
+  private
+    function getJSON: TJSONObject;
+    procedure setJSON(const Value: TJSONObject);
+  public
+    property AsJSON: TJSONObject read getJSON write setJSON;
+  end;
+
+  TSeedHelper = class helper for TSeed
   private
     function getJSON: TJSONObject;
     procedure setJSON(const Value: TJSONObject);
@@ -163,6 +175,7 @@ begin
   Result := TJSONObject.Create;
   // SaveHeader(Result); // someday
   SaveFoods(Result);
+  SaveSeeds(Result);
   SaveBiomes(Result);
   SaveRegions(Result);
   SaveRatings(Result);
@@ -173,6 +186,7 @@ procedure TLibraryHelper.setJSON(const Value: TJSONObject);
 begin
 //  LoadHeader(Value); // header/version info someday
   LoadFoods(Value);
+  LoadSeeds(Value);
   LoadBiomes(Value);
   LoadRegions(Value);
   LoadRatings(Value);
@@ -240,6 +254,30 @@ begin
           AddFood(food);
         except
           food.Free;
+          raise;
+        end;
+      end;
+    end;
+  end;
+end;
+
+procedure TLibraryHelper.LoadSeeds(const JSON: TJSONObject);
+var
+  arr: TJSONArray;
+begin
+  if JSON.TryGetValue(KEY_SEEDS, arr) then
+  begin
+    for var item in arr do
+    begin
+      if item is TJSONObject then
+      begin
+        var seed := TSeed.Create;
+        try
+          seed.AsJSON := TJSONObject(item);
+          seed.OnChange := ChildChanged;
+          AddSeed(seed);
+        except
+          seed.Free;
           raise;
         end;
       end;
@@ -358,6 +396,18 @@ begin
   JSON.AddPair(KEY_FOODS, arr);
 end;
 
+procedure TLibraryHelper.SaveSeeds(const JSON: TJSONObject);
+var
+  arr: TJSONArray;
+begin
+  arr := TJSONArray.Create;
+  for var seed in _seedList do
+  begin
+    arr.Add(seed.AsJSON);
+  end;
+  JSON.AddPair(KEY_SEEDS, arr);
+end;
+
 procedure TLibraryHelper.SaveRegions(const JSON: TJSONObject);
 var
   arr: TJSONArray;
@@ -417,6 +467,27 @@ begin
   var jObject: TJSONObject;
   if Value.TryGetValue(KEY_RECIPE, jObject) then
     Recipe.AsJSON := jObject;
+end;
+
+{ TSeedHelper }
+
+function TSeedHelper.getJSON: TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  Result.AddPair(KEY_NAME, Self.Name);
+  Result.AddPair(KEY_VALUE, TJSONNumber.Create(Self.Value));
+end;
+
+procedure TSeedHelper.setJSON(const Value: TJSONObject);
+var
+  sValue: string;
+  intValue: Integer;
+begin
+  if Value.TryGetValue(KEY_NAME, sValue) then
+    Name := sValue;
+
+  if Value.TryGetValue(KEY_VALUE, intValue) then
+    Self.Value := intValue;
 end;
 
 { TRecipeHelper }

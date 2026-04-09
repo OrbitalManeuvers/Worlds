@@ -54,7 +54,8 @@ uses
   u_EnergyGenes in 'agents\u_EnergyGenes.pas',
   u_CognitionGenes in 'agents\u_CognitionGenes.pas',
   u_SimCommandsIntf in 'sim\u_SimCommandsIntf.pas',
-  u_SimCommandsImpl in 'sim\u_SimCommandsImpl.pas';
+  u_SimCommandsImpl in 'sim\u_SimCommandsImpl.pas',
+  u_Seeds in 'common\u_Seeds.pas';
 
 {$R *.res}
 

@@ -8,6 +8,7 @@ uses System.Classes, System.SysUtils, System.JSON, System.Generics.Collections,
   u_EnvironmentTypes,
   u_BiologyTypes,
   u_Foods,
+  u_Seeds,
   u_Biomes,
   u_Regions,
   u_Worlds;
@@ -16,6 +17,7 @@ type
   TEnvironmentLibrary = class(TEnvironmentObject)
   private
     fFoods: TObjectList<TFood>;
+    fSeeds: TObjectList<TSeed>;
     fBiomes: TObjectList<TBiome>;
     fRegions: TObjectList<TRegion>;
     fMoleculeRatings: TObjectList<TMoleculeRatings>;
@@ -28,6 +30,10 @@ type
     // biomes
     function GetBiome(I: Integer): TBiome;
     function GetBiomeCount: Integer;
+
+    // seeds
+    function GetSeed(I: Integer): TSeed;
+    function GetSeedCount: Integer;
 
     // regions
     function GetRegion(I: Integer): TRegion;
@@ -44,6 +50,7 @@ type
   protected
     // non property access for descendents/helpers
     property _foodList: TObjectList<TFood> read fFoods;
+    property _seedList: TObjectList<TSeed> read fSeeds;
     property _biomeList: TObjectList<TBiome> read fBiomes;
     property _regionList: TObjectList<TRegion> read fRegions;
     property _ratingsList: TObjectList<TMoleculeRatings> read fMoleculeRatings;
@@ -58,6 +65,12 @@ type
     function FindFood(const aName: string): TFood;
     property FoodCount: Integer read GetFoodCount;
     property Foods[I: Integer]: TFood read GetFood;
+
+    // seeds
+    procedure AddSeed(aSeed: TSeed);
+    function FindSeed(const aName: string): TSeed;
+    property SeedCount: Integer read GetSeedCount;
+    property Seeds[I: Integer]: TSeed read GetSeed;
 
     // biomes
     procedure AddBiome(aBiome: TBiome);
@@ -100,6 +113,7 @@ constructor TEnvironmentLibrary.Create;
 begin
   inherited Create;
   fFoods := TObjectList<TFood>.Create(True);
+  fSeeds := TObjectList<TSeed>.Create(True);
   fBiomes := TObjectList<TBiome>.Create(True);
   fRegions := TObjectList<TRegion>.Create(True);
   fMoleculeRatings := TObjectList<TMoleculeRatings>.Create(True);
@@ -113,6 +127,7 @@ begin
   fMoleculeRatings.Free;
   fRegions.Free;
   fBiomes.Free;
+  fSeeds.Free;
   fFoods.Free;
   inherited;
 end;
@@ -120,8 +135,11 @@ end;
 procedure TEnvironmentLibrary.Clear;
 begin
   fFoods.Clear;
+  fSeeds.Clear;
   fBiomes.Clear;
   fRegions.Clear;
+  fMoleculeRatings.Clear;
+  fWorlds.Clear;
 
   // there's always a default biome
   var ground := TBiome.Create;
@@ -173,6 +191,13 @@ begin
   Changed;
 end;
 
+procedure TEnvironmentLibrary.AddSeed(aSeed: TSeed);
+begin
+  aSeed.OnChange := ChildChanged;
+  fSeeds.Add(aSeed);
+  Changed;
+end;
+
 procedure TEnvironmentLibrary.AddRatings(aRatings: TMoleculeRatings);
 begin
   aRatings.OnChange := ChildChanged;
@@ -210,6 +235,14 @@ begin
       Exit(food);
 end;
 
+function TEnvironmentLibrary.FindSeed(const aName: string): TSeed;
+begin
+  Result := nil;
+  for var seed in fSeeds do
+    if SameText(seed.Name, aName) then
+      Exit(seed);
+end;
+
 function TEnvironmentLibrary.FindRegion(const aName: string): TRegion;
 begin
   var index := IndexOfRegion(aName);
@@ -235,6 +268,16 @@ end;
 function TEnvironmentLibrary.GetBiomeCount: Integer;
 begin
   Result := fBiomes.Count;
+end;
+
+function TEnvironmentLibrary.GetSeed(I: Integer): TSeed;
+begin
+  Result := fSeeds[I];
+end;
+
+function TEnvironmentLibrary.GetSeedCount: Integer;
+begin
+  Result := fSeeds.Count;
 end;
 
 function TEnvironmentLibrary.GetFood(I: Integer): TFood;

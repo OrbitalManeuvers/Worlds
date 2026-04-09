@@ -14,6 +14,7 @@ type
   TResourceCache = record
     SubstanceIndex: Word;    // index into Substances array
     Amount: Single;          // mutable simulation state
+    RegenDebt: Single;       // cooldown debt paid down by growth potential before regrowth resumes
     GrowthRate: Single;      // incorporates Biome.GrowthRate and Food.GrowthRate
   end;
 
@@ -124,14 +125,25 @@ begin
     begin
       var resIndex := start + i;
       var amount := fResources[resIndex].Amount;
+      var debt := fResources[resIndex].RegenDebt;
       var fill := EnsureRange(amount, 0.0, 1.0);
 
       // Soft cap: growth fades out as the cache fills.
       var growth := light * fResources[resIndex].GrowthRate * (1.0 - fill);
 
+      // Cooldown: growth potential first pays down regen debt before Amount can increase.
+      if debt > 0.0 then
+      begin
+        var paid := Min(growth, debt);
+        debt := debt - paid;
+        growth := growth - paid;
+      end;
+
       var decay := 0.0;
       if light <= 0 then
         decay := GROWABLE_NO_SUNLIGHT_DECAY_PER_TICK;
+
+      fResources[resIndex].RegenDebt := Max(0.0, debt);
 
       fResources[resIndex].Amount := EnsureRange(
         amount + growth - decay,

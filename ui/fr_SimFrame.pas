@@ -13,7 +13,7 @@ uses
 
 type
   TSimFrame = class(TContentFrame)
-    LogMemo: TMemo;
+    AgentLog: TMemo;
     btnCreateSim: TButton;
     Pages: TPageControl;
     tsNoSelection: TTabSheet;
@@ -38,6 +38,9 @@ type
     edtSeedName: TEdit;
     btnSaveSeed: TSpeedButton;
     ViewerGridPanel: TGridPanel;
+    PageControl1: TPageControl;
+    tsAgentLog: TTabSheet;
+    TabSheet2: TTabSheet;
     procedure btnCreateSimClick(Sender: TObject);
     procedure btnStepClick(Sender: TObject);
     procedure WorldListItemClick(Sender: TObject);
@@ -78,6 +81,9 @@ uses System.Types, System.Math, Vcl.GraphUtil,
   u_SimUpscalers, u_SimRuntimes, u_SimParams, u_EditorTypes,
   u_Regions;
 
+const
+  DEFAULT_SEED = -1653628502;
+
 { TSimFrame }
 
 procedure TSimFrame.Init;
@@ -86,12 +92,6 @@ begin
   fViewers := TList<TResViewFrame>.Create;
   CreateViewer(phV1);
   CreateViewer(phV2);
-
-
-
-//  fVisualizer := TResVisFrame.Create(Self);
-//  fVisualizer.Parent := Self;
-//  fVisualizer.BoundsRect := Shape1.BoundsRect;
 
   Pages.ActivePage := tsNoSelection;
   UpdateControls;
@@ -134,6 +134,7 @@ begin
   // convert UI settings to sim params
   var params: TSimParams;
   params.InitDefaults;
+  params.Seed := DEFAULT_SEED;
   params.Population.AgentCount := StrToIntDef(edtAgentCount.Text, 1);
 
   var world := WorldLibrary.Worlds[WorldList.ItemIndex];
@@ -148,11 +149,13 @@ begin
   try
     fSession.BeginSession;
 
-    var w := fSession.AddAgentWatch(0);
+    edtSeedName.Text := IntToStr(fSession.Seed);
+
+    fSession.AddAgentWatch(0);
 
     // add a cell watch where the agent ended up
-    var loc := fSession.Simulator.Runtime.Population.Agents[0].Location;
-    var c := fSession.AddCellWatch(loc);
+//    var loc := fSession.Simulator.Runtime.Population.Agents[0].Location;
+//    fSession.AddCellWatch(loc);
 
 
   except
@@ -163,11 +166,6 @@ begin
       Exit;
     end;
   end;
-
-//  Log('Session created using ' + world.Name);
-
-//  Log('Substances:');
-//  fLogger.LogSubstances;
 
   fVisualizer := TSubstanceVisualizer.Create;
   fVisualizer.Simulator := fSession.Simulator;
@@ -209,6 +207,7 @@ begin
   end;
 end;
 
+
 procedure TSimFrame.WorldListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
   ARect: TRect; AState: TOwnerDrawState);
 begin
@@ -224,7 +223,7 @@ end;
 
 procedure TSimFrame.HandleLogEvent(Sender: TObject; const aMsg: string);
 begin
-  LogMemo.Lines.Add(aMsg);
+  AgentLog.Lines.Add(aMsg);
 end;
 
 procedure TSimFrame.HandleSessionAfterStep(Sender: TObject);
@@ -254,18 +253,56 @@ end;
 
 procedure TSimFrame.HandleWatchChanged(Sender: TObject; Watch: TSimWatch);
 begin
+  var dayNumber := fSession.simulator.Clock.DayNumber;
+  var dayTick := fSession.simulator.Clock.DayTick;
+
+  var fs := TFormatSettings.Create;
+  fs.DecimalSeparator := '.';
 
   if Watch is TAgentWatch then
   begin
     var w := TAgentWatch(Watch);
-    var line := Format('[A%d] R:%4f ', [w.AgentId, w.LastChange.CurrentState.Reserves]);
-    LogMemo.Lines.Add(line);
+    var currentReserves := FloatToStrF(w.LastChange.CurrentState.Reserves, ffFixed, 18, 6, fs);
+    var deltaReserves := FloatToStrF(
+      w.LastChange.CurrentState.Reserves - w.LastChange.PreviousState.Reserves,
+      ffFixed, 18, 6, fs
+    );
+
+    var actionStr := w.ActionToStr(w.LastChange.CurrentState.Action);
+
+    var line := Format(
+      '[%2d:%3d] A:%d R:%s D:%s  (%s)',
+      [
+        dayNumber,
+        dayTick,
+        w.AgentId,
+        currentReserves,
+        deltaReserves,
+        actionStr
+      ]
+    );
+    AgentLog.Lines.Add(line);
   end
   else if Watch is TCellWatch then
   begin
     var c := TCellWatch(Watch);
-    var line := Format('[C%d] A:%4f', [c.CellIndex, c.LastChange.CurrentAmount]);
-    LogMemo.Lines.Add(line);
+    var currentAmount := FloatToStrF(c.LastChange.CurrentAmount, ffFixed, 18, 6, fs);
+    var deltaAmount := FloatToStrF(c.LastChange.CurrentAmount - c.LastChange.PreviousAmount,
+      ffFixed, 18, 6, fs);
+
+    var line := Format(
+      'cell'#9'%d'#9'%d'#9'%d'#9'%d'#9'%d'#9#9#9'%s'#9'%s',
+      [
+        c.WatchId,
+        c.CellIndex,
+        dayNumber,
+        dayTick,
+        c.LastChange.Tick,
+        currentAmount,
+        deltaAmount
+      ]
+    );
+    AgentLog.Lines.Add(line);
   end;
 
 end;
@@ -301,7 +338,7 @@ end;
 
 procedure TSimFrame.btnCreateSimClick(Sender: TObject);
 begin
-  LogMemo.Clear;
+  AgentLog.Clear;
   InitSession;
 end;
 
@@ -311,7 +348,7 @@ begin
     Exit;
   var count := Max(1, TComponent(Sender).Tag);
 
-  LogMemo.Lines.BeginUpdate;
+  AgentLog.Lines.BeginUpdate;
   try
     for var stepIndex := 1 to count do
     begin
@@ -320,12 +357,12 @@ begin
     end;
 
   finally
-    LogMemo.Lines.EndUpdate;
+    AgentLog.Lines.EndUpdate;
   end;
 
-  LogMemo.SelStart := Length(LogMemo.Text);
-  LogMemo.SelLength := 0;
-  LogMemo.Perform(EM_SCROLLCARET, 0, 0);
+  AgentLog.SelStart := Length(AgentLog.Text);
+  AgentLog.SelLength := 0;
+  AgentLog.Perform(EM_SCROLLCARET, 0, 0);
 end;
 
 end.

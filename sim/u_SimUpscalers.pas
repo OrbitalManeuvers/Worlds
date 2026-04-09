@@ -205,6 +205,7 @@ begin
 
         Environment.Resources[resIndex].SubstanceIndex := foodIndex;
         Environment.Resources[resIndex].Amount := 0.0;
+        Environment.Resources[resIndex].RegenDebt := 0.0;
         Environment.Resources[resIndex].GrowthRate :=
           ResourceGrowthRate(biome.GrowthRate, aLayout.Foods[foodIndex].GrowthRate);
 

@@ -19,6 +19,11 @@ type
 
 implementation
 
+const
+  // Baseline cooldown debt applied when a consumption event empties a cache.
+  // Debt is paid down by growth potential in environment update ticks.
+  CONSUMPTION_EMPTY_REGEN_DEBT = 0.40;
+
 { TSimCommand }
 
 constructor TSimCommand.Create(aEnvironment: TSimEnvironment);
@@ -45,7 +50,12 @@ begin
   var substanceIndex := fEnvironment.Resources[cacheIndex].SubstanceIndex;
   Reply.Substance := fEnvironment.Substances[substanceIndex];
 
-  fEnvironment.Resources[cacheIndex].Amount := available - consumed;
+  var remaining := available - consumed;
+  fEnvironment.Resources[cacheIndex].Amount := remaining;
+
+  // Apply cooldown only when this consume event transitions the cache to empty.
+  if (remaining <= 0.0) and (available > 0.0) then
+    fEnvironment.Resources[cacheIndex].RegenDebt := CONSUMPTION_EMPTY_REGEN_DEBT;
 
   Reply.ConsumedAmount := consumed;
   Reply.RemainingAmount := fEnvironment.Resources[cacheIndex].Amount;
