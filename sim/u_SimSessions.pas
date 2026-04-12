@@ -33,6 +33,7 @@ type
 
     procedure BeginSession;
     procedure EndSession;
+    procedure PrimeWatches;
 
     procedure Step;
 
@@ -170,15 +171,18 @@ begin
   TWorldPopulator.Populate(fSim.Runtime.Population, fParams);
 
   // for early development only ...
-  if fParams.Population.AgentCount = 1 then
+  if fParams.Population.AgentCount > 0 then
   begin
     // move the agent onto a cell that has resources
     for var cellIndex := 0 to Length(fSim.Runtime.Environment.Cells) - 1 do
       if fSim.Runtime.Environment.Cells[cellIndex].ResourceCount > 0 then
       begin
-        var agent := fSim.Runtime.Population.Agents[0];
-        agent.Location := cellIndex;
-        fsim.Runtime.Population.UpdateAgentState(0, agent);
+        for var agentIndex := 0 to fSim.Runtime.Population.AgentCount - 1 do
+        begin
+          var agent := fSim.Runtime.Population.Agents[agentIndex];
+          agent.Location := cellIndex;
+          fsim.Runtime.Population.UpdateAgentState(agentIndex, agent);
+        end;
         Break;
       end;
   end;
@@ -221,6 +225,13 @@ begin
     if Assigned(fOnWatchChange) then
       fOnWatchChange(Self, watch);
   end;
+end;
+
+procedure TSimSession.PrimeWatches;
+begin
+  // Capture initial baselines without emitting watch change callbacks.
+  for var watch in fWatches do
+    watch.Evaluate(fSim, fSim.Clock.Tick);
 end;
 
 procedure TSimSession.Log(const aMsgFmt: string; const Params: array of const);

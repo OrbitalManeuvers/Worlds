@@ -230,13 +230,14 @@ inherited SimFrame: TSimFrame
           end>
         TabOrder = 3
       end
-      object PageControl1: TPageControl
+      object LogPages: TPageControl
         Left = 0
         Top = 376
         Width = 982
         Height = 322
         ActivePage = tsAgentLog
         Align = alBottom
+        Anchors = [akLeft, akTop, akRight, akBottom]
         TabOrder = 4
         object tsAgentLog: TTabSheet
           Caption = 'Agents'
@@ -255,10 +256,6 @@ inherited SimFrame: TSimFrame
             ScrollBars = ssBoth
             TabOrder = 0
             WordWrap = False
-            ExplicitLeft = -349
-            ExplicitTop = -121
-            ExplicitWidth = 694
-            ExplicitHeight = 242
           end
         end
         object TabSheet2: TTabSheet

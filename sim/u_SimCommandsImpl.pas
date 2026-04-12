@@ -19,10 +19,14 @@ type
 
 implementation
 
+uses System.Math;
+
 const
-  // Baseline cooldown debt applied when a consumption event empties a cache.
-  // Debt is paid down by growth potential in environment update ticks.
-  CONSUMPTION_EMPTY_REGEN_DEBT = 0.40;
+  // Recoil debt added per successful consume event.
+  // Debt is interpreted as cooldown ticks and is paid down by environment ticks.
+  CONSUMPTION_REGEN_DEBT_PER_CONSUME = 2.0;
+  CONSUMPTION_REGEN_DEBT_MAX = 6.0;
+
 
 { TSimCommand }
 
@@ -53,9 +57,10 @@ begin
   var remaining := available - consumed;
   fEnvironment.Resources[cacheIndex].Amount := remaining;
 
-  // Apply cooldown only when this consume event transitions the cache to empty.
-  if (remaining <= 0.0) and (available > 0.0) then
-    fEnvironment.Resources[cacheIndex].RegenDebt := CONSUMPTION_EMPTY_REGEN_DEBT;
+  // Every successful bite adds recoil cooldown debt.
+  // Repeated/parallel foraging compounds this debt up to a cap.
+  var debt := fEnvironment.Resources[cacheIndex].RegenDebt + CONSUMPTION_REGEN_DEBT_PER_CONSUME;
+  fEnvironment.Resources[cacheIndex].RegenDebt := Min(CONSUMPTION_REGEN_DEBT_MAX, debt);
 
   Reply.ConsumedAmount := consumed;
   Reply.RemainingAmount := fEnvironment.Resources[cacheIndex].Amount;

@@ -3,20 +3,38 @@ unit u_SimRuntimes;
 interface
 
 uses u_AgentState, u_SimEnvironments, u_SimPopulations, u_SimClocks, u_SimQueriesIntf,
-  u_SimCommandsIntf, u_AgentBrain;
+  u_SimCommandsIntf, u_AgentBrain, u_AgentTypes;
 
 const
   AGENT_BITE_SIZE = 0.1;  // temporary. move to sim params/genome
+  SHELTER_UPKEEP_MULTIPLIER = 0.35;
 
 type
+  TDecisionTrace = record
+    DayTick: TDayTick;
+    AgentId: Integer;
+    IsNight: Boolean;
+    RequestedAction: TAgentAction;
+    RequestedTarget: TTarget;
+    ResolvedAction: TAgentAction;
+    ResolvedTarget: TTarget;
+    Scores: TActionScores;
+    Summary: TBrainTraceSummary;
+  end;
+
   TSimRuntime = class
   private const
     DEFAULT_DEATH_BIOMASS_AMOUNT = 1.0;
   private
+    fCurrentDayTick: TDayTick;
     fEnvironment: TSimEnvironment;
+    fHasDecisionTrace: TArray<Boolean>;
+    fLastDecisionTraces: TArray<TDecisionTrace>;
     fPopulation: TSimPopulation;
     fSimQuery: ISimQuery;
     fSimCommand: ISimCommand;
+    procedure CaptureDecisionTrace(AgentIndex: Integer; const State: TAgentState; const Input: TBrainTickInput;
+      const Requested, Resolved: TBrainTickOutput);
     function CalculateAgentTickCost(const State: TAgentState): Single;
     function CalculateForageGain(const Reply: TConsumeCacheReply): Single;
     function ApplyAgentUpkeep(var State: TAgentState): Boolean;
@@ -27,6 +45,8 @@ type
     constructor Create;
     destructor Destroy; override;
 
+    function TryGetLastDecision(AgentIndex: Integer; out Trace: TDecisionTrace): Boolean;
+
     property Environment: TSimEnvironment read fEnvironment;
     property Population: TSimPopulation read fPopulation;
 
@@ -35,7 +55,7 @@ type
 
 implementation
 
-uses System.Math, System.SysUtils, u_AgentGenome, u_AgentTypes, u_SimQueriesImpl,
+uses System.Math, System.SysUtils, u_AgentGenome, u_SimQueriesImpl,
   u_SimCommandsImpl;
 
 { TSimRuntime }
@@ -56,6 +76,25 @@ begin
   fEnvironment.Free;
   fPopulation.Free;
   inherited;
+end;
+
+procedure TSimRuntime.CaptureDecisionTrace(AgentIndex: Integer; const State: TAgentState; const Input: TBrainTickInput;
+  const Requested, Resolved: TBrainTickOutput);
+begin
+  if (AgentIndex < 0) or (AgentIndex >= Length(fLastDecisionTraces)) then
+    Exit;
+
+  fHasDecisionTrace[AgentIndex] := True;
+
+  fLastDecisionTraces[AgentIndex].DayTick := fCurrentDayTick;
+  fLastDecisionTraces[AgentIndex].AgentId := State.AgentId;
+  fLastDecisionTraces[AgentIndex].IsNight := Input.IsNight;
+  fLastDecisionTraces[AgentIndex].RequestedAction := Requested.RequestedAction;
+  fLastDecisionTraces[AgentIndex].RequestedTarget := Requested.RequestedTarget;
+  fLastDecisionTraces[AgentIndex].ResolvedAction := Resolved.RequestedAction;
+  fLastDecisionTraces[AgentIndex].ResolvedTarget := Resolved.RequestedTarget;
+  fLastDecisionTraces[AgentIndex].Scores := Requested.Scores;
+  fLastDecisionTraces[AgentIndex].Summary := Requested.Trace;
 end;
 
 function TSimRuntime.CalculateAgentTickCost(const State: TAgentState): Single;
@@ -88,6 +127,9 @@ begin
     + GeneGenerationCost(State.Genome.GeneMap.ReproduceEval)
     + GeneGenerationCost(State.Genome.GeneMap.Cognition)
     + GeneGenerationCost(State.Genome.GeneMap.Converter);
+
+  if State.Action = acShelter then
+    Result := Result * SHELTER_UPKEEP_MULTIPLIER;
 end;
 
 function TSimRuntime.ApplyAgentUpkeep(var State: TAgentState): Boolean;
@@ -109,6 +151,13 @@ function TSimRuntime.ResolveRequestedStep(var State: TAgentState;
 begin
   // Runtime resolution hook: adjust or reject requested actions based on world rules.
   Result := Requested;
+
+  // Movement/pathing is scaffold-only right now; prevent sticky unresolved Move actions.
+  if Requested.RequestedAction = acMove then
+  begin
+    Result.RequestedAction := acIdle;
+    Exit;
+  end;
 
   if (Requested.RequestedAction = acForage) and (Requested.RequestedTarget.TType = ttCache) then
   begin
@@ -164,13 +213,21 @@ begin
 
   var requested := fPopulation.RequestAgentStep(aIndex, Input);
   var resolved := ResolveRequestedStep(state, requested);
+  CaptureDecisionTrace(aIndex, state, Input, requested, resolved);
   fPopulation.UpdateAgentState(aIndex, state);
   fPopulation.ApplyAgentStep(aIndex, resolved);
 end;
 
 procedure TSimRuntime.SetDayTick(const Value: TDayTick);
 begin
+  fCurrentDayTick := Value;
   fEnvironment.DayTick := Value;
+
+  if Length(fLastDecisionTraces) <> fPopulation.AgentCount then
+  begin
+    SetLength(fLastDecisionTraces, fPopulation.AgentCount);
+    SetLength(fHasDecisionTrace, fPopulation.AgentCount);
+  end;
 
   var input: TBrainTickInput;
   input.IsNight := Value > High(TDaylightTicks);
@@ -178,6 +235,22 @@ begin
 
   for var i := 0 to fPopulation.AgentCount - 1 do
     ProcessAgentTick(i, input);
+end;
+
+function TSimRuntime.TryGetLastDecision(AgentIndex: Integer; out Trace: TDecisionTrace): Boolean;
+begin
+  Result := (AgentIndex >= 0) and (AgentIndex < Length(fLastDecisionTraces));
+  if not Result then
+  begin
+    Trace := Default(TDecisionTrace);
+    Exit;
+  end;
+
+  Result := fHasDecisionTrace[AgentIndex];
+  if Result then
+    Trace := fLastDecisionTraces[AgentIndex]
+  else
+    Trace := Default(TDecisionTrace);
 end;
 
 end.

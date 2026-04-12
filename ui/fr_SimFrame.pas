@@ -9,7 +9,7 @@ uses
 
   Vcl.Samples.Spin, Vcl.ControlList, Vcl.ComCtrls, Vcl.Buttons, Vcl.Mask,
   u_EnvironmentLibraries, u_SimVisualizer, u_Simulators,
-  u_SimSessions, fr_ResourceVisualizer, u_SimWatches;
+  u_SimSessions, fr_ResourceVisualizer, u_SimWatches, u_SimRuntimes;
 
 type
   TSimFrame = class(TContentFrame)
@@ -38,7 +38,7 @@ type
     edtSeedName: TEdit;
     btnSaveSeed: TSpeedButton;
     ViewerGridPanel: TGridPanel;
-    PageControl1: TPageControl;
+    LogPages: TPageControl;
     tsAgentLog: TTabSheet;
     TabSheet2: TTabSheet;
     procedure btnCreateSimClick(Sender: TObject);
@@ -57,6 +57,8 @@ type
     procedure HandleLogEvent(Sender: TObject; const aMsg: string);
     procedure HandleSessionAfterStep(Sender: TObject);
     procedure HandleWatchChanged(Sender: TObject; Watch: TSimWatch);
+    function FormatActionScores(const Trace: TDecisionTrace): string;
+    function FormatDecisionTrace(const Trace: TDecisionTrace): string;
 
     procedure UpdateControls;
 
@@ -78,11 +80,41 @@ implementation
 {$R *.dfm}
 
 uses System.Types, System.Math, Vcl.GraphUtil,
-  u_SimUpscalers, u_SimRuntimes, u_SimParams, u_EditorTypes,
-  u_Regions;
+  u_SimUpscalers, u_SimParams, u_EditorTypes,
+  u_Regions, u_AgentTypes;
 
 const
   DEFAULT_SEED = -1653628502;
+
+var
+  LogFormatSettings: TFormatSettings;
+
+
+type
+  TBooleanHelper = record helper for Boolean
+    function LogStr: string;
+  end;
+
+  TSingleHelper = record helper for Single
+    function LogStr: string;
+  end;
+
+{ TBooleanHelper }
+function TBooleanHelper.LogStr: string;
+begin
+  if Self then
+    Result := 'T'
+  else
+    Result := 'F';
+end;
+
+{ TSingleHelper }
+
+function TSingleHelper.LogStr: string;
+begin
+  Result := FloatToStrF(Self, ffFixed, 18, 3, LogFormatSettings);
+end;
+
 
 { TSimFrame }
 
@@ -135,7 +167,7 @@ begin
   var params: TSimParams;
   params.InitDefaults;
   params.Seed := DEFAULT_SEED;
-  params.Population.AgentCount := StrToIntDef(edtAgentCount.Text, 1);
+  params.Population.AgentCount := StrToIntDef(edtAgentCount.Text, 0);
 
   var world := WorldLibrary.Worlds[WorldList.ItemIndex];
 
@@ -151,11 +183,25 @@ begin
 
     edtSeedName.Text := IntToStr(fSession.Seed);
 
+
     fSession.AddAgentWatch(0);
+    fSession.AddAgentWatch(1);
 
     // add a cell watch where the agent ended up
-//    var loc := fSession.Simulator.Runtime.Population.Agents[0].Location;
-//    fSession.AddCellWatch(loc);
+
+    var loc := fSession.Simulator.Runtime.Population.Agents[0].Location;
+    fSession.AddCellWatch(loc);
+
+    // Prime baseline snapshots before first step so tick-1 deltas reflect true initial state.
+    fSession.PrimeWatches;
+
+//    for var cellIndex := 0 to Length(fSession.Simulator.Runtime.Environment.Cells) - 1 do
+//      if fSession.Simulator.Runtime.Environment.Cells[cellIndex].ResourceCount > 0 then
+//      begin
+//        fSession.AddCellWatch(cellIndex);
+//        Break;
+//      end;
+
 
 
   except
@@ -251,55 +297,95 @@ begin
   fVisualizer.Paint(view.Canvas, foodColor);
 end;
 
+function TSimFrame.FormatActionScores(const Trace: TDecisionTrace): string;
+begin
+  Result := Format(
+    '    Scores M:%s F:%s S:%s R:%s I:%s',
+    [
+      Trace.Scores[acMove].LogStr,
+      Trace.Scores[acForage].LogStr,
+      Trace.Scores[acShelter].LogStr,
+      Trace.Scores[acReproduce].LogStr,
+      Trace.Scores[acIdle].LogStr
+    ]
+  );
+end;
+
+function TSimFrame.FormatDecisionTrace(const Trace: TDecisionTrace): string;
+
+  function ActionToShortStr(aAction: TAgentAction): string;
+  const
+    action_strs: array[TAgentAction] of string = ('Move', 'Forage', 'Shelter', 'Repro', 'Idle');
+  begin
+    Result := action_strs[aAction];
+  end;
+
+  function EnergyLevelToStr(aEnergyLevel: TEnergyLevel): string;
+  const
+    energy_strs: array[TEnergyLevel] of string = ('Empty', 'Low', 'Medium', 'High', 'Full');
+  begin
+    Result := energy_strs[aEnergyLevel];
+  end;
+begin
+  Result := Format(
+    '    Trace Req:%s Res:%s Night:%s Energy:%s SmellMax:%s Threat:%s Smell:%s Sight:%s',
+    [
+      ActionToShortStr(Trace.RequestedAction),
+      ActionToShortStr(Trace.ResolvedAction),
+      Trace.IsNight.LogStr,
+      EnergyLevelToStr(Trace.Summary.EnergyLevel),
+      Trace.Summary.StrongestSmellSignal.LogStr,
+      Trace.Summary.ThreatPressure.LogStr,
+      Trace.Summary.HadSmellTarget.LogStr,
+      Trace.Summary.HadSightTarget.LogStr
+    ]
+  );
+end;
+
 procedure TSimFrame.HandleWatchChanged(Sender: TObject; Watch: TSimWatch);
 begin
   var dayNumber := fSession.simulator.Clock.DayNumber;
   var dayTick := fSession.simulator.Clock.DayTick;
 
-  var fs := TFormatSettings.Create;
-  fs.DecimalSeparator := '.';
-
   if Watch is TAgentWatch then
   begin
     var w := TAgentWatch(Watch);
-    var currentReserves := FloatToStrF(w.LastChange.CurrentState.Reserves, ffFixed, 18, 6, fs);
-    var deltaReserves := FloatToStrF(
-      w.LastChange.CurrentState.Reserves - w.LastChange.PreviousState.Reserves,
-      ffFixed, 18, 6, fs
-    );
-
     var actionStr := w.ActionToStr(w.LastChange.CurrentState.Action);
 
     var line := Format(
-      '[%2d:%3d] A:%d R:%s D:%s  (%s)',
+      '[%.2d:%.3d] A:%d R:%s D:%s  (%s)',
       [
         dayNumber,
         dayTick,
         w.AgentId,
-        currentReserves,
-        deltaReserves,
+        w.LastChange.CurrentState.Reserves.LogStr,
+        Single(w.LastChange.CurrentState.Reserves - w.LastChange.PreviousState.Reserves).LogStr,
         actionStr
       ]
     );
     AgentLog.Lines.Add(line);
+
+    var trace: TDecisionTrace;
+    if fSession.Simulator.Runtime.TryGetLastDecision(w.AgentId, trace) then
+    begin
+      AgentLog.Lines.Add(FormatActionScores(trace));
+      AgentLog.Lines.Add(FormatDecisionTrace(trace));
+    end;
   end
   else if Watch is TCellWatch then
   begin
     var c := TCellWatch(Watch);
-    var currentAmount := FloatToStrF(c.LastChange.CurrentAmount, ffFixed, 18, 6, fs);
-    var deltaAmount := FloatToStrF(c.LastChange.CurrentAmount - c.LastChange.PreviousAmount,
-      ffFixed, 18, 6, fs);
 
     var line := Format(
-      'cell'#9'%d'#9'%d'#9'%d'#9'%d'#9'%d'#9#9#9'%s'#9'%s',
+      '[%.2d:%.3d] C:%d CA:%s DA:%s  CD:%s DD:%s',
       [
-        c.WatchId,
-        c.CellIndex,
         dayNumber,
         dayTick,
-        c.LastChange.Tick,
-        currentAmount,
-        deltaAmount
+        c.CellIndex,
+        c.LastChange.CurrentAmount.LogStr,
+        Single(c.LastChange.CurrentAmount - c.LastChange.PreviousAmount).LogStr,
+        c.LastChange.CurrentDebt.LogStr,
+        Single(c.LastChange.CurrentDebt - c.LastChange.PreviousDebt).LogStr
       ]
     );
     AgentLog.Lines.Add(line);
@@ -364,5 +450,10 @@ begin
   AgentLog.SelLength := 0;
   AgentLog.Perform(EM_SCROLLCARET, 0, 0);
 end;
+
+
+initialization
+  LogFormatSettings := TFormatSettings.Create;
+  LogFormatSettings.DecimalSeparator := '.';
 
 end.

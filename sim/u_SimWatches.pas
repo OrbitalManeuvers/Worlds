@@ -62,6 +62,8 @@ type
     Tick: Cardinal;
     PreviousAmount: Single;
     CurrentAmount: Single;
+    PreviousDebt: Single;
+    CurrentDebt: Single;
   end;
 
   TCellWatch = class(TSimWatch)
@@ -71,8 +73,9 @@ type
     fMinDelta: Single;
     fHasBaseline: Boolean;
     fBaselineAmount: Single;
+    fBaselineDebt: Single;
     fLastChange: TCellWatchChange;
-    function TryReadAmount(const Sim: TSimulator; out Amount: Single): Boolean;
+    function TryReadAmount(const Sim: TSimulator; out Amount, Debt: Single): Boolean;
   protected
     function EvaluateChange(const Sim: TSimulator; const Tick: Cardinal): Boolean; override;
   public
@@ -221,24 +224,30 @@ begin
   Result := False;
 
   var amount: Single;
-  if not TryReadAmount(Sim, amount) then
+  var debt: Single;
+  if not TryReadAmount(Sim, amount, debt) then
     Exit;
 
   if not fHasBaseline then
   begin
     fBaselineAmount := amount;
+    fBaselineDebt := debt;
     fHasBaseline := True;
     Exit;
   end;
 
-  if Abs(amount - fBaselineAmount) < fMinDelta then
+  if (Abs(amount - fBaselineAmount) < fMinDelta)
+    and (Abs(debt - fBaselineDebt) < fMinDelta) then
     Exit;
 
   fLastChange.Tick := Tick;
   fLastChange.PreviousAmount := fBaselineAmount;
   fLastChange.CurrentAmount := amount;
+  fLastChange.PreviousDebt := fBaselineDebt;
+  fLastChange.CurrentDebt := debt;
 
   fBaselineAmount := amount;
+  fBaselineDebt := debt;
   Result := True;
 end;
 
@@ -246,13 +255,15 @@ procedure TCellWatch.Reset;
 begin
   fHasBaseline := False;
   fBaselineAmount := 0.0;
+  fBaselineDebt := 0.0;
   fLastChange := Default(TCellWatchChange);
 end;
 
-function TCellWatch.TryReadAmount(const Sim: TSimulator; out Amount: Single): Boolean;
+function TCellWatch.TryReadAmount(const Sim: TSimulator; out Amount, Debt: Single): Boolean;
 begin
   Result := False;
   Amount := 0.0;
+  Debt := 0.0;
 
   var env := Sim.Runtime.Environment;
   if (fCellIndex < 0) or (fCellIndex >= Length(env.Cells)) then
@@ -276,6 +287,7 @@ begin
       Continue;
 
     Amount := Amount + res.Amount;
+    Debt := Debt + res.RegenDebt;
   end;
 
   Result := True;

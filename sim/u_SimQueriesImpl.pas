@@ -24,6 +24,10 @@ type
 
 implementation
 
+const
+  // Ignore trace residue so smell only reports caches with meaningful mass.
+  MIN_SMELL_DETECTABLE_AMOUNT = 0.02;
+
 { TSimQuery }
 
 constructor TSimQuery.Create(aEnvironment: TSimEnvironment; aPopulation: TSimPopulation);
@@ -63,7 +67,7 @@ begin
       Continue;
 
     var resource := fEnvironment.Resources[resourceIndex];
-    if resource.Amount <= 0.0 then
+    if resource.Amount <= MIN_SMELL_DETECTABLE_AMOUNT then
       Continue;
 
     Buffer[Count].CacheId := resourceIndex;

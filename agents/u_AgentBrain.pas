@@ -7,6 +7,14 @@ uses u_AgentTypes, u_AgentState, u_AgentGenome, u_SimQueriesIntf;
 type
   TActionScores = TCognitionActionScores;
 
+  TBrainTraceSummary = record
+    EnergyLevel: TEnergyLevel;
+    StrongestSmellSignal: Single;
+    ThreatPressure: Single;
+    HadSmellTarget: Boolean;
+    HadSightTarget: Boolean;
+  end;
+
   // Runtime-owned inputs for one brain decision pass.
   TBrainTickInput = record
     IsNight: Boolean;
@@ -18,6 +26,7 @@ type
     RequestedAction: TAgentAction;
     RequestedTarget: TTarget;
     Scores: TActionScores;
+    Trace: TBrainTraceSummary;
   end;
 
   // Caller-owned per-agent scratch state reused across ticks.
@@ -38,12 +47,47 @@ type
 
 implementation
 
+uses u_EnvironmentTypes;
+
+function CalculateStrongestSmellSignal(const Report: TSmellReport): Single;
+begin
+  Result := 0.0;
+
+  for var detail in Report.Details do
+  begin
+    var targetSignal := 0.0;
+    for var molecule := Low(TMolecule) to High(TMolecule) do
+      targetSignal := targetSignal + detail.MoleculeStrength[molecule];
+
+    if targetSignal > Result then
+      Result := targetSignal;
+  end;
+end;
+
+function BuildTraceSummary(const Context: TDecisionContext): TBrainTraceSummary;
+begin
+  Result.EnergyLevel := Context.EnergyLevel;
+  Result.StrongestSmellSignal := CalculateStrongestSmellSignal(Context.Smell);
+  Result.ThreatPressure := 0.0;
+  Result.HadSmellTarget := Context.Smell.Count > 0;
+  Result.HadSightTarget := Context.Sight.Count > 0;
+end;
+
 function BuildForageEvalInput(const Context: TDecisionContext): TForageEvalInput;
 begin
   Result.IsNight := Context.IsNight;
   Result.EnergyLevel := Context.EnergyLevel;
   Result.CurrentAction := Context.CurrentAction;
   Result.Smell := Context.Smell;
+end;
+
+function BuildShelterEvalInput(const Context: TDecisionContext): TShelterEvalInput;
+begin
+  Result.IsNight := Context.IsNight;
+  Result.EnergyLevel := Context.EnergyLevel;
+  Result.CurrentAction := Context.CurrentAction;
+  // Placeholder until explicit threat modeling is added.
+  Result.ThreatPressure := 0.0;
 end;
 
 function BuildEnergyInput(const State: TAgentState): TEnergyInput;
@@ -105,7 +149,7 @@ begin
   // There should not be any unassigned genes (eventually), all should have a Basic implementation.
   Assert(Assigned(State.Genome.GeneMap.Energy));
   Assert(Assigned(State.Genome.GeneMap.Smell));
-//  Assert(Assigned(State.Genome.GeneMap.ForageEval));
+  Assert(Assigned(State.Genome.GeneMap.ForageEval));
   Assert(Assigned(State.Genome.GeneMap.Cognition));
 
 
@@ -152,7 +196,10 @@ begin
   // 3. Shelter
   var shelterEval := State.Genome.GeneMap.ShelterEval;
   if Assigned(shelterEval) then
-    Scratch.ActionScores[acShelter] := 0; // shelterEval.
+  begin
+    var shelterInput := BuildShelterEvalInput(Scratch.DecisionContext);
+    Scratch.ActionScores[acShelter] := shelterEval.Score(shelterInput, Scratch.EvaluatorScratch.Shelter);
+  end;
 
   // 4. Reproduction
   var reproduceEval := State.Genome.GeneMap.ReproduceEval;
@@ -177,6 +224,7 @@ begin
   end;
 
   Result.Scores := Scratch.ActionScores;
+  Result.Trace := BuildTraceSummary(Scratch.DecisionContext);
 end;
 
 end.

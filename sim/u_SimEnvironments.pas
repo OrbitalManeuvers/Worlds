@@ -14,7 +14,7 @@ type
   TResourceCache = record
     SubstanceIndex: Word;    // index into Substances array
     Amount: Single;          // mutable simulation state
-    RegenDebt: Single;       // cooldown debt paid down by growth potential before regrowth resumes
+    RegenDebt: Single;       // stacked recoil cooldown (in ticks) before regrowth resumes
     GrowthRate: Single;      // incorporates Biome.GrowthRate and Food.GrowthRate
   end;
 
@@ -111,9 +111,11 @@ procedure TSimEnvironment.UpdateResources(const aDayTick: TDayTick);
 const
   // Growable molecules decay at a constant rate whenever there is no sunlight.
   GROWABLE_NO_SUNLIGHT_DECAY_PER_TICK = 0.056;
+  REGEN_DEBT_DECAY_PER_TICK = 1.0;
 begin
   // Resource growth pass is driven by current SolarFlux and per-cell modifiers.
   // Growth slows as a cache approaches max amount, making full-cap saturation rarer.
+  // Recoil cooldown blocks growth while active and decays each tick.
 
   for var cellIndex := 0 to High(fCells) do
   begin
@@ -131,12 +133,11 @@ begin
       // Soft cap: growth fades out as the cache fills.
       var growth := light * fResources[resIndex].GrowthRate * (1.0 - fill);
 
-      // Cooldown: growth potential first pays down regen debt before Amount can increase.
+      // Recoil cooldown: no regrowth while debt is active.
       if debt > 0.0 then
       begin
-        var paid := Min(growth, debt);
-        debt := debt - paid;
-        growth := growth - paid;
+        debt := debt - REGEN_DEBT_DECAY_PER_TICK;
+        growth := 0.0;
       end;
 
       var decay := 0.0;

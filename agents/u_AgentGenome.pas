@@ -50,7 +50,7 @@ type
     IsNight: Boolean;
     EnergyLevel: TEnergyLevel;
     CurrentAction: TAgentAction;
-    Sight: TSightReport;
+    ThreatPressure: Single;
   end;
 
   TReproduceEvalInput = record
@@ -366,9 +366,13 @@ begin
   geneClass := GlobalGeneRegistry.FindGeneration(TMoveEvalGene, aSequence.Movement);
   aMap.MoveEval := TMoveEvalGeneClass(geneClass);
 
+  // forage
   geneClass := GlobalGeneRegistry.FindGeneration(TForageEvalGene, aSequence.Forage);
   aMap.ForageEval := TForageEvalGeneClass(geneClass);
 
+  // shelter
+  geneClass := GlobalGeneRegistry.FindGeneration(TShelterEvalGene, aSequence.Shelter);
+  aMap.ShelterEval := TShelterEvalGeneClass(geneClass);
 
   // decision
   geneClass := GlobalGeneRegistry.FindGeneration(TCognitionGene, aSequence.Cognition);
