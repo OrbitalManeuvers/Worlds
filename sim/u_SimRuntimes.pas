@@ -3,13 +3,15 @@ unit u_SimRuntimes;
 interface
 
 uses u_AgentState, u_SimEnvironments, u_SimPopulations, u_SimClocks, u_SimQueriesIntf,
-  u_SimCommandsIntf, u_AgentBrain, u_AgentTypes;
+  u_SimCommandsIntf, u_AgentBrain, u_AgentTypes, u_SimPhases;
 
 const
   AGENT_BITE_SIZE = 0.1;  // temporary. move to sim params/genome
   SHELTER_UPKEEP_MULTIPLIER = 0.35;
 
 type
+  TRuntimePhaseEvent = procedure (Sender: TObject; Phase: TSimTickPhase) of object;
+
   TDecisionTrace = record
     DayTick: TDayTick;
     AgentId: Integer;
@@ -33,6 +35,7 @@ type
     fPopulation: TSimPopulation;
     fSimQuery: ISimQuery;
     fSimCommand: ISimCommand;
+    fOnPhase: TRuntimePhaseEvent;
     procedure CaptureDecisionTrace(AgentIndex: Integer; const State: TAgentState; const Input: TBrainTickInput;
       const Requested, Resolved: TBrainTickOutput);
     function CalculateAgentTickCost(const State: TAgentState): Single;
@@ -40,6 +43,7 @@ type
     function ApplyAgentUpkeep(var State: TAgentState): Boolean;
     function ResolveRequestedStep(var State: TAgentState; const Requested: TBrainTickOutput): TBrainTickOutput;
     procedure ProcessAgentTick(aIndex: Integer; const Input: TBrainTickInput);
+    procedure NotifyPhase(const Phase: TSimTickPhase);
     procedure SetDayTick(const Value: TDayTick);
   public
     constructor Create;
@@ -50,6 +54,7 @@ type
     property Environment: TSimEnvironment read fEnvironment;
     property Population: TSimPopulation read fPopulation;
 
+    property OnPhase: TRuntimePhaseEvent read fOnPhase write fOnPhase;
     property DayTick: TDayTick write SetDayTick;
   end;
 
@@ -161,13 +166,36 @@ begin
 
   if (Requested.RequestedAction = acForage) and (Requested.RequestedTarget.TType = ttCache) then
   begin
+    var cacheId := Requested.RequestedTarget.CacheId;
+    var isLocalCache := False;
+
+    if (State.Location >= 0) and (State.Location <= High(fEnvironment.Cells)) then
+    begin
+      var cell := fEnvironment.Cells[State.Location];
+      for var i := 0 to cell.ResourceCount - 1 do
+        if (Integer(cell.ResourceStart) + i) = cacheId then
+        begin
+          isLocalCache := True;
+          Break;
+        end;
+    end;
+
+    // Smell can detect remote opportunities, but foraging is local-only until movement/pathing is resolved.
+    if not isLocalCache then
+    begin
+      Result.RequestedAction := acIdle;
+      Result.RequestedTarget.TType := ttCell;
+      Result.RequestedTarget.Cell := State.Location;
+      Exit;
+    end;
+
     var forageCommand: IEnvironmentForageCommand;
     if Supports(fSimCommand, IEnvironmentForageCommand, forageCommand) then
     begin
       var reply: TConsumeCacheReply := Default(TConsumeCacheReply);
 
       var request: TConsumeCacheRequest;
-      request.CacheId := Requested.RequestedTarget.CacheId;
+      request.CacheId := cacheId;
       request.RequestedAmount := AGENT_BITE_SIZE;
 
       if forageCommand.TryConsumeCache(request, reply) then
@@ -178,6 +206,8 @@ begin
       begin
         // Failed consume attempts should not pin the agent in an unavailable forage.
         Result.RequestedAction := acIdle;
+        Result.RequestedTarget.TType := ttCell;
+        Result.RequestedTarget.Cell := State.Location;
       end;
     end;
   end;
@@ -218,10 +248,17 @@ begin
   fPopulation.ApplyAgentStep(aIndex, resolved);
 end;
 
+procedure TSimRuntime.NotifyPhase(const Phase: TSimTickPhase);
+begin
+  if Assigned(fOnPhase) then
+    fOnPhase(Self, Phase);
+end;
+
 procedure TSimRuntime.SetDayTick(const Value: TDayTick);
 begin
   fCurrentDayTick := Value;
   fEnvironment.DayTick := Value;
+  NotifyPhase(stpPostEnvironment);
 
   if Length(fLastDecisionTraces) <> fPopulation.AgentCount then
   begin
@@ -233,8 +270,26 @@ begin
   input.IsNight := Value > High(TDaylightTicks);
   input.Query := fSimQuery;
 
-  for var i := 0 to fPopulation.AgentCount - 1 do
-    ProcessAgentTick(i, input);
+  var agentCount := fPopulation.AgentCount;
+  if agentCount > 0 then
+  begin
+    // Fairness pass: randomize both start index and traversal direction each tick.
+    var startIndex := Random(agentCount);
+    var direction := 1;
+    if Random(2) = 0 then
+      direction := -1;
+
+    for var pass := 0 to agentCount - 1 do
+    begin
+      var agentIndex := (startIndex + (direction * pass)) mod agentCount;
+      if agentIndex < 0 then
+        agentIndex := agentIndex + agentCount;
+
+      ProcessAgentTick(agentIndex, input);
+    end;
+  end;
+
+  NotifyPhase(stpPostAgents);
 end;
 
 function TSimRuntime.TryGetLastDecision(AgentIndex: Integer; out Trace: TDecisionTrace): Boolean;

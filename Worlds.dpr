@@ -56,7 +56,8 @@ uses
   u_SimCommandsIntf in 'sim\u_SimCommandsIntf.pas',
   u_SimCommandsImpl in 'sim\u_SimCommandsImpl.pas',
   u_Seeds in 'common\u_Seeds.pas',
-  u_ShelterGenes in 'agents\u_ShelterGenes.pas';
+  u_ShelterGenes in 'agents\u_ShelterGenes.pas',
+  u_SimPhases in 'sim\u_SimPhases.pas';
 
 {$R *.res}
 

@@ -3,10 +3,11 @@ unit u_SimWatches;
 interface
 
 uses System.Math,
-  u_AgentState, u_AgentTypes, u_Simulators;
+  u_AgentState, u_AgentTypes, u_Simulators, u_SimPhases;
 
 type
   TSimWatch = class;
+  TCellWatchEmitMode = (cemOnChange, cemAlways);
 
   TWatchChangedEvent = procedure (Sender: TObject; Watch: TSimWatch) of object;
 
@@ -14,18 +15,22 @@ type
   private
     fWatchId: Integer;
     fEnabled: Boolean;
+    fLastPhase: TSimTickPhase;
+    fPhases: TSimTickPhases;
     fOnChange: TWatchChangedEvent;
   protected
     function EvaluateChange(const Sim: TSimulator; const Tick: Cardinal): Boolean; virtual; abstract;
   public
     constructor Create; virtual;
-    function Evaluate(const Sim: TSimulator; const Tick: Cardinal): Boolean;
+    function Evaluate(const Sim: TSimulator; const Tick: Cardinal; const Phase: TSimTickPhase): Boolean;
     procedure Reset; virtual;
     procedure Notify(Sender: TObject);
     function ActionToStr(aAction: TAgentAction): string;
 
     property WatchId: Integer read fWatchId write fWatchId;
     property Enabled: Boolean read fEnabled write fEnabled;
+    property LastPhase: TSimTickPhase read fLastPhase;
+    property Phases: TSimTickPhases read fPhases write fPhases;
     property OnChange: TWatchChangedEvent read fOnChange write fOnChange;
   end;
 
@@ -74,6 +79,7 @@ type
     fHasBaseline: Boolean;
     fBaselineAmount: Single;
     fBaselineDebt: Single;
+    fEmitMode: TCellWatchEmitMode;
     fLastChange: TCellWatchChange;
     function TryReadAmount(const Sim: TSimulator; out Amount, Debt: Single): Boolean;
   protected
@@ -85,6 +91,7 @@ type
     property CellIndex: Integer read fCellIndex;
     property SubstanceIndex: Integer read fSubstanceIndex;
     property MinDelta: Single read fMinDelta write fMinDelta;
+    property EmitMode: TCellWatchEmitMode read fEmitMode write fEmitMode;
     property LastChange: TCellWatchChange read fLastChange;
   end;
 
@@ -97,11 +104,16 @@ constructor TSimWatch.Create;
 begin
   inherited Create;
   fEnabled := True;
+  fLastPhase := stpPostAgents;
+  fPhases := [stpPostAgents];
 end;
 
-function TSimWatch.Evaluate(const Sim: TSimulator; const Tick: Cardinal): Boolean;
+function TSimWatch.Evaluate(const Sim: TSimulator; const Tick: Cardinal;
+  const Phase: TSimTickPhase): Boolean;
 begin
-  Result := fEnabled and Assigned(Sim) and EvaluateChange(Sim, Tick);
+  Result := fEnabled and (Phase in fPhases) and Assigned(Sim) and EvaluateChange(Sim, Tick);
+  if Result then
+    fLastPhase := Phase;
 end;
 
 function TSimWatch.ActionToStr(aAction: TAgentAction): string;
@@ -217,6 +229,7 @@ begin
   fCellIndex := aCellIndex;
   fSubstanceIndex := aSubstanceIndex;
   fMinDelta := 0.000001;
+  fEmitMode := cemOnChange;
 end;
 
 function TCellWatch.EvaluateChange(const Sim: TSimulator; const Tick: Cardinal): Boolean;
@@ -236,8 +249,10 @@ begin
     Exit;
   end;
 
-  if (Abs(amount - fBaselineAmount) < fMinDelta)
-    and (Abs(debt - fBaselineDebt) < fMinDelta) then
+  var hasChange := (Abs(amount - fBaselineAmount) >= fMinDelta)
+    or (Abs(debt - fBaselineDebt) >= fMinDelta);
+
+  if (fEmitMode = cemOnChange) and not hasChange then
     Exit;
 
   fLastChange.Tick := Tick;

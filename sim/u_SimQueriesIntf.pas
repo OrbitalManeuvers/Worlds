@@ -21,6 +21,7 @@ type
 
   // Smell cache info for a single substance at a location. SubstanceIndex provides composition identity.
   TSmellCacheInfo = record
+    CellIndex: Integer;
     CacheId: Cardinal;
     Amount: Single;
     Substance: TSubstance;
@@ -32,8 +33,11 @@ type
   // Smell contract for environment lookups.
   IEnvironmentSmellQuery = interface(IEnvironmentQuery)
     ['{BCFB2EFB-C6F9-4FCA-A4CE-D40CD8A1A72C}']
+    // Returns environment grid size used for cell-index coordinate math.
+    procedure GetGridSize(out Width, Height: Integer);
     // Caller owns Buffer and can reuse it across ticks to reduce allocations.
     // Count is the number of valid items populated in Buffer[0..Count-1].
+    // Range is clamped/quantized by the implementation to a bounded neighborhood tier.
     procedure FillLocalFoodCaches(Location: Integer; Range: Single; var Buffer: TSmellCacheInfos; out Count: Integer);
   end;
 

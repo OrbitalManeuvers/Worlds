@@ -12,6 +12,7 @@ type
     fPopulation: TSimPopulation;
 
     { IEnvironmentSmellQuery }
+    procedure GetGridSize(out Width, Height: Integer);
     procedure FillLocalFoodCaches(Location: Integer; Range: Single; var Buffer: TSmellCacheInfos; out Count: Integer);
 
     { IPopulationSightQuery }
@@ -43,6 +44,18 @@ begin
   inherited;
 end;
 
+procedure TSimQuery.GetGridSize(out Width, Height: Integer);
+begin
+  Width := 0;
+  Height := 0;
+
+  if not Assigned(fEnvironment) then
+    Exit;
+
+  Width := fEnvironment.Dimensions.cx;
+  Height := fEnvironment.Dimensions.cy;
+end;
+
 
 procedure TSimQuery.FillLocalFoodCaches(Location: Integer; Range: Single; var Buffer: TSmellCacheInfos; out Count: Integer);
 begin
@@ -51,33 +64,73 @@ begin
   if not Assigned(fEnvironment) then
     Exit;
 
-  // Current scaffold: treat Location as a flat cell index and scan only that cell.
-  // Range support can expand to neighboring cells once movement geometry is finalized.
+  var width := fEnvironment.Dimensions.cx;
+  var height := fEnvironment.Dimensions.cy;
+  if (width <= 0) or (height <= 0) then
+    Exit;
+
   if (Location < 0) or (Location > High(fEnvironment.Cells)) then
     Exit;
 
-  var cell := fEnvironment.Cells[Location];
-  if Length(Buffer) < cell.ResourceCount then
-    SetLength(Buffer, cell.ResourceCount);
+  // Clamp and quantize range into bounded neighborhood tiers: 0, 1, 2.
+  var clampedRange := Range;
+  if clampedRange < 0.0 then
+    clampedRange := 0.0
+  else if clampedRange > 2.0 then
+    clampedRange := 2.0;
 
-  for var i := 0 to cell.ResourceCount - 1 do
+  // Tie-at-half rounds up because range is non-negative after clamping.
+  var effectiveRadius := Trunc(clampedRange + 0.5);
+
+  var originX := Location mod width;
+  var originY := Location div width;
+
+  for var dy := -effectiveRadius to effectiveRadius do
   begin
-    var resourceIndex := Integer(cell.ResourceStart) + i;
-    if (resourceIndex < 0) or (resourceIndex > High(fEnvironment.Resources)) then
+    var candidateY := originY + dy;
+    if (candidateY < 0) or (candidateY >= height) then
       Continue;
 
-    var resource := fEnvironment.Resources[resourceIndex];
-    if resource.Amount <= MIN_SMELL_DETECTABLE_AMOUNT then
-      Continue;
+    for var dx := -effectiveRadius to effectiveRadius do
+    begin
+      if (Abs(dx) > effectiveRadius) or (Abs(dy) > effectiveRadius) then
+        Continue;
 
-    Buffer[Count].CacheId := resourceIndex;
-    Buffer[Count].Amount := resource.Amount;
-    Buffer[Count].Substance := fEnvironment.Substances[resource.SubstanceIndex];
+      var candidateX := originX + dx;
+      if (candidateX < 0) or (candidateX >= width) then
+        Continue;
 
-    Inc(Count);
+      var candidateCellIndex := (candidateY * width) + candidateX;
+      var cell := fEnvironment.Cells[candidateCellIndex];
+      if cell.ResourceCount <= 0 then
+        Continue;
+
+      for var i := 0 to cell.ResourceCount - 1 do
+      begin
+        var resourceIndex := Integer(cell.ResourceStart) + i;
+        if (resourceIndex < 0) or (resourceIndex > High(fEnvironment.Resources)) then
+          Continue;
+
+        var resource := fEnvironment.Resources[resourceIndex];
+        if resource.Amount <= MIN_SMELL_DETECTABLE_AMOUNT then
+          Continue;
+
+        if resource.SubstanceIndex > High(fEnvironment.Substances) then
+          Continue;
+
+        if Count >= Length(Buffer) then
+          SetLength(Buffer, Count + 16);
+
+        Buffer[Count].CellIndex := candidateCellIndex;
+        Buffer[Count].CacheId := resourceIndex;
+        Buffer[Count].Amount := resource.Amount;
+        Buffer[Count].Substance := fEnvironment.Substances[resource.SubstanceIndex];
+
+        Inc(Count);
+      end;
+    end;
   end;
 end;
-
 
 procedure TSimQuery.FillLocalAgents(Location: Integer; Range: Single; var Buffer: TSightInfos; out Count: Integer);
 begin

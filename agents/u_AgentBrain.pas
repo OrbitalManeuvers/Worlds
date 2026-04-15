@@ -10,6 +10,10 @@ type
   TBrainTraceSummary = record
     EnergyLevel: TEnergyLevel;
     StrongestSmellSignal: Single;
+    SmellCandidateCount: Integer;
+    TopSmellCacheId: Integer;
+    TopSmellDistance: Integer;
+    TopSmellSignal: Single;
     ThreatPressure: Single;
     HadSmellTarget: Boolean;
     HadSightTarget: Boolean;
@@ -64,13 +68,33 @@ begin
   end;
 end;
 
+function CalculateDetailSignal(const Detail: TSmellDetails): Single;
+begin
+  Result := 0.0;
+  for var molecule := Low(TMolecule) to High(TMolecule) do
+    Result := Result + Detail.MoleculeStrength[molecule];
+end;
+
 function BuildTraceSummary(const Context: TDecisionContext): TBrainTraceSummary;
 begin
   Result.EnergyLevel := Context.EnergyLevel;
   Result.StrongestSmellSignal := CalculateStrongestSmellSignal(Context.Smell);
+  Result.SmellCandidateCount := Length(Context.Smell.Details);
+  Result.TopSmellCacheId := -1;
+  Result.TopSmellDistance := -1;
+  Result.TopSmellSignal := 0.0;
   Result.ThreatPressure := 0.0;
   Result.HadSmellTarget := Context.Smell.Count > 0;
   Result.HadSightTarget := Context.Sight.Count > 0;
+
+  // Smell details are sorted by the smell gene; detail[0] is the chosen/most salient candidate.
+  if Length(Context.Smell.Details) > 0 then
+  begin
+    var top := Context.Smell.Details[0];
+    Result.TopSmellCacheId := top.CacheId;
+    Result.TopSmellDistance := top.Directions.Distance;
+    Result.TopSmellSignal := CalculateDetailSignal(top);
+  end;
 end;
 
 function BuildForageEvalInput(const Context: TDecisionContext): TForageEvalInput;

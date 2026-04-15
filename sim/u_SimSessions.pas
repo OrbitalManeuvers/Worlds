@@ -4,7 +4,7 @@ interface
 
 uses System.Classes, System.Generics.Collections,
  u_Worlds, u_EnvironmentTypes, u_EnvironmentLibraries,
- u_Simulators, u_SimParams, u_Foods, u_SimWatches;
+ u_Simulators, u_SimParams, u_Foods, u_SimWatches, u_SimPhases;
 
 type
   TLogEvent = procedure (Sender: TObject; const aMsg: string) of object;
@@ -25,7 +25,8 @@ type
     fOnWatchChange: TWatchChangedEvent;
     procedure Log(const aMsg: string); overload;
     procedure Log(const aMsgFmt: string; const Params: array of const); overload;
-    procedure EvaluateWatches;
+    procedure EvaluateWatches(const Phase: TSimTickPhase);
+    procedure HandleRuntimePhase(Sender: TObject; Phase: TSimTickPhase);
     function RegisterWatch(AWatch: TSimWatch): TSimWatch;
   public
     constructor Create(aWorld: TWorld; const aParams: TSimParams; aLibrary: TEnvironmentLibrary);
@@ -37,9 +38,12 @@ type
 
     procedure Step;
 
-    function AddAgentWatch(AgentId: Integer; const Callback: TWatchChangedEvent = nil): TAgentWatch;
+    function AddAgentWatch(AgentId: Integer; const Callback: TWatchChangedEvent = nil;
+      const Phases: TSimTickPhases = [stpPostAgents]): TAgentWatch;
     function AddCellWatch(CellIndex: Integer; SubstanceIndex: Integer = -1;
-      const Callback: TWatchChangedEvent = nil): TCellWatch;
+      const Callback: TWatchChangedEvent = nil;
+      const Phases: TSimTickPhases = [stpPostAgents];
+      const EmitMode: TCellWatchEmitMode = cemOnChange): TCellWatch;
     procedure RemoveWatch(AWatch: TSimWatch);
     procedure ClearWatches;
 
@@ -83,12 +87,15 @@ begin
 
   //
   fSim := TSimulator.Create;
+  fSim.Runtime.OnPhase := HandleRuntimePhase;
   fFoods := TList<TFood>.Create;
   fWatches := TObjectList<TSimWatch>.Create(True);
 end;
 
 destructor TSimSession.Destroy;
 begin
+  if Assigned(fSim) and Assigned(fSim.Runtime) then
+    fSim.Runtime.OnPhase := nil;
   fWatches.Free;
   fFoods.Free;
   fSim.Free;
@@ -107,19 +114,27 @@ begin
 end;
 
 function TSimSession.AddAgentWatch(AgentId: Integer;
-  const Callback: TWatchChangedEvent): TAgentWatch;
+  const Callback: TWatchChangedEvent; const Phases: TSimTickPhases): TAgentWatch;
 begin
   Result := TAgentWatch(RegisterWatch(TAgentWatch.Create(AgentId)));
   if Assigned(Result) then
+  begin
+    Result.Phases := Phases;
     Result.OnChange := Callback;
+  end;
 end;
 
 function TSimSession.AddCellWatch(CellIndex, SubstanceIndex: Integer;
-  const Callback: TWatchChangedEvent): TCellWatch;
+  const Callback: TWatchChangedEvent; const Phases: TSimTickPhases;
+  const EmitMode: TCellWatchEmitMode): TCellWatch;
 begin
   Result := TCellWatch(RegisterWatch(TCellWatch.Create(CellIndex, SubstanceIndex)));
   if Assigned(Result) then
+  begin
+    Result.Phases := Phases;
+    Result.EmitMode := EmitMode;
     Result.OnChange := Callback;
+  end;
 end;
 
 procedure TSimSession.RemoveWatch(AWatch: TSimWatch);
@@ -174,8 +189,9 @@ begin
   if fParams.Population.AgentCount > 0 then
   begin
     // move the agent onto a cell that has resources
+    var found := False;
     for var cellIndex := 0 to Length(fSim.Runtime.Environment.Cells) - 1 do
-      if fSim.Runtime.Environment.Cells[cellIndex].ResourceCount > 0 then
+      if fSim.Runtime.Environment.Cells[cellIndex].ResourceCount > 1 then
       begin
         for var agentIndex := 0 to fSim.Runtime.Population.AgentCount - 1 do
         begin
@@ -183,8 +199,10 @@ begin
           agent.Location := cellIndex;
           fsim.Runtime.Population.UpdateAgentState(agentIndex, agent);
         end;
+        Found := True;
         Break;
       end;
+    Assert(Found, 'Did not find any cells with multiple resources');
   end;
 
   // log resource map
@@ -214,11 +232,11 @@ begin
 
 end;
 
-procedure TSimSession.EvaluateWatches;
+procedure TSimSession.EvaluateWatches(const Phase: TSimTickPhase);
 begin
   for var watch in fWatches do
   begin
-    if not watch.Evaluate(fSim, fSim.Clock.Tick) then
+    if not watch.Evaluate(fSim, fSim.Clock.Tick, Phase) then
       Continue;
 
     watch.Notify(Self);
@@ -227,11 +245,16 @@ begin
   end;
 end;
 
+procedure TSimSession.HandleRuntimePhase(Sender: TObject; Phase: TSimTickPhase);
+begin
+  EvaluateWatches(Phase);
+end;
+
 procedure TSimSession.PrimeWatches;
 begin
   // Capture initial baselines without emitting watch change callbacks.
   for var watch in fWatches do
-    watch.Evaluate(fSim, fSim.Clock.Tick);
+    watch.Evaluate(fSim, fSim.Clock.Tick, stpPostAgents);
 end;
 
 procedure TSimSession.Log(const aMsgFmt: string; const Params: array of const);
@@ -251,8 +274,6 @@ begin
     fOnBeforeStep(Self);
 
   fSim.Clock.Step;
-
-  EvaluateWatches;
 
   if Assigned(fOnAfterStep) then
     fOnAfterStep(Self);

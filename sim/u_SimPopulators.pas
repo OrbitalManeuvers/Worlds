@@ -13,7 +13,7 @@ type
 implementation
 
 uses
-  u_AgentState, u_AgentGenome;
+  u_AgentState, u_AgentGenome, u_EnvironmentTypes;
 
 { TWorldPopulator }
 
@@ -44,9 +44,13 @@ begin
       state.AgentId := nextId;
       Inc(nextId);
 
-      state.Reserves := 10.0;
+      state.Reserves := 5.0;
 
       TGeneSequencer.Populate(state.Genome.GeneMap, sequence);
+
+      state.Genome.SmellRange := 2.0;
+      for var molecule := Low(TMolecule) to High(TMolecule) do
+        state.Genome.SmellRatings[molecule] := 1.0;
 
       aPopulation.UpdateAgentState(i, state);
     end;

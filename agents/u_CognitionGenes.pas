@@ -29,14 +29,39 @@ begin
       bestScore := Input.ActionScores[action];
     end;
 
+  // Avoid sticky carry-over actions when no action has positive support this tick.
+  if bestScore <= 0.0 then
+  begin
+    Result.RequestedAction := acIdle;
+    Result.RequestedTarget.TType := ttCell;
+    Result.RequestedTarget.Cell := Input.Context.Location;
+    Exit;
+  end;
+
   Result.RequestedAction := bestAction;
   Result.RequestedTarget := Input.CurrentTarget;
 
   // Minimal targeting hook for foraging while movement/pathing is still scaffolded.
-  if (bestAction = acForage) and (Input.Context.Smell.Count > 0) then
+  // Smell details are expected to arrive pre-sorted by the smell gene.
+  // While movement is unresolved, only local (distance 0) cache targets are actionable.
+  if (bestAction = acForage) and (Input.Context.Smell.Count > 0) and (Length(Input.Context.Smell.Details) > 0) then
   begin
-    Result.RequestedTarget.TType := ttCache;
-    Result.RequestedTarget.CacheId := Input.Context.Smell.Details[0].CacheId;
+    var foundLocal := False;
+    for var i := 0 to Length(Input.Context.Smell.Details) - 1 do
+      if Input.Context.Smell.Details[i].Directions.Distance = 0 then
+      begin
+        Result.RequestedTarget.TType := ttCache;
+        Result.RequestedTarget.CacheId := Input.Context.Smell.Details[i].CacheId;
+        foundLocal := True;
+        Break;
+      end;
+
+    if not foundLocal then
+    begin
+      Result.RequestedAction := acIdle;
+      Result.RequestedTarget.TType := ttCell;
+      Result.RequestedTarget.Cell := Input.Context.Location;
+    end;
   end;
 end;
 

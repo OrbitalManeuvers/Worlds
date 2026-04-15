@@ -9,7 +9,7 @@ uses
 
   Vcl.Samples.Spin, Vcl.ControlList, Vcl.ComCtrls, Vcl.Buttons, Vcl.Mask,
   u_EnvironmentLibraries, u_SimVisualizer, u_Simulators,
-  u_SimSessions, fr_ResourceVisualizer, u_SimWatches, u_SimRuntimes;
+  u_SimSessions, fr_ResourceVisualizer, u_SimWatches, u_SimRuntimes, u_SimPhases;
 
 type
   TSimFrame = class(TContentFrame)
@@ -190,7 +190,7 @@ begin
     // add a cell watch where the agent ended up
 
     var loc := fSession.Simulator.Runtime.Population.Agents[0].Location;
-    fSession.AddCellWatch(loc);
+    fSession.AddCellWatch(loc, -1, nil, [stpPostEnvironment, stpPostAgents], cemAlways);
 
     // Prime baseline snapshots before first step so tick-1 deltas reflect true initial state.
     fSession.PrimeWatches;
@@ -320,6 +320,18 @@ function TSimFrame.FormatDecisionTrace(const Trace: TDecisionTrace): string;
     Result := action_strs[aAction];
   end;
 
+  function TargetToShortStr(const Target: TTarget): string;
+  begin
+    case Target.TType of
+      ttCell:
+        Result := 'Cell:' + Target.Cell.ToString;
+      ttCache:
+        Result := 'Cache:' + Target.CacheId.ToString;
+    else
+      Result := 'None';
+    end;
+  end;
+
   function EnergyLevelToStr(aEnergyLevel: TEnergyLevel): string;
   const
     energy_strs: array[TEnergyLevel] of string = ('Empty', 'Low', 'Medium', 'High', 'Full');
@@ -328,13 +340,22 @@ function TSimFrame.FormatDecisionTrace(const Trace: TDecisionTrace): string;
   end;
 begin
   Result := Format(
-    '    Trace Req:%s Res:%s Night:%s Energy:%s SmellMax:%s Threat:%s Smell:%s Sight:%s',
+    '    Trace Req:%s(%s) Res:%s(%s) Night:%s Energy:%s SmellMax:%s SmellTop:[N:%d C:%d D:%d S:%s] Threat:%s Smell:%s Sight:%s',
     [
       ActionToShortStr(Trace.RequestedAction),
+      TargetToShortStr(Trace.RequestedTarget),
       ActionToShortStr(Trace.ResolvedAction),
+      TargetToShortStr(Trace.ResolvedTarget),
       Trace.IsNight.LogStr,
       EnergyLevelToStr(Trace.Summary.EnergyLevel),
+      // SmellMax
       Trace.Summary.StrongestSmellSignal.LogStr,
+      // SmellTop
+      Trace.Summary.SmellCandidateCount,   // N:
+      Trace.Summary.TopSmellCacheId,       // C:
+      Trace.Summary.TopSmellDistance,      // D:
+      Trace.Summary.TopSmellSignal.LogStr, // S:
+      //
       Trace.Summary.ThreatPressure.LogStr,
       Trace.Summary.HadSmellTarget.LogStr,
       Trace.Summary.HadSightTarget.LogStr
@@ -343,9 +364,21 @@ begin
 end;
 
 procedure TSimFrame.HandleWatchChanged(Sender: TObject; Watch: TSimWatch);
+  function PhaseToShortStr(const Phase: TSimTickPhase): string;
+  begin
+    case Phase of
+      stpPostEnvironment:
+        Result := 'PreA';
+      stpPostAgents:
+        Result := 'PostA';
+    else
+      Result := '?';
+    end;
+  end;
 begin
   var dayNumber := fSession.simulator.Clock.DayNumber;
   var dayTick := fSession.simulator.Clock.DayTick;
+  var phaseStr := PhaseToShortStr(Watch.LastPhase);
 
   if Watch is TAgentWatch then
   begin
@@ -353,10 +386,11 @@ begin
     var actionStr := w.ActionToStr(w.LastChange.CurrentState.Action);
 
     var line := Format(
-      '[%.2d:%.3d] A:%d R:%s D:%s  (%s)',
+      '[%.2d:%.3d %s] A:%d R:%s D:%s  (%s)',
       [
         dayNumber,
         dayTick,
+        phaseStr,
         w.AgentId,
         w.LastChange.CurrentState.Reserves.LogStr,
         Single(w.LastChange.CurrentState.Reserves - w.LastChange.PreviousState.Reserves).LogStr,
@@ -377,10 +411,11 @@ begin
     var c := TCellWatch(Watch);
 
     var line := Format(
-      '[%.2d:%.3d] C:%d CA:%s DA:%s  CD:%s DD:%s',
+      '[%.2d:%.3d %s] C:%d CA:%s DA:%s  CD:%s DD:%s',
       [
         dayNumber,
         dayTick,
+        phaseStr,
         c.CellIndex,
         c.LastChange.CurrentAmount.LogStr,
         Single(c.LastChange.CurrentAmount - c.LastChange.PreviousAmount).LogStr,
@@ -389,6 +424,32 @@ begin
       ]
     );
     AgentLog.Lines.Add(line);
+
+    var env := fSession.Simulator.Runtime.Environment;
+    if (c.CellIndex >= 0) and (c.CellIndex < Length(env.Cells)) then
+    begin
+      var cell := env.Cells[c.CellIndex];
+      if cell.ResourceCount > 0 then
+      begin
+        var cacheLine := '    Caches';
+        for var i := 0 to cell.ResourceCount - 1 do
+        begin
+          var cacheIndex := Integer(cell.ResourceStart) + i;
+          if (cacheIndex < 0) or (cacheIndex >= Length(env.Resources)) then
+            Continue;
+
+          var cache := env.Resources[cacheIndex];
+          cacheLine := cacheLine + Format(' [#%d SI:%d A:%s D:%s]', [
+            cacheIndex,
+            cache.SubstanceIndex,
+            cache.Amount.LogStr,
+            cache.RegenDebt.LogStr
+          ]);
+        end;
+
+        AgentLog.Lines.Add(cacheLine);
+      end;
+    end;
   end;
 
 end;
