@@ -46,6 +46,13 @@ type
     Smell: TSmellReport;
   end;
 
+  TMoveEvalInput = record
+    IsNight: Boolean;
+    EnergyLevel: TEnergyLevel;
+    CurrentAction: TAgentAction;
+    Smell: TSmellReport;
+  end;
+
   TShelterEvalInput = record
     IsNight: Boolean;
     EnergyLevel: TEnergyLevel;
@@ -59,11 +66,15 @@ type
     CurrentAction: TAgentAction;
   end;
 
-  TCognitionActionScores = array[TAgentAction] of Single;
+  TActionEvalResult = record
+    Score: Single;
+    Target: TTarget;
+  end;
+  TActionEvaluations = array[TAgentAction] of TActionEvalResult;
 
   TCognitionInput = record
     Context: TDecisionContext;
-    ActionScores: TCognitionActionScores;
+    ActionEvaluations: TActionEvaluations;
     CurrentTarget: TTarget;
   end;
 
@@ -74,6 +85,9 @@ type
 
   // Evaluators own their own workspace contract, even when empty for now.
   TForageEvalScratch = record
+  end;
+
+  TMoveEvalScratch = record
   end;
 
   TShelterEvalScratch = record
@@ -88,6 +102,7 @@ type
   TEvaluatorScratch = record
     Forage: TForageEvalScratch;
     Shelter: TShelterEvalScratch;
+    Movement: TMoveEvalScratch;
     Reproduce: TReproduceEvalScratch;
     Cognition: TCognitionScratch;
   end;
@@ -123,24 +138,25 @@ type
 
   // Move evaluation
   TMoveEvalGene = class(TGene)
+    class function Evaluate(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TActionEvalResult; virtual; abstract;
   end;
   TMoveEvalGeneClass = class of TMoveEvalGene;
 
   // Forage evaluation
   TForageEvalGene = class(TGene)
-    class function Score(const Input: TForageEvalInput; var Scratch: TForageEvalScratch): Single; virtual; abstract;
+    class function Evaluate(const Input: TForageEvalInput; var Scratch: TForageEvalScratch): TActionEvalResult; virtual; abstract;
   end;
   TForageEvalGeneClass = class of TForageEvalGene;
 
   // Shelter evaluation
   TShelterEvalGene = class(TGene)
-    class function Score(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): Single; virtual; abstract;
+    class function Evaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionEvalResult; virtual; abstract;
   end;
   TShelterEvalGeneClass = class of TShelterEvalGene;
 
   // Reproduction evaluation
   TReproduceEvalGene = class(TGene)
-    class function Score(const Input: TReproduceEvalInput; var Scratch: TReproduceEvalScratch): Single; virtual; abstract;
+    class function Evaluate(const Input: TReproduceEvalInput; var Scratch: TReproduceEvalScratch): TActionEvalResult; virtual; abstract;
   end;
   TReproduceEvalGeneClass = class of TReproduceEvalGene;
 

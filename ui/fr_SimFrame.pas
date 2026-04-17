@@ -192,6 +192,10 @@ begin
     var loc := fSession.Simulator.Runtime.Population.Agents[0].Location;
     fSession.AddCellWatch(loc, -1, nil, [stpPostEnvironment, stpPostAgents], cemAlways);
 
+    // this is unsafe and coincidentally works with a specific testing seed, not a pattern
+    fSession.AddCellWatch(loc + 1, -1, nil, [stpPostEnvironment, stpPostAgents], cemAlways);
+
+
     // Prime baseline snapshots before first step so tick-1 deltas reflect true initial state.
     fSession.PrimeWatches;
 
@@ -298,15 +302,31 @@ begin
 end;
 
 function TSimFrame.FormatActionScores(const Trace: TDecisionTrace): string;
+  function TargetToShortStr(const Target: TTarget): string;
+  begin
+    case Target.TType of
+      ttCell:
+        Result := 'Cell:' + Target.Cell.ToString;
+      ttCache:
+        Result := 'Cache:' + Target.CacheId.ToString;
+    else
+      Result := 'None';
+    end;
+  end;
 begin
   Result := Format(
-    '    Scores M:%s F:%s S:%s R:%s I:%s',
+    '    Scores M:%s(%s) F:%s(%s) S:%s(%s) R:%s(%s) I:%s(%s)',
     [
-      Trace.Scores[acMove].LogStr,
-      Trace.Scores[acForage].LogStr,
-      Trace.Scores[acShelter].LogStr,
-      Trace.Scores[acReproduce].LogStr,
-      Trace.Scores[acIdle].LogStr
+      Trace.Evaluations[acMove].Score.LogStr,
+      TargetToShortStr(Trace.Evaluations[acMove].Target),
+      Trace.Evaluations[acForage].Score.LogStr,
+      TargetToShortStr(Trace.Evaluations[acForage].Target),
+      Trace.Evaluations[acShelter].Score.LogStr,
+      TargetToShortStr(Trace.Evaluations[acShelter].Target),
+      Trace.Evaluations[acReproduce].Score.LogStr,
+      TargetToShortStr(Trace.Evaluations[acReproduce].Target),
+      Trace.Evaluations[acIdle].Score.LogStr,
+      TargetToShortStr(Trace.Evaluations[acIdle].Target)
     ]
   );
 end;

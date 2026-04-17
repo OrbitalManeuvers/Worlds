@@ -5,7 +5,7 @@ interface
 uses u_AgentTypes, u_AgentState, u_AgentGenome, u_SimQueriesIntf;
 
 type
-  TActionScores = TCognitionActionScores;
+//  TActionScores = TCognitionActionScores;
 
   TBrainTraceSummary = record
     EnergyLevel: TEnergyLevel;
@@ -29,7 +29,8 @@ type
   TBrainTickOutput = record
     RequestedAction: TAgentAction;
     RequestedTarget: TTarget;
-    Scores: TActionScores;
+//    Scores: TActionScores;
+    Evaluations: TActionEvaluations;
     Trace: TBrainTraceSummary;
   end;
 
@@ -39,7 +40,7 @@ type
     SensorScratch: TSensorScanScratch;
     EvaluatorScratch: TEvaluatorScratch;
     DecisionContext: TDecisionContext;
-    ActionScores: TActionScores;
+    ActionEvaluations: TActionEvaluations;
     procedure BeginTick(const State: TAgentState; const Input: TBrainTickInput);
   end;
 
@@ -105,6 +106,14 @@ begin
   Result.Smell := Context.Smell;
 end;
 
+function BuildMoveEvalInput(const Context: TDecisionContext): TMoveEvalInput;
+begin
+  Result.IsNight := Context.IsNight;
+  Result.EnergyLevel := Context.EnergyLevel;
+  Result.CurrentAction := Context.CurrentAction;
+  Result.Smell := Context.Smell;
+end;
+
 function BuildShelterEvalInput(const Context: TDecisionContext): TShelterEvalInput;
 begin
   Result.IsNight := Context.IsNight;
@@ -119,31 +128,13 @@ begin
   Result.Reserves := State.Reserves;
 end;
 
-function BuildCognitionInput(const Context: TDecisionContext; const ActionScores: TActionScores;
+function BuildCognitionInput(const Context: TDecisionContext; const ActionEvaluations: TActionEvaluations;
   const CurrentTarget: TTarget): TCognitionInput;
 begin
   Result.Context := Context;
-  Result.ActionScores := ActionScores;
+  Result.ActionEvaluations := ActionEvaluations;
   Result.CurrentTarget := CurrentTarget;
 end;
-
-//function DeriveReserveLevel(const Reserves: Single): TEnergyLevel;
-//begin
-//  // Placeholder buckets while reserves are treated as the canonical energy state.
-//  if Reserves <= 0.0 then
-//    Exit(elEmpty);
-//
-//  if Reserves < 25.0 then
-//    Exit(elLow);
-//
-//  if Reserves < 50.0 then
-//    Exit(elMedium);
-//
-//  if Reserves < 75.0 then
-//    Exit(elHigh);
-//
-//  Result := elFull;
-//end;
 
 { TAgentScratch }
 
@@ -160,7 +151,10 @@ begin
   DecisionContext.EnergyLevel := Low(TEnergyLevel);
 
   for var action := Low(TAgentAction) to High(TAgentAction) do
-    ActionScores[action] := 0.0;
+  begin
+    ActionEvaluations[action].Score := 0.0;
+    ActionEvaluations[action].Target.TType := ttNone;
+  end;
 end;
 
 { TAgentBrain }
@@ -174,6 +168,7 @@ begin
   Assert(Assigned(State.Genome.GeneMap.Energy));
   Assert(Assigned(State.Genome.GeneMap.Smell));
   Assert(Assigned(State.Genome.GeneMap.ForageEval));
+  Assert(Assigned(State.Genome.GeneMap.MoveEval));
   Assert(Assigned(State.Genome.GeneMap.Cognition));
 
 
@@ -207,14 +202,19 @@ begin
   // Evaluation stage: score available actions.
 
   // 1. Movement
-
+  var moveEval := State.Genome.GeneMap.MoveEval;
+  if Assigned(moveEval) then
+  begin
+    var moveInput := BuildMoveEvalInput(Scratch.DecisionContext);
+    Scratch.ActionEvaluations[acMove] := moveEval.Evaluate(moveInput, Scratch.EvaluatorScratch.Movement);
+  end;
 
   // 2. Foraging
   var forageEval := State.Genome.GeneMap.ForageEval;
   if Assigned(forageEval) then
   begin
     var forageInput := BuildForageEvalInput(Scratch.DecisionContext);
-    Scratch.ActionScores[acForage] := forageEval.Score(forageInput, Scratch.EvaluatorScratch.Forage);
+    Scratch.ActionEvaluations[acForage] := forageEval.Evaluate(forageInput, Scratch.EvaluatorScratch.Forage);
   end;
 
   // 3. Shelter
@@ -222,20 +222,24 @@ begin
   if Assigned(shelterEval) then
   begin
     var shelterInput := BuildShelterEvalInput(Scratch.DecisionContext);
-    Scratch.ActionScores[acShelter] := shelterEval.Score(shelterInput, Scratch.EvaluatorScratch.Shelter);
+    Scratch.ActionEvaluations[acShelter] := shelterEval.Evaluate(shelterInput, Scratch.EvaluatorScratch.Shelter);
   end;
 
   // 4. Reproduction
   var reproduceEval := State.Genome.GeneMap.ReproduceEval;
   if Assigned(reproduceEval) then
-    Scratch.ActionScores[acReproduce] := 0; // reproduceEval.
+  begin
+    // to do
+    Scratch.ActionEvaluations[acReproduce].Score := 0;
+    Scratch.ActionEvaluations[acReproduce].Target.TType := ttNone;
+  end;
 
 
   // finally, Cognition
   var cognitionGene := State.Genome.GeneMap.Cognition;
   if Assigned(cognitionGene) then
   begin
-    var cognitionInput := BuildCognitionInput(Scratch.DecisionContext, Scratch.ActionScores, State.ActionTarget);
+    var cognitionInput := BuildCognitionInput(Scratch.DecisionContext, Scratch.ActionEvaluations, State.ActionTarget);
     var cognitionOutput := cognitionGene.Decide(cognitionInput, Scratch.EvaluatorScratch.Cognition);
 
     Result.RequestedAction := cognitionOutput.RequestedAction;
@@ -247,7 +251,7 @@ begin
     Result.RequestedTarget := State.ActionTarget;
   end;
 
-  Result.Scores := Scratch.ActionScores;
+  Result.Evaluations := Scratch.ActionEvaluations;
   Result.Trace := BuildTraceSummary(Scratch.DecisionContext);
 end;
 

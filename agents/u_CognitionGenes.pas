@@ -20,13 +20,13 @@ begin
   Scratch := Default(TCognitionScratch);
 
   var bestAction := Input.Context.CurrentAction;
-  var bestScore := Input.ActionScores[bestAction];
+  var bestScore := Input.ActionEvaluations[bestAction].Score;
 
   for var action := Low(TAgentAction) to High(TAgentAction) do
-    if Input.ActionScores[action] > bestScore then
+    if Input.ActionEvaluations[action].Score > bestScore then
     begin
       bestAction := action;
-      bestScore := Input.ActionScores[action];
+      bestScore := Input.ActionEvaluations[action].Score;
     end;
 
   // Avoid sticky carry-over actions when no action has positive support this tick.
@@ -39,12 +39,15 @@ begin
   end;
 
   Result.RequestedAction := bestAction;
-  Result.RequestedTarget := Input.CurrentTarget;
+  Result.RequestedTarget := Input.ActionEvaluations[bestAction].Target;
 
   // Minimal targeting hook for foraging while movement/pathing is still scaffolded.
   // Smell details are expected to arrive pre-sorted by the smell gene.
   // While movement is unresolved, only local (distance 0) cache targets are actionable.
-  if (bestAction = acForage) and (Input.Context.Smell.Count > 0) and (Length(Input.Context.Smell.Details) > 0) then
+  if (bestAction = acForage)
+    and (Result.RequestedTarget.TType = ttNone)
+    and (Input.Context.Smell.Count > 0)
+    and (Length(Input.Context.Smell.Details) > 0) then
   begin
     var foundLocal := False;
     for var i := 0 to Length(Input.Context.Smell.Details) - 1 do
@@ -62,6 +65,16 @@ begin
       Result.RequestedTarget.TType := ttCell;
       Result.RequestedTarget.Cell := Input.Context.Location;
     end;
+  end;
+
+  // Transitional fallback while non-forage evaluators are still wiring explicit targets.
+  if (bestAction <> acForage) and (Result.RequestedTarget.TType = ttNone) then
+    Result.RequestedTarget := Input.CurrentTarget;
+
+  if Result.RequestedTarget.TType = ttNone then
+  begin
+    Result.RequestedTarget.TType := ttCell;
+    Result.RequestedTarget.Cell := Input.Context.Location;
   end;
 end;
 

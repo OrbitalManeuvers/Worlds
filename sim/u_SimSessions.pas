@@ -191,7 +191,7 @@ begin
     // move the agent onto a cell that has resources
     var found := False;
     for var cellIndex := 0 to Length(fSim.Runtime.Environment.Cells) - 1 do
-      if fSim.Runtime.Environment.Cells[cellIndex].ResourceCount > 1 then
+      if fSim.Runtime.Environment.Cells[cellIndex].ResourceCount > 0 then
       begin
         for var agentIndex := 0 to fSim.Runtime.Population.AgentCount - 1 do
         begin
@@ -208,6 +208,7 @@ begin
   // log resource map
   if Length(fSim.Runtime.Environment.Substances) = Self.Foods.Count then
   begin
+    Log(Format('Session started: %s  Seed: %d ', [FormatDateTime('c', Now), fSeed]));
     Log('Substances:');
     for var i := 0 to Self.Foods.Count - 1 do
     begin

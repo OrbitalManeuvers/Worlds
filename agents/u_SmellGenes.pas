@@ -198,6 +198,7 @@ begin
       var distanceFalloff := LinearDistanceFalloff(distance, effectiveRadius);
 
       Result.Details[i].CacheId := Scratch.Buffer[i].CacheId;
+      Result.Details[i].CellIndex := Scratch.Buffer[i].CellIndex;
 
       Result.Details[i].MoleculesPresent := [];
 

@@ -41,7 +41,7 @@ uses
   u_SmellGenes in 'agents\u_SmellGenes.pas',
   u_AgentState in 'agents\u_AgentState.pas',
   u_SimQueriesImpl in 'sim\u_SimQueriesImpl.pas',
-  u_Foraging in 'agents\u_Foraging.pas',
+  u_ForagingGenes in 'agents\u_ForagingGenes.pas',
   u_AgentBrain in 'agents\u_AgentBrain.pas',
   fr_WorldEditor in 'ui\fr_WorldEditor.pas' {WorldEditor: TFrame},
   u_Worlds in 'common\u_Worlds.pas',
@@ -57,7 +57,8 @@ uses
   u_SimCommandsImpl in 'sim\u_SimCommandsImpl.pas',
   u_Seeds in 'common\u_Seeds.pas',
   u_ShelterGenes in 'agents\u_ShelterGenes.pas',
-  u_SimPhases in 'sim\u_SimPhases.pas';
+  u_SimPhases in 'sim\u_SimPhases.pas',
+  u_MovementGenes in 'agents\u_MovementGenes.pas';
 
 {$R *.res}
 

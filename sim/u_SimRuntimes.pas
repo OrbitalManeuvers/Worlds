@@ -3,10 +3,11 @@ unit u_SimRuntimes;
 interface
 
 uses u_AgentState, u_SimEnvironments, u_SimPopulations, u_SimClocks, u_SimQueriesIntf,
-  u_SimCommandsIntf, u_AgentBrain, u_AgentTypes, u_SimPhases;
+  u_SimCommandsIntf, u_AgentBrain, u_AgentTypes, u_SimPhases, u_AgentGenome;
 
 const
   AGENT_BITE_SIZE = 0.1;  // temporary. move to sim params/genome
+  AGENT_BASE_MOVE_COST = 0.05; // temporary. move to sim params/genome
   SHELTER_UPKEEP_MULTIPLIER = 0.35;
 
 type
@@ -20,7 +21,7 @@ type
     RequestedTarget: TTarget;
     ResolvedAction: TAgentAction;
     ResolvedTarget: TTarget;
-    Scores: TActionScores;
+    Evaluations: TActionEvaluations;
     Summary: TBrainTraceSummary;
   end;
 
@@ -39,9 +40,10 @@ type
     procedure CaptureDecisionTrace(AgentIndex: Integer; const State: TAgentState; const Input: TBrainTickInput;
       const Requested, Resolved: TBrainTickOutput);
     function CalculateAgentTickCost(const State: TAgentState): Single;
+    function CalculateMoveCost(FromCell, ToCell: Integer): Single;
     function CalculateForageGain(const Reply: TConsumeCacheReply): Single;
     function ApplyAgentUpkeep(var State: TAgentState): Boolean;
-    function ResolveRequestedStep(var State: TAgentState; const Requested: TBrainTickOutput): TBrainTickOutput;
+    function ResolveRequestedStep(AgentIndex: Integer; var State: TAgentState; const Requested: TBrainTickOutput): TBrainTickOutput;
     procedure ProcessAgentTick(aIndex: Integer; const Input: TBrainTickInput);
     procedure NotifyPhase(const Phase: TSimTickPhase);
     procedure SetDayTick(const Value: TDayTick);
@@ -60,7 +62,7 @@ type
 
 implementation
 
-uses System.Math, System.SysUtils, u_AgentGenome, u_SimQueriesImpl,
+uses System.Math, System.SysUtils, u_SimQueriesImpl,
   u_SimCommandsImpl;
 
 { TSimRuntime }
@@ -71,7 +73,7 @@ begin
   fEnvironment := TSimEnvironment.Create;
   fPopulation := TSimPopulation.Create;
   fSimQuery := TSimQuery.Create(fEnvironment, fPopulation);
-  fSimCommand := TSimCommand.Create(fEnvironment);
+  fSimCommand := TSimCommand.Create(fEnvironment, fPopulation);
 end;
 
 destructor TSimRuntime.Destroy;
@@ -98,7 +100,7 @@ begin
   fLastDecisionTraces[AgentIndex].RequestedTarget := Requested.RequestedTarget;
   fLastDecisionTraces[AgentIndex].ResolvedAction := Resolved.RequestedAction;
   fLastDecisionTraces[AgentIndex].ResolvedTarget := Resolved.RequestedTarget;
-  fLastDecisionTraces[AgentIndex].Scores := Requested.Scores;
+  fLastDecisionTraces[AgentIndex].Evaluations := Requested.Evaluations;
   fLastDecisionTraces[AgentIndex].Summary := Requested.Trace;
 end;
 
@@ -151,16 +153,70 @@ begin
   Result := Reply.ConsumedAmount;
 end;
 
-function TSimRuntime.ResolveRequestedStep(var State: TAgentState;
+function TSimRuntime.CalculateMoveCost(FromCell, ToCell: Integer): Single;
+begin
+  Result := AGENT_BASE_MOVE_COST;
+
+  if (ToCell < 0) or (ToCell > High(fEnvironment.Cells)) then
+    Exit;
+
+  // Mobility stores terrain penalty in [0..1].
+  // Best terrain (0) adds no extra cost; worst terrain (1) doubles baseline.
+  var terrainPenalty := EnsureRange(fEnvironment.Cells[ToCell].Mobility, 0.0, 1.0);
+  Result := AGENT_BASE_MOVE_COST * (1.0 + terrainPenalty);
+end;
+
+function TSimRuntime.ResolveRequestedStep(AgentIndex: Integer; var State: TAgentState;
   const Requested: TBrainTickOutput): TBrainTickOutput;
 begin
   // Runtime resolution hook: adjust or reject requested actions based on world rules.
   Result := Requested;
 
-  // Movement/pathing is scaffold-only right now; prevent sticky unresolved Move actions.
   if Requested.RequestedAction = acMove then
   begin
-    Result.RequestedAction := acIdle;
+    if Requested.RequestedTarget.TType <> ttCell then
+    begin
+      Result.RequestedAction := acIdle;
+      Result.RequestedTarget.TType := ttCell;
+      Result.RequestedTarget.Cell := State.Location;
+      Exit;
+    end;
+
+    var moveCommand: IMoveAgentCommand;
+    if Supports(fSimCommand, IMoveAgentCommand, moveCommand) then
+    begin
+      var moveRequest: TMoveAgentRequest;
+      moveRequest.AgentIndex := AgentIndex;
+      moveRequest.DestinationCell := Requested.RequestedTarget.Cell;
+
+      var moveReply: TMoveAgentReply := Default(TMoveAgentReply);
+      if moveCommand.TryMoveAgent(moveRequest, moveReply) then
+      begin
+        // Keep local runtime copy aligned with command-applied population state.
+        var moveCost := CalculateMoveCost(moveReply.PreviousCell, moveReply.NewCell);
+        State.Reserves := State.Reserves - moveCost;
+        if State.Reserves < 0.0 then
+          State.Reserves := 0.0;
+
+        State.Location := moveReply.NewCell;
+        Result.RequestedAction := acMove;
+        Result.RequestedTarget.TType := ttCell;
+        Result.RequestedTarget.Cell := moveReply.NewCell;
+      end
+      else
+      begin
+        Result.RequestedAction := acIdle;
+        Result.RequestedTarget.TType := ttCell;
+        Result.RequestedTarget.Cell := State.Location;
+      end;
+    end
+    else
+    begin
+      Result.RequestedAction := acIdle;
+      Result.RequestedTarget.TType := ttCell;
+      Result.RequestedTarget.Cell := State.Location;
+    end;
+
     Exit;
   end;
 
@@ -242,7 +298,7 @@ begin
   fPopulation.UpdateAgentState(aIndex, state);
 
   var requested := fPopulation.RequestAgentStep(aIndex, Input);
-  var resolved := ResolveRequestedStep(state, requested);
+  var resolved := ResolveRequestedStep(aIndex, state, requested);
   CaptureDecisionTrace(aIndex, state, Input, requested, resolved);
   fPopulation.UpdateAgentState(aIndex, state);
   fPopulation.ApplyAgentStep(aIndex, resolved);

@@ -11,9 +11,10 @@ type
 
   TEnergyLevel = (elEmpty, elLow, elMedium, elHigh, elFull);
 
-  TTargetType = (ttCell, ttCache);
+  TTargetType = (ttNone, ttCell, ttCache);
   TTarget = record
     case TType: TTargetType of
+      ttNone: ();
       ttCell: (Cell: Integer);
       ttCache: (CacheId: Integer);
   end;
@@ -37,6 +38,7 @@ type
   // what the agent detects about a resource cache.
   TSmellDetails = record
     CacheId: Integer;
+    CellIndex: Integer;
     Directions: TDirections;
     MoleculesPresent: TMolecules;
     MoleculeStrength: array[TMolecule] of Single;
