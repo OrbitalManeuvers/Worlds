@@ -81,7 +81,7 @@ implementation
 
 uses System.Types, System.Math, Vcl.GraphUtil,
   u_SimUpscalers, u_SimParams, u_EditorTypes,
-  u_Regions, u_AgentTypes;
+  u_Regions, u_AgentTypes, u_BiologyTypes, u_EnvironmentTypes;
 
 const
   DEFAULT_SEED = -1653628502;
@@ -150,9 +150,6 @@ begin
 
   Result.Parent := ViewerGridPanel;
 
-//  Result.Parent := aPlaceholder.Parent;
-//  Result.BoundsRect := aPlaceholder.BoundsRect;
-
   Result.Visible := True;
   Result.OnPaint := HandleViewerPaint;
 
@@ -168,6 +165,15 @@ begin
   params.InitDefaults;
   params.Seed := DEFAULT_SEED;
   params.Population.AgentCount := StrToIntDef(edtAgentCount.Text, 0);
+  params.Population.Scheme := psOnBarren;
+
+  if WorldLibrary.RatingsCount > 0 then
+  begin
+    SetLength(params.Population.Rules, 1);
+    params.Population.Rules[0].Chance := 100;
+    params.Population.Rules[0].Target := rtConverter;
+    params.Population.Rules[0].Ratings := WorldLibrary.Ratings[0];
+  end;
 
   var world := WorldLibrary.Worlds[WorldList.ItemIndex];
 
@@ -185,15 +191,16 @@ begin
 
 
     fSession.AddAgentWatch(0);
-    fSession.AddAgentWatch(1);
+//    fSession.AddAgentWatch(1);
 
-    // add a cell watch where the agent ended up
+    // add a cell watch that follows agent 0 across moves
+    fSession.AddFollowingCellWatch(0, -1, nil, [stpPostEnvironment, stpPostAgents], cemAlways);
 
-    var loc := fSession.Simulator.Runtime.Population.Agents[0].Location;
-    fSession.AddCellWatch(loc, -1, nil, [stpPostEnvironment, stpPostAgents], cemAlways);
-
-    // this is unsafe and coincidentally works with a specific testing seed, not a pattern
-    fSession.AddCellWatch(loc + 1, -1, nil, [stpPostEnvironment, stpPostAgents], cemAlways);
+    // add a fixed comparison watch where the agent started
+//    var loc := fSession.Simulator.Runtime.Population.Agents[0].Location;
+//
+//    // this is unsafe and coincidentally works with a specific testing seed, not a pattern
+//    fSession.AddCellWatch(loc + 1, -1, nil, [stpPostEnvironment, stpPostAgents], cemAlways);
 
 
     // Prime baseline snapshots before first step so tick-1 deltas reflect true initial state.
@@ -406,12 +413,13 @@ begin
     var actionStr := w.ActionToStr(w.LastChange.CurrentState.Action);
 
     var line := Format(
-      '[%.2d:%.3d %s] A:%d R:%s D:%s  (%s)',
+      '[%.2d:%.3d %s] A:%d C:%d R:%s D:%s  (%s)',
       [
         dayNumber,
         dayTick,
         phaseStr,
-        w.AgentId,
+        w.AgentIndex,
+        w.LastChange.PreviousState.Location,
         w.LastChange.CurrentState.Reserves.LogStr,
         Single(w.LastChange.CurrentState.Reserves - w.LastChange.PreviousState.Reserves).LogStr,
         actionStr
@@ -420,7 +428,7 @@ begin
     AgentLog.Lines.Add(line);
 
     var trace: TDecisionTrace;
-    if fSession.Simulator.Runtime.TryGetLastDecision(w.AgentId, trace) then
+    if fSession.Simulator.Runtime.TryGetLastDecision(w.AgentIndex, trace) then
     begin
       AgentLog.Lines.Add(FormatActionScores(trace));
       AgentLog.Lines.Add(FormatDecisionTrace(trace));

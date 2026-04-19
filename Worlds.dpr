@@ -58,7 +58,8 @@ uses
   u_Seeds in 'common\u_Seeds.pas',
   u_ShelterGenes in 'agents\u_ShelterGenes.pas',
   u_SimPhases in 'sim\u_SimPhases.pas',
-  u_MovementGenes in 'agents\u_MovementGenes.pas';
+  u_MovementGenes in 'agents\u_MovementGenes.pas',
+  u_ConverterGenes in 'agents\u_ConverterGenes.pas';
 
 {$R *.res}
 

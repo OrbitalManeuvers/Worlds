@@ -27,6 +27,8 @@ type
     procedure Log(const aMsgFmt: string; const Params: array of const); overload;
     procedure EvaluateWatches(const Phase: TSimTickPhase);
     procedure HandleRuntimePhase(Sender: TObject; Phase: TSimTickPhase);
+    procedure PrimePendingWatches;
+    procedure UpdateWatchBindings;
     function RegisterWatch(AWatch: TSimWatch): TSimWatch;
   public
     constructor Create(aWorld: TWorld; const aParams: TSimParams; aLibrary: TEnvironmentLibrary);
@@ -38,12 +40,16 @@ type
 
     procedure Step;
 
-    function AddAgentWatch(AgentId: Integer; const Callback: TWatchChangedEvent = nil;
+    function AddAgentWatch(AgentIndex: Integer; const Callback: TWatchChangedEvent = nil;
       const Phases: TSimTickPhases = [stpPostAgents]): TAgentWatch;
     function AddCellWatch(CellIndex: Integer; SubstanceIndex: Integer = -1;
       const Callback: TWatchChangedEvent = nil;
       const Phases: TSimTickPhases = [stpPostAgents];
       const EmitMode: TCellWatchEmitMode = cemOnChange): TCellWatch;
+    function AddFollowingCellWatch(AgentIndex: Integer; SubstanceIndex: Integer = -1;
+      const Callback: TWatchChangedEvent = nil;
+      const Phases: TSimTickPhases = [stpPostAgents];
+      const EmitMode: TCellWatchEmitMode = cemOnChange): TFollowingCellWatch;
     procedure RemoveWatch(AWatch: TSimWatch);
     procedure ClearWatches;
 
@@ -113,10 +119,10 @@ begin
   Result := AWatch;
 end;
 
-function TSimSession.AddAgentWatch(AgentId: Integer;
+function TSimSession.AddAgentWatch(AgentIndex: Integer;
   const Callback: TWatchChangedEvent; const Phases: TSimTickPhases): TAgentWatch;
 begin
-  Result := TAgentWatch(RegisterWatch(TAgentWatch.Create(AgentId)));
+  Result := TAgentWatch(RegisterWatch(TAgentWatch.Create(AgentIndex)));
   if Assigned(Result) then
   begin
     Result.Phases := Phases;
@@ -134,6 +140,22 @@ begin
     Result.Phases := Phases;
     Result.EmitMode := EmitMode;
     Result.OnChange := Callback;
+  end;
+end;
+
+function TSimSession.AddFollowingCellWatch(AgentIndex, SubstanceIndex: Integer;
+  const Callback: TWatchChangedEvent; const Phases: TSimTickPhases;
+  const EmitMode: TCellWatchEmitMode): TFollowingCellWatch;
+begin
+  Result := TFollowingCellWatch(RegisterWatch(TFollowingCellWatch.Create(AgentIndex, SubstanceIndex)));
+  if Assigned(Result) then
+  begin
+    Result.Phases := Phases;
+    Result.EmitMode := EmitMode;
+    Result.OnChange := Callback;
+
+    // Bind immediately so startup priming targets the tracked agent cell.
+    Result.AfterStep(fSim);
   end;
 end;
 
@@ -183,27 +205,7 @@ begin
   end;
 
   // Population
-  TWorldPopulator.Populate(fSim.Runtime.Population, fParams);
-
-  // for early development only ...
-  if fParams.Population.AgentCount > 0 then
-  begin
-    // move the agent onto a cell that has resources
-    var found := False;
-    for var cellIndex := 0 to Length(fSim.Runtime.Environment.Cells) - 1 do
-      if fSim.Runtime.Environment.Cells[cellIndex].ResourceCount > 0 then
-      begin
-        for var agentIndex := 0 to fSim.Runtime.Population.AgentCount - 1 do
-        begin
-          var agent := fSim.Runtime.Population.Agents[agentIndex];
-          agent.Location := cellIndex;
-          fsim.Runtime.Population.UpdateAgentState(agentIndex, agent);
-        end;
-        Found := True;
-        Break;
-      end;
-    Assert(Found, 'Did not find any cells with multiple resources');
-  end;
+  TWorldPopulator.Populate(fSim.Runtime.Population, fSim.Runtime.Environment, fParams);
 
   // log resource map
   if Length(fSim.Runtime.Environment.Substances) = Self.Foods.Count then
@@ -251,11 +253,24 @@ begin
   EvaluateWatches(Phase);
 end;
 
+procedure TSimSession.PrimePendingWatches;
+begin
+  for var watch in fWatches do
+    if watch.NeedsPrime then
+      watch.Prime(fSim, fSim.Clock.Tick);
+end;
+
+procedure TSimSession.UpdateWatchBindings;
+begin
+  for var watch in fWatches do
+    watch.AfterStep(fSim);
+end;
+
 procedure TSimSession.PrimeWatches;
 begin
   // Capture initial baselines without emitting watch change callbacks.
   for var watch in fWatches do
-    watch.Evaluate(fSim, fSim.Clock.Tick, stpPostAgents);
+    watch.Prime(fSim, fSim.Clock.Tick);
 end;
 
 procedure TSimSession.Log(const aMsgFmt: string; const Params: array of const);
@@ -274,7 +289,13 @@ begin
   if Assigned(fOnBeforeStep) then
     fOnBeforeStep(Self);
 
+  // Apply selective baseline priming for watches that were rebound after prior step.
+  PrimePendingWatches;
+
   fSim.Clock.Step;
+
+  // Rebind follow-style watches after full phase evaluation so they start next tick on target cell.
+  UpdateWatchBindings;
 
   if Assigned(fOnAfterStep) then
     fOnAfterStep(Self);

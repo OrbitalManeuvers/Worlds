@@ -41,7 +41,7 @@ type
       const Requested, Resolved: TBrainTickOutput);
     function CalculateAgentTickCost(const State: TAgentState): Single;
     function CalculateMoveCost(FromCell, ToCell: Integer): Single;
-    function CalculateForageGain(const Reply: TConsumeCacheReply): Single;
+    function CalculateForageGain(const State: TAgentState; const Reply: TConsumeCacheReply): Single;
     function ApplyAgentUpkeep(var State: TAgentState): Boolean;
     function ResolveRequestedStep(AgentIndex: Integer; var State: TAgentState; const Requested: TBrainTickOutput): TBrainTickOutput;
     procedure ProcessAgentTick(aIndex: Integer; const Input: TBrainTickInput);
@@ -117,14 +117,26 @@ function TSimRuntime.CalculateAgentTickCost(const State: TAgentState): Single;
   end;
 begin
   // Baseline metabolism comes from genome parameters.
-  Result := Max(0.0, State.Genome.Metabolism);
+  var baseMetabolism := Max(0.0, State.Genome.Metabolism);
 
   // Default floor keeps "zeroed" genomes from becoming immortal.
-  if Result = 0.0 then
-    Result := 0.05;
+  if baseMetabolism = 0.0 then
+    baseMetabolism := 0.05;
+
+  if State.Action = acShelter then
+  begin
+    // Shelter mode should be materially cheaper and avoid charging inactive systems.
+    Result := baseMetabolism
+      + GeneGenerationCost(State.Genome.GeneMap.Energy)
+      + GeneGenerationCost(State.Genome.GeneMap.ShelterEval)
+      + GeneGenerationCost(State.Genome.GeneMap.Cognition);
+
+    Result := Result * SHELTER_UPKEEP_MULTIPLIER;
+    Exit;
+  end;
 
   // Sequence-driven upkeep scaffold. Tune weights once behavior loops exist.
-  Result := Result
+  Result := baseMetabolism
     + GeneGenerationCost(State.Genome.GeneMap.Energy)
     + GeneGenerationCost(State.Genome.GeneMap.Smell)
     + GeneGenerationCost(State.Genome.GeneMap.Sight)
@@ -134,9 +146,6 @@ begin
     + GeneGenerationCost(State.Genome.GeneMap.ReproduceEval)
     + GeneGenerationCost(State.Genome.GeneMap.Cognition)
     + GeneGenerationCost(State.Genome.GeneMap.Converter);
-
-  if State.Action = acShelter then
-    Result := Result * SHELTER_UPKEEP_MULTIPLIER;
 end;
 
 function TSimRuntime.ApplyAgentUpkeep(var State: TAgentState): Boolean;
@@ -147,10 +156,19 @@ begin
     State.Reserves := 0.0;
 end;
 
-function TSimRuntime.CalculateForageGain(const Reply: TConsumeCacheReply): Single;
+function TSimRuntime.CalculateForageGain(const State: TAgentState; const Reply: TConsumeCacheReply): Single;
 begin
-  // V0 digestion placeholder: reserve gain tracks consumed cache amount.
-  Result := Reply.ConsumedAmount;
+  var converter := State.Genome.GeneMap.Converter;
+  if not Assigned(converter) then
+    Exit(Reply.ConsumedAmount);
+
+  var input: TConverterInput;
+  input.ConsumedAmount := Reply.ConsumedAmount;
+  input.Substance := Reply.Substance;
+  input.Ratings := State.Genome.ConverterRatings;
+
+  var scratch: TConverterScratch;
+  Result := converter.Convert(input, scratch);
 end;
 
 function TSimRuntime.CalculateMoveCost(FromCell, ToCell: Integer): Single;
@@ -256,7 +274,7 @@ begin
 
       if forageCommand.TryConsumeCache(request, reply) then
       begin
-        State.Reserves := State.Reserves + CalculateForageGain(reply);
+        State.Reserves := State.Reserves + CalculateForageGain(State, reply);
       end
       else
       begin
@@ -271,6 +289,10 @@ end;
 
 procedure TSimRuntime.ProcessAgentTick(aIndex: Integer; const Input: TBrainTickInput);
 begin
+  // Trace availability is per-tick; clear first so dead/idle paths do not leak stale traces.
+  if (aIndex >= 0) and (aIndex < Length(fHasDecisionTrace)) then
+    fHasDecisionTrace[aIndex] := False;
+
   var state: TAgentState;
   if not fPopulation.TryGetAgentState(aIndex, state) then
     Exit;

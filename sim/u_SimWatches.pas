@@ -20,10 +20,14 @@ type
     fOnChange: TWatchChangedEvent;
   protected
     function EvaluateChange(const Sim: TSimulator; const Tick: Cardinal): Boolean; virtual; abstract;
+
   public
     constructor Create; virtual;
     function Evaluate(const Sim: TSimulator; const Tick: Cardinal; const Phase: TSimTickPhase): Boolean;
     procedure Reset; virtual;
+    function NeedsPrime: Boolean; virtual;
+    procedure Prime(const Sim: TSimulator; const Tick: Cardinal); virtual;
+    procedure AfterStep(const Sim: TSimulator); virtual;
     procedure Notify(Sender: TObject);
     function ActionToStr(aAction: TAgentAction): string;
 
@@ -46,7 +50,7 @@ type
 
   TAgentWatch = class(TSimWatch)
   private
-    fAgentId: Integer;
+    fAgentIndex: Integer;
     fHasBaseline: Boolean;
     fBaselineState: TAgentState;
     fLastChange: TAgentWatchChange;
@@ -56,10 +60,10 @@ type
   protected
     function EvaluateChange(const Sim: TSimulator; const Tick: Cardinal): Boolean; override;
   public
-    constructor Create(aAgentId: Integer); reintroduce;
+    constructor Create(aAgentIndex: Integer); reintroduce;
     procedure Reset; override;
 
-    property AgentId: Integer read fAgentId;
+    property AgentIndex: Integer read fAgentIndex;
     property LastChange: TAgentWatchChange read fLastChange;
   end;
 
@@ -83,6 +87,9 @@ type
     fLastChange: TCellWatchChange;
     function TryReadAmount(const Sim: TSimulator; out Amount, Debt: Single): Boolean;
   protected
+    procedure SetCellIndex(Value: Integer);
+    procedure InvalidateBaseline;
+  protected
     function EvaluateChange(const Sim: TSimulator; const Tick: Cardinal): Boolean; override;
   public
     constructor Create(aCellIndex: Integer; aSubstanceIndex: Integer = -1); reintroduce;
@@ -93,6 +100,20 @@ type
     property MinDelta: Single read fMinDelta write fMinDelta;
     property EmitMode: TCellWatchEmitMode read fEmitMode write fEmitMode;
     property LastChange: TCellWatchChange read fLastChange;
+  end;
+
+  TFollowingCellWatch = class(TCellWatch)
+  private
+    fAgentIndex: Integer;
+    fNeedsPrime: Boolean;
+  protected
+  public
+    constructor Create(aAgentIndex: Integer; aSubstanceIndex: Integer = -1); reintroduce;
+    function NeedsPrime: Boolean; override;
+    procedure Prime(const Sim: TSimulator; const Tick: Cardinal); override;
+    procedure AfterStep(const Sim: TSimulator); override;
+
+    property AgentIndex: Integer read fAgentIndex;
   end;
 
 
@@ -134,12 +155,30 @@ begin
   // default: descendants can clear baseline state
 end;
 
+function TSimWatch.NeedsPrime: Boolean;
+begin
+  Result := False;
+end;
+
+procedure TSimWatch.Prime(const Sim: TSimulator; const Tick: Cardinal);
+begin
+  if not Assigned(Sim) then
+    Exit;
+
+  EvaluateChange(Sim, Tick);
+end;
+
+procedure TSimWatch.AfterStep(const Sim: TSimulator);
+begin
+  // default: descendants can update bindings for next tick
+end;
+
 { TAgentWatch }
 
-constructor TAgentWatch.Create(aAgentId: Integer);
+constructor TAgentWatch.Create(aAgentIndex: Integer);
 begin
   inherited Create;
-  fAgentId := aAgentId;
+  fAgentIndex := aAgentIndex;
 end;
 
 function TAgentWatch.BuildChangeSet(const PreviousState, CurrentState: TAgentState): TAgentWatchFields;
@@ -218,7 +257,7 @@ end;
 
 function TAgentWatch.TryReadState(const Sim: TSimulator; out State: TAgentState): Boolean;
 begin
-  Result := Sim.Runtime.Population.TryGetAgentState(fAgentId, State);
+  Result := Sim.Runtime.Population.TryGetAgentState(fAgentIndex, State);
 end;
 
 { TCellWatch }
@@ -230,6 +269,18 @@ begin
   fSubstanceIndex := aSubstanceIndex;
   fMinDelta := 0.000001;
   fEmitMode := cemOnChange;
+end;
+
+procedure TCellWatch.SetCellIndex(Value: Integer);
+begin
+  fCellIndex := Value;
+end;
+
+procedure TCellWatch.InvalidateBaseline;
+begin
+  fHasBaseline := False;
+  fBaselineAmount := 0.0;
+  fBaselineDebt := 0.0;
 end;
 
 function TCellWatch.EvaluateChange(const Sim: TSimulator; const Tick: Cardinal): Boolean;
@@ -306,6 +357,49 @@ begin
   end;
 
   Result := True;
+end;
+
+{ TFollowingCellWatch }
+
+constructor TFollowingCellWatch.Create(aAgentIndex: Integer; aSubstanceIndex: Integer);
+begin
+  inherited Create(0, aSubstanceIndex);
+  fAgentIndex := aAgentIndex;
+  fNeedsPrime := True;
+end;
+
+function TFollowingCellWatch.NeedsPrime: Boolean;
+begin
+  Result := fNeedsPrime;
+end;
+
+procedure TFollowingCellWatch.Prime(const Sim: TSimulator; const Tick: Cardinal);
+begin
+  inherited Prime(Sim, Tick);
+  fNeedsPrime := False;
+end;
+
+procedure TFollowingCellWatch.AfterStep(const Sim: TSimulator);
+begin
+  inherited AfterStep(Sim);
+
+  if not Assigned(Sim) then
+    Exit;
+
+  var state: TAgentState;
+  if not Sim.Runtime.Population.TryGetAgentState(fAgentIndex, state) then
+    Exit;
+
+  var env := Sim.Runtime.Environment;
+  if (state.Location < 0) or (state.Location > High(env.Cells)) then
+    Exit;
+
+  if state.Location = CellIndex then
+    Exit;
+
+  SetCellIndex(state.Location);
+  InvalidateBaseline;
+  fNeedsPrime := True;
 end;
 
 end.
