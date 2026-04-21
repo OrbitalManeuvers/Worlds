@@ -2,7 +2,7 @@ unit u_SimPopulators;
 
 interface
 
-uses u_SimParams, u_SimPopulations, u_SimEnvironments;
+uses u_SimParams, u_SimPopulations, u_SimEnvironments, u_BiologyTypes;
 
 type
   TWorldPopulator = class
@@ -13,14 +13,25 @@ type
     class procedure Populate(aPopulation: TSimPopulation; aEnvironment: TSimEnvironment; aParams: TSimParams);
   end;
 
+  TDebugPopulator = class
+  public
+    class procedure PopulateAgent(aPopulation: TSimPopulation; aAgentIndex, aAgentId, aLocation: Integer;
+      aConverterRatings, aSmellRatings: TMoleculeRatings);
+//    class procedure Populate(aPopulation
+//    TDebugPopulator.PopulateAgent(population, agentIndex, agentId, cellIndex,
+//      agent.ConverterRatings, agent.SmellRatings);
+  end;
+
 implementation
 
 uses
   u_AgentState, u_AgentGenome, u_EnvironmentTypes;
 
 const
-  // convert TMoleculeRating to TMoleculeFactor
-  RATING_FACTOR: array[TRating] of Single = (0.00, 0.30, 0.65, 1.00, 1.25, 1.50, 1.80);
+  // converter efficiency scale (energy gain weighting)
+  CONVERTER_RATING_FACTOR: array[TRating] of Single = (0.00, 0.20, 0.45, 0.75, 0.88, 0.95, 1.00);
+  // smell sensitivity scale (detection weighting)
+  SMELL_RATING_FACTOR: array[TRating] of Single = (0.00, 0.35, 0.65, 1.00, 1.20, 1.40, 1.60);
 
 
 { TWorldPopulator }
@@ -148,10 +159,11 @@ begin
       Inc(nextId);
 
       state.Location := location;
+
       state.Reserves := 5.0;
       TGeneSequencer.Populate(state.Genome.GeneMap, sequence);
 
-      state.Genome.SmellRange := 2.0;
+      state.Genome.SmellEdgeRetention := 0.25;
       state.Genome.Metabolism := 0.05;
 
       // assign default smell and digestion profiles
@@ -174,7 +186,7 @@ begin
                   if Assigned(rule.Ratings) then
                   begin
                     for var molecule := Low(TMolecule) to High(TMolecule) do
-                      state.Genome.SmellRatings[molecule] := RATING_FACTOR[rule.Ratings[molecule]];
+                      state.Genome.SmellRatings[molecule] := SMELL_RATING_FACTOR[rule.Ratings[molecule]];
 
                     Include(targetsApplied, rtSmell);
                   end;
@@ -184,7 +196,7 @@ begin
                   if Assigned(rule.Ratings) then
                   begin
                     for var molecule := Low(TMolecule) to High(TMolecule) do
-                      state.Genome.ConverterRatings[molecule] := RATING_FACTOR[rule.Ratings[molecule]];
+                      state.Genome.ConverterRatings[molecule] := CONVERTER_RATING_FACTOR[rule.Ratings[molecule]];
 
                     Include(targetsApplied, rtConverter);
                   end;
@@ -199,6 +211,48 @@ begin
     end;
   end;
 
+end;
+
+{ TDebugPopulator }
+
+class procedure TDebugPopulator.PopulateAgent(aPopulation: TSimPopulation;
+  aAgentIndex, aAgentId, aLocation: Integer;
+  aConverterRatings, aSmellRatings: TMoleculeRatings);
+var
+  sequence: TGeneSequence;
+begin
+  var state: TAgentState;
+  Assert(aPopulation.TryGetAgentState(aAgentIndex, state));
+
+  state.AgentId := aAgentId;
+  state.Location := aLocation;
+  state.Reserves := 5.0;
+
+  state.Genome.SmellEdgeRetention := 0.25;
+  state.Genome.Metabolism := 0.05;
+
+  sequence.AsText := 'AAAAAAAAA';
+  TGeneSequencer.Populate(state.Genome.GeneMap, sequence);
+
+  // converter
+  for var molecule := Low(TMolecule) to High(TMolecule) do
+  begin
+    var value: Single := 1.0;
+    if Assigned(aConverterRatings) then
+      value := CONVERTER_RATING_FACTOR[aConverterRatings[molecule]];
+    state.Genome.ConverterRatings[molecule] := value;
+  end;
+
+  // smell
+  for var molecule := Low(TMolecule) to High(TMolecule) do
+  begin
+    var value: Single := 1.0;
+    if Assigned(aSmellRatings) then
+      value := CONVERTER_RATING_FACTOR[aSmellRatings[molecule]];
+    state.Genome.SmellRatings[molecule] := value;
+  end;
+
+  aPopulation.UpdateAgentState(aAgentIndex, state);
 end;
 
 end.

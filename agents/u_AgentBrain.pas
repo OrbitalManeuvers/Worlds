@@ -178,20 +178,29 @@ begin
   var energyInput := BuildEnergyInput(State);
   Scratch.DecisionContext.EnergyLevel := State.Genome.GeneMap.Energy.EvaluateEnergyLevel(energyInput);
 
+  // Shelter hold mode: keep expensive sensing/evaluators quiet while sheltered at night
+  // unless energy has already dropped to low/empty.
+  var shelterHoldMode := (State.Action = acShelter)
+    and Input.IsNight
+    and (Scratch.DecisionContext.EnergyLevel > elLow);
+
   // 2. Smell
-  // allow parameters to adjust the gene's operation
-  var smellParams: TSmellParams;
-  smellParams.Range := State.Genome.SmellRange;
-  smellParams.Ratings := State.Genome.SmellRatings;
+  if not shelterHoldMode then
+  begin
+    // allow parameters to adjust the gene's operation
+    var smellParams: TSmellParams;
+    smellParams.EdgeRetention := State.Genome.SmellEdgeRetention;
+    smellParams.Ratings := State.Genome.SmellRatings;
 
-  // activate the gene and save its reply
-  var smellGene := State.Genome.GeneMap.Smell;
-  var smellReport := smellGene.Scan(State.Location, smellParams, Input.Query, Scratch.SensorScratch.Smell);
+    // activate the gene and save its reply
+    var smellGene := State.Genome.GeneMap.Smell;
+    var smellReport := smellGene.Scan(State.Location, smellParams, Input.Query, Scratch.SensorScratch.Smell);
 
-  Scratch.DecisionContext.Smell := smellReport;
+    Scratch.DecisionContext.Smell := smellReport;
+  end;
 
   // 3. Sight
-  if Assigned(State.Genome.GeneMap.Sight) then
+  if (not shelterHoldMode) and Assigned(State.Genome.GeneMap.Sight) then
   begin
     var sightGene := State.Genome.GeneMap.Sight;
     var sightReport := sightGene.Scan(State.Location, State.Genome.SightRange, Input.Query, Scratch.SensorScratch.Sight);
@@ -202,19 +211,25 @@ begin
   // Evaluation stage: score available actions.
 
   // 1. Movement
-  var moveEval := State.Genome.GeneMap.MoveEval;
-  if Assigned(moveEval) then
+  if not shelterHoldMode then
   begin
-    var moveInput := BuildMoveEvalInput(Scratch.DecisionContext);
-    Scratch.ActionEvaluations[acMove] := moveEval.Evaluate(moveInput, Scratch.EvaluatorScratch.Movement);
+    var moveEval := State.Genome.GeneMap.MoveEval;
+    if Assigned(moveEval) then
+    begin
+      var moveInput := BuildMoveEvalInput(Scratch.DecisionContext);
+      Scratch.ActionEvaluations[acMove] := moveEval.Evaluate(moveInput, Scratch.EvaluatorScratch.Movement);
+    end;
   end;
 
   // 2. Foraging
-  var forageEval := State.Genome.GeneMap.ForageEval;
-  if Assigned(forageEval) then
+  if not shelterHoldMode then
   begin
-    var forageInput := BuildForageEvalInput(Scratch.DecisionContext);
-    Scratch.ActionEvaluations[acForage] := forageEval.Evaluate(forageInput, Scratch.EvaluatorScratch.Forage);
+    var forageEval := State.Genome.GeneMap.ForageEval;
+    if Assigned(forageEval) then
+    begin
+      var forageInput := BuildForageEvalInput(Scratch.DecisionContext);
+      Scratch.ActionEvaluations[acForage] := forageEval.Evaluate(forageInput, Scratch.EvaluatorScratch.Forage);
+    end;
   end;
 
   // 3. Shelter

@@ -4,7 +4,7 @@ interface
 
 uses System.Generics.Collections,
 
-  u_SimQueriesIntf, u_EnvironmentTypes, u_AgentTypes;
+  u_SimQueriesIntf, u_EnvironmentTypes, u_SimEnvironments, u_AgentTypes;
 
 // In this simulated universe, a "gene" is just an upgradable bit of agent that makes them tick. Every tick.
 
@@ -12,7 +12,7 @@ type
   TMoleculeFactors = array[TMolecule] of Single;
 
   TSmellParams = record
-    Range: Single;
+    EdgeRetention: Single;
     Ratings: TMoleculeFactors;
   end;
 
@@ -66,6 +66,12 @@ type
     CurrentAction: TAgentAction;
   end;
 
+  TConverterInput = record
+    ConsumedAmount: Single;
+    Substance: TSubstance;
+    Ratings: TMoleculeFactors;
+  end;
+
   TActionEvalResult = record
     Score: Single;
     Target: TTarget;
@@ -94,6 +100,9 @@ type
   end;
 
   TReproduceEvalScratch = record
+  end;
+
+  TConverterScratch = record
   end;
 
   TCognitionScratch = record
@@ -168,6 +177,7 @@ type
 
   // Converter gene
   TConverterGene = class(TGene)
+    class function Convert(const Input: TConverterInput; var Scratch: TConverterScratch): Single; virtual; abstract;
   end;
   TConverterGeneClass = class of TConverterGene;
 
@@ -229,7 +239,7 @@ type
     // Data parameters: continuous variation within a generation
     ConverterRatings: TMoleculeFactors;
     SmellRatings: TMoleculeFactors;
-    SmellRange: Single;
+    SmellEdgeRetention: Single;
     SightRange: Single;
     Metabolism: Single;
   end;
@@ -394,10 +404,9 @@ begin
   geneClass := GlobalGeneRegistry.FindGeneration(TCognitionGene, aSequence.Cognition);
   aMap.Cognition := TCognitionGeneClass(geneClass);
 
-
-
-  // digestion
-
+  // converter
+  geneClass := GlobalGeneRegistry.FindGeneration(TConverterGene, aSequence.Convert);
+  aMap.Converter := TConverterGeneClass(geneClass);
 
 
 end;

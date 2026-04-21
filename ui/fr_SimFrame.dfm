@@ -12,7 +12,7 @@ inherited SimFrame: TSimFrame
     Top = 0
     Width = 990
     Height = 708
-    ActivePage = tsSelection
+    ActivePage = tsNoSelection
     Align = alClient
     TabOrder = 0
     object tsNoSelection: TTabSheet
@@ -44,7 +44,7 @@ inherited SimFrame: TSimFrame
           Left = 4
           Top = 2
           Width = 165
-          Height = -4
+          Height = 41
           Margins.Left = 4
           Margins.Top = 2
           Margins.Bottom = 2
@@ -52,7 +52,6 @@ inherited SimFrame: TSimFrame
           AutoSize = False
           Caption = '[world]'
           Layout = tlCenter
-          ExplicitHeight = 41
         end
       end
       object btnCreateSim: TButton
@@ -83,6 +82,14 @@ inherited SimFrame: TSimFrame
           TabOrder = 0
           Text = '1'
         end
+      end
+      object cbDebugSession: TCheckBox
+        Left = 368
+        Top = 430
+        Width = 169
+        Height = 17
+        Caption = 'Create Debug Session'
+        TabOrder = 3
       end
     end
     object tsSelection: TTabSheet

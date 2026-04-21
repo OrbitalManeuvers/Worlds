@@ -21,6 +21,9 @@ type
     RequestedTarget: TTarget;
     ResolvedAction: TAgentAction;
     ResolvedTarget: TTarget;
+    ForageConsumed: Single;
+    ForageGain: Single;
+    ForageEfficiency: Single;
     Evaluations: TActionEvaluations;
     Summary: TBrainTraceSummary;
   end;
@@ -38,12 +41,14 @@ type
     fSimCommand: ISimCommand;
     fOnPhase: TRuntimePhaseEvent;
     procedure CaptureDecisionTrace(AgentIndex: Integer; const State: TAgentState; const Input: TBrainTickInput;
-      const Requested, Resolved: TBrainTickOutput);
+      const Requested, Resolved: TBrainTickOutput;
+      const ForageConsumed, ForageGain: Single);
     function CalculateAgentTickCost(const State: TAgentState): Single;
     function CalculateMoveCost(FromCell, ToCell: Integer): Single;
     function CalculateForageGain(const State: TAgentState; const Reply: TConsumeCacheReply): Single;
     function ApplyAgentUpkeep(var State: TAgentState): Boolean;
-    function ResolveRequestedStep(AgentIndex: Integer; var State: TAgentState; const Requested: TBrainTickOutput): TBrainTickOutput;
+    function ResolveRequestedStep(AgentIndex: Integer; var State: TAgentState; const Requested: TBrainTickOutput;
+      out ForageConsumed, ForageGain: Single): TBrainTickOutput;
     procedure ProcessAgentTick(aIndex: Integer; const Input: TBrainTickInput);
     procedure NotifyPhase(const Phase: TSimTickPhase);
     procedure SetDayTick(const Value: TDayTick);
@@ -86,7 +91,7 @@ begin
 end;
 
 procedure TSimRuntime.CaptureDecisionTrace(AgentIndex: Integer; const State: TAgentState; const Input: TBrainTickInput;
-  const Requested, Resolved: TBrainTickOutput);
+  const Requested, Resolved: TBrainTickOutput; const ForageConsumed, ForageGain: Single);
 begin
   if (AgentIndex < 0) or (AgentIndex >= Length(fLastDecisionTraces)) then
     Exit;
@@ -100,6 +105,12 @@ begin
   fLastDecisionTraces[AgentIndex].RequestedTarget := Requested.RequestedTarget;
   fLastDecisionTraces[AgentIndex].ResolvedAction := Resolved.RequestedAction;
   fLastDecisionTraces[AgentIndex].ResolvedTarget := Resolved.RequestedTarget;
+  fLastDecisionTraces[AgentIndex].ForageConsumed := ForageConsumed;
+  fLastDecisionTraces[AgentIndex].ForageGain := ForageGain;
+  if ForageConsumed > 0.0 then
+    fLastDecisionTraces[AgentIndex].ForageEfficiency := ForageGain / ForageConsumed
+  else
+    fLastDecisionTraces[AgentIndex].ForageEfficiency := 0.0;
   fLastDecisionTraces[AgentIndex].Evaluations := Requested.Evaluations;
   fLastDecisionTraces[AgentIndex].Summary := Requested.Trace;
 end;
@@ -185,10 +196,12 @@ begin
 end;
 
 function TSimRuntime.ResolveRequestedStep(AgentIndex: Integer; var State: TAgentState;
-  const Requested: TBrainTickOutput): TBrainTickOutput;
+  const Requested: TBrainTickOutput; out ForageConsumed, ForageGain: Single): TBrainTickOutput;
 begin
   // Runtime resolution hook: adjust or reject requested actions based on world rules.
   Result := Requested;
+  ForageConsumed := 0.0;
+  ForageGain := 0.0;
 
   if Requested.RequestedAction = acMove then
   begin
@@ -274,7 +287,9 @@ begin
 
       if forageCommand.TryConsumeCache(request, reply) then
       begin
-        State.Reserves := State.Reserves + CalculateForageGain(State, reply);
+        ForageConsumed := reply.ConsumedAmount;
+        ForageGain := CalculateForageGain(State, reply);
+        State.Reserves := State.Reserves + ForageGain;
       end
       else
       begin
@@ -320,8 +335,10 @@ begin
   fPopulation.UpdateAgentState(aIndex, state);
 
   var requested := fPopulation.RequestAgentStep(aIndex, Input);
-  var resolved := ResolveRequestedStep(aIndex, state, requested);
-  CaptureDecisionTrace(aIndex, state, Input, requested, resolved);
+  var forageConsumed: Single := 0.0;
+  var forageGain: Single := 0.0;
+  var resolved := ResolveRequestedStep(aIndex, state, requested, forageConsumed, forageGain);
+  CaptureDecisionTrace(aIndex, state, Input, requested, resolved, forageConsumed, forageGain);
   fPopulation.UpdateAgentState(aIndex, state);
   fPopulation.ApplyAgentStep(aIndex, resolved);
 end;

@@ -2,7 +2,7 @@
 
 interface
 
-uses System.Classes, System.Generics.Collections,
+uses System.Types, System.Classes, System.Generics.Collections,
   u_Regions, u_EnvironmentTypes, u_EnvironmentLibraries,
   u_Biomes, u_Foods,
   u_SimParams, u_SimEnvironments, u_WorldLayouts;
@@ -21,10 +21,22 @@ type
     property ResourceCount: Integer read RequiredResourceCount;
   end;
 
+  TDebugUpscaler = class
+  private
+    Environment: TSimEnvironment;
+    ResourceIndex: Integer;
+  public
+    constructor Create(aEnvironment: TSimEnvironment; aDimensions: TSize; aSunlight, aMobility: TRating);
+    procedure SetFoods(const Foods: array of TFood);
+    procedure SetCellResourceCount(aCellX, aCellY: Integer; aCount: Integer); // creates empty resource cache records
+    procedure SetTotalResourceCount(aCount: Integer);
+    procedure SetResource(aCellX, aCellY: Integer; aResourceIndex: Word; aSubstanceIndex: Integer; aGrowthRate: TRating);
+  end;
+
 
 implementation
 
-uses System.Types, System.Generics.Defaults, System.SysUtils, System.Math,
+uses System.Generics.Defaults, System.SysUtils, System.Math,
   u_EditorTypes, u_SimPopulations;
 
 type
@@ -223,5 +235,76 @@ begin
 end;
 
 
+
+{ TDebugUpscaler }
+
+constructor TDebugUpscaler.Create(aEnvironment: TSimEnvironment;
+  aDimensions: TSize; aSunlight, aMobility: TRating);
+begin
+  inherited Create;
+  Environment := aEnvironment;
+  ResourceIndex := 0;
+
+  // create initial cells
+  Environment.SetDimensions(aDimensions);
+
+  for var cellY := 0 to aDimensions.cy - 1 do
+  begin
+    for var cellX := 0 to aDimensions.cx - 1 do
+    begin
+      var cellIndex := (cellY * aDimensions.cx) + cellX;
+      Environment.Cells[cellIndex].Sunlight := SUNLIGHT_FACTOR[aSunlight];
+      Environment.Cells[cellIndex].Mobility := MOBILITY_COST_PENALTY[aMobility];
+      Environment.Cells[cellIndex].ResourceStart := 0;
+      Environment.Cells[cellIndex].ResourceCount := 0;
+    end;
+  end;
+end;
+
+procedure TDebugUpscaler.SetFoods(const Foods: array of TFood);
+begin
+  Environment.SetSubstanceCount(Length(Foods));
+  for var i := 0 to Length(Foods) - 1 do
+  begin
+    var food := Foods[i];
+    Environment.SetSubstance(i, food.ToSubstance);
+  end;
+end;
+
+procedure TDebugUpscaler.SetCellResourceCount(aCellX, aCellY, aCount: Integer);
+begin
+  var cellIndex := (aCellY * Environment.Dimensions.cx) + aCellX;
+  Assert((cellIndex >= 0) and (cellIndex < Length(Environment.Cells)));
+  Assert(aCount <= Length(Environment.Substances));
+
+  // can only do this once
+  Assert(Environment.Cells[cellIndex].ResourceCount = 0);
+
+  // add resource slots
+  Environment.Cells[cellIndex].ResourceStart := ResourceIndex;
+  Environment.Cells[cellIndex].ResourceCount := aCount;
+
+  Inc(ResourceIndex, aCount);
+end;
+
+procedure TDebugUpscaler.SetResource(aCellX, aCellY: Integer;
+  aResourceIndex: Word; aSubstanceIndex: Integer; aGrowthRate: TRating);
+begin
+  var cellIndex := (aCellY * Environment.Dimensions.cx) + aCellX;
+  Assert((cellIndex >= 0) and (cellIndex < Length(Environment.Cells)));
+  Assert(Environment.Cells[cellIndex].ResourceCount > 0);
+
+  var index := Environment.Cells[cellIndex].ResourceStart + aResourceIndex;
+  Assert((index >= 0) and (index < Environment.ResourceCount));
+
+  Environment.Resources[index].SubstanceIndex := aSubstanceIndex;
+  Environment.Resources[index].GrowthRate := GROWTH_FACTOR[aGrowthRate];
+end;
+
+procedure TDebugUpscaler.SetTotalResourceCount(aCount: Integer);
+begin
+  Environment.SetResourceCount(aCount);
+  ResourceIndex := 0;
+end;
 
 end.

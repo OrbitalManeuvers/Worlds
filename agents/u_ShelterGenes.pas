@@ -23,27 +23,36 @@ begin
   Result.Score := 0.0;
 
   if Input.IsNight then
-    Result.Score := Result.Score + 0.08
+    Result.Score := Result.Score + 0.10
   else
-    Result.Score := Result.Score - 0.02;
+    Result.Score := Result.Score - 0.06;
 
   Result.Score := Result.Score + (Input.ThreatPressure * 0.60);
 
   case Input.EnergyLevel of
     elEmpty:
-      Result.Score := Result.Score - 0.20;
+      Result.Score := Result.Score - 0.14;
     elLow:
-      Result.Score := Result.Score - 0.10;
+      Result.Score := Result.Score - 0.05;
     elMedium:
       ;
     elHigh:
-      Result.Score := Result.Score + 0.05;
+      Result.Score := Result.Score + 0.02;
     elFull:
-      Result.Score := Result.Score + 0.10;
+      Result.Score := Result.Score + 0.04;
   end;
 
   if Input.CurrentAction = acShelter then
-    Result.Score := Result.Score + 0.03;
+  begin
+    // Shelter persistence should be strong, but break quickly on daylight or deep energy deficit.
+    Result.Score := Result.Score + 0.12;
+
+    if not Input.IsNight then
+      Result.Score := Result.Score - 0.14;
+
+    if Input.EnergyLevel in [elEmpty, elLow] then
+      Result.Score := Result.Score - 0.10;
+  end;
 
   Result.Score := EnsureRange(Result.Score, 0.0, 0.35);
   Result.Target.TType := ttNone;

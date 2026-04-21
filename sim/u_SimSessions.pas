@@ -2,12 +2,41 @@ unit u_SimSessions;
 
 interface
 
-uses System.Classes, System.Generics.Collections,
+uses System.Classes, System.Types, System.Generics.Collections,
  u_Worlds, u_EnvironmentTypes, u_EnvironmentLibraries,
- u_Simulators, u_SimParams, u_Foods, u_SimWatches, u_SimPhases;
+ u_Simulators, u_SimParams, u_Foods, u_SimWatches, u_SimPhases,
+ u_SimUpscalers, u_BiologyTypes, u_SimEnvironments;
 
 type
   TLogEvent = procedure (Sender: TObject; const aMsg: string) of object;
+
+  // manual authoring for debugging
+  TDebugParameters = record
+    Dimensions: TSize;
+    DefaultSunlight: TRating;
+    DefaultMobility: TRating;
+    Foods: array of TFood;
+
+    Agents: array of record
+      Location: TPoint;
+      ConverterRatings: TMoleculeRatings; // can be nil
+      SmellRatings: TMoleculeRatings;     // can be nil
+    end;
+
+    Resources: array of record
+      Location: TPoint;        // can be duplicated
+      Caches: array of record
+        FoodIndex: Word;
+        GrowthRate: TRating;
+      end;
+    end;
+
+    function AddFood(aFood: TFood): Integer;
+    procedure AddAgent(aLocation: TPoint; aConverterRatings, aSmellRatings: TMoleculeRatings);
+    procedure AddResource(aLocation: TPoint; aFood: TFood; aGrowthRate: TRating);
+  end;
+
+  TDebugSetupEvent = procedure (Sender: TObject; var Params: TDebugParameters) of object;
 
   TSimSession = class
   private
@@ -23,6 +52,7 @@ type
     fOnBeforeStep: TNotifyEvent;
     fOnAfterStep: TNotifyEvent;
     fOnWatchChange: TWatchChangedEvent;
+    fOnDebugSetup: TDebugSetupEvent;
     procedure Log(const aMsg: string); overload;
     procedure Log(const aMsgFmt: string; const Params: array of const); overload;
     procedure EvaluateWatches(const Phase: TSimTickPhase);
@@ -30,6 +60,7 @@ type
     procedure PrimePendingWatches;
     procedure UpdateWatchBindings;
     function RegisterWatch(AWatch: TSimWatch): TSimWatch;
+    procedure PopulateDebugRuntime(const Params: TDebugParameters);
   public
     constructor Create(aWorld: TWorld; const aParams: TSimParams; aLibrary: TEnvironmentLibrary);
     destructor Destroy; override;
@@ -61,12 +92,15 @@ type
     property OnBeforeStep: TNotifyEvent read fOnBeforeStep write fOnBeforeStep;
     property OnAfterStep: TNotifyEvent read fOnAfterStep write fOnAfterStep;
     property OnWatchChange: TWatchChangedEvent read fOnWatchChange write fOnWatchChange;
+
+    property OnDebugSetup: TDebugSetupEvent read fOnDebugSetup write fOnDebugSetup;
   end;
 
 implementation
 
 uses System.SysUtils,
-  u_WorldLayouts, u_SimUpscalers, u_SimPopulators, u_SimEnvironments;
+  u_WorldLayouts, u_SimPopulators, u_SimRuntimes, u_AgentState;
+
 
 { Utils }
 function SubstanceToStr(const sub: TSubstance): string;
@@ -81,6 +115,64 @@ begin
   ]);
 end;
 
+{ TDebugParameters }
+function TDebugParameters.AddFood(aFood: TFood): Integer;
+begin
+  var last := Length(Foods);
+  SetLength(Foods, last + 1);
+  Foods[last] := aFood;
+  Result := last;
+end;
+
+procedure TDebugParameters.AddAgent(aLocation: TPoint; aConverterRatings, aSmellRatings: TMoleculeRatings);
+begin
+  var last := Length(Agents);
+  SetLength(Agents, last + 1);
+  Agents[last].Location := aLocation;
+  Agents[last].ConverterRatings := aConverterRatings;
+  Agents[last].SmellRatings := aSmellRatings;
+end;
+
+procedure TDebugParameters.AddResource(aLocation: TPoint; aFood: TFood; aGrowthRate: TRating);
+begin
+  // food has to already exist in the list
+  var foodIndex := -1;
+  for var i := 0 to Length(Foods) - 1 do
+    if Foods[i] = aFood then
+    begin
+      foodIndex := i;
+      Break;
+    end;
+  Assert(foodIndex <> -1);
+
+  var locationIndex := -1;
+  var last := Length(Resources);
+  if last > 0 then
+  begin
+    for var i := 0 to Length(Resources) - 1 do
+      if Resources[i].Location = aLocation then
+      begin
+        locationIndex := i;
+        Break;
+      end;
+  end;
+
+  // if we don't have this location yet, add it
+  if locationIndex = -1 then
+  begin
+    SetLength(Resources, last + 1);
+    Resources[last].Location := aLocation;
+    SetLength(Resources[last].Caches, 0);
+    locationIndex := last;
+  end;
+
+  Assert(locationIndex <> -1);
+
+  last := Length(Resources[locationIndex].Caches);
+  SetLength(Resources[locationIndex].Caches, last + 1);
+  Resources[locationIndex].Caches[last].FoodIndex := foodIndex;
+  Resources[locationIndex].Caches[last].GrowthRate := aGrowthRate;
+end;
 
 { TSimSession }
 
@@ -174,38 +266,53 @@ end;
 
 procedure TSimSession.BeginSession;
 begin
-  // Session seed policy:
-  // - Params.Seed <> 0: force deterministic run by setting RTL seed.
-  // - Params.Seed = 0: preserve current RTL seed and capture it as in-use value.
-  if fParams.Seed <> 0 then
+  for var watch in fWatches do
+    watch.Reset;
+
+  if fParams.DebugMode then
   begin
-    RandSeed := fParams.Seed;
-    fSeed := fParams.Seed;
+    var params := Default(TDebugParameters);
+    if Assigned(fOnDebugSetup) then
+      fOnDebugSetup(Self, params);
+
+    // populate the runtime according to the debug spec
+    PopulateDebugRuntime(params);
   end
   else
-    fSeed := RandSeed;
+  begin
+    // Session seed policy:
+    // - Params.Seed <> 0: force deterministic run by setting RTL seed.
+    // - Params.Seed = 0: preserve current RTL seed and capture it as in-use value.
+    if fParams.Seed <> 0 then
+    begin
+      RandSeed := fParams.Seed;
+      fSeed := fParams.Seed;
+    end
+    else
+      fSeed := RandSeed;
 
-  // Environment
-  // create the stitched-together world of selected regions
-  var layout := TWorldLayout.Create(fWorld, fLibrary);
-  try
-    // the layout feeds the upscaler
-    var upscaler := TWorldUpscaler.Create(fSim.Runtime.Environment, fParams);
+    // Environment
+    // create the stitched-together world of selected regions
+    var layout := TWorldLayout.Create(fWorld, fLibrary);
     try
-      upscaler.UpscaleWorld(layout);
+      // the layout feeds the upscaler
+      var upscaler := TWorldUpscaler.Create(fSim.Runtime.Environment, fParams);
+      try
+        upscaler.UpscaleWorld(layout);
+      finally
+        upscaler.Free;
+      end;
+
+      // save off the list of foods for later instrumentation
+      for var f in layout.Foods do
+        Self.fFoods.Add(f);
     finally
-      upscaler.Free;
+      layout.free;
     end;
 
-    // save off the list of foods for later instrumentation
-    for var f in layout.Foods do
-      Self.fFoods.Add(f);
-  finally
-    layout.free;
+    // Population
+    TWorldPopulator.Populate(fSim.Runtime.Population, fSim.Runtime.Environment, fParams);
   end;
-
-  // Population
-  TWorldPopulator.Populate(fSim.Runtime.Population, fSim.Runtime.Environment, fParams);
 
   // log resource map
   if Length(fSim.Runtime.Environment.Substances) = Self.Foods.Count then
@@ -223,16 +330,13 @@ begin
     end;
   end;
 
-  for var watch in fWatches do
-    watch.Reset;
+
 end;
 
 procedure TSimSession.EndSession;
 begin
-
   for var watch in fWatches do
     watch.Reset;
-
 end;
 
 procedure TSimSession.EvaluateWatches(const Phase: TSimTickPhase);
@@ -301,5 +405,50 @@ begin
     fOnAfterStep(Self);
 
 end;
+
+procedure TSimSession.PopulateDebugRuntime(const Params: TDebugParameters);
+begin
+
+  // configure environment
+  var env := fSim.Runtime.Environment;
+
+  var upscaler := TDebugUpscaler.Create(env, Params.Dimensions, Params.DefaultSunlight, Params.DefaultMobility);
+  try
+    upscaler.SetFoods(Params.Foods);
+
+    var resourceCount := 0;
+    for var def in Params.Resources do
+      resourceCount := resourceCount + Length(def.Caches);
+    upscaler.SetTotalResourceCount(resourceCount);
+
+    for var def in Params.Resources do
+    begin
+      upscaler.SetCellResourceCount(def.Location.X, def.Location.Y, Length(def.Caches));
+      for var i := 0 to Length(def.Caches) - 1 do
+      begin
+        upscaler.SetResource(def.Location.x, def.Location.Y, i,
+          def.Caches[i].FoodIndex, def.Caches[i].GrowthRate);
+      end;
+    end;
+  finally
+    upscaler.Free;
+  end;
+
+
+  // configure population
+  var population := fSim.Runtime.Population;
+  var nextId: Cardinal := 1;
+
+  population.AgentCount := Length(Params.Agents);
+
+  for var agentIndex := 0 to Length(Params.Agents) - 1 do
+  begin
+    var agent := Params.Agents[agentIndex];
+    var cellIndex := (agent.Location.Y * env.Dimensions.cx) + agent.Location.X;
+    TDebugPopulator.PopulateAgent(population, agentIndex, nextId, cellIndex,
+      agent.ConverterRatings, agent.SmellRatings);
+  end;
+end;
+
 
 end.

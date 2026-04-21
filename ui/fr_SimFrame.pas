@@ -9,7 +9,8 @@ uses
 
   Vcl.Samples.Spin, Vcl.ControlList, Vcl.ComCtrls, Vcl.Buttons, Vcl.Mask,
   u_EnvironmentLibraries, u_SimVisualizer, u_Simulators,
-  u_SimSessions, fr_ResourceVisualizer, u_SimWatches, u_SimRuntimes, u_SimPhases;
+  u_SimSessions, fr_ResourceVisualizer, u_SimWatches, u_SimRuntimes, u_SimPhases,
+  u_SimUpscalers;
 
 type
   TSimFrame = class(TContentFrame)
@@ -41,6 +42,7 @@ type
     LogPages: TPageControl;
     tsAgentLog: TTabSheet;
     TabSheet2: TTabSheet;
+    cbDebugSession: TCheckBox;
     procedure btnCreateSimClick(Sender: TObject);
     procedure btnStepClick(Sender: TObject);
     procedure WorldListItemClick(Sender: TObject);
@@ -57,6 +59,8 @@ type
     procedure HandleLogEvent(Sender: TObject; const aMsg: string);
     procedure HandleSessionAfterStep(Sender: TObject);
     procedure HandleWatchChanged(Sender: TObject; Watch: TSimWatch);
+    procedure HandleDebugSetup(Sender: TObject;  var Params: TDebugParameters);
+
     function FormatActionScores(const Trace: TDecisionTrace): string;
     function FormatDecisionTrace(const Trace: TDecisionTrace): string;
 
@@ -80,8 +84,9 @@ implementation
 {$R *.dfm}
 
 uses System.Types, System.Math, Vcl.GraphUtil,
-  u_SimUpscalers, u_SimParams, u_EditorTypes,
-  u_Regions, u_AgentTypes, u_BiologyTypes, u_EnvironmentTypes;
+  u_SimParams, u_EditorTypes, u_Foods,
+  u_Regions, u_AgentTypes, u_BiologyTypes, u_EnvironmentTypes,
+  u_SimEnvironments;
 
 const
   DEFAULT_SEED = -1653628502;
@@ -99,6 +104,11 @@ type
     function LogStr: string;
   end;
 
+  TFoodHelper = class helper for TFood
+    function ToSubstance: TSubstance;
+  end;
+
+
 { TBooleanHelper }
 function TBooleanHelper.LogStr: string;
 begin
@@ -115,6 +125,16 @@ begin
   Result := FloatToStrF(Self, ffFixed, 18, 3, LogFormatSettings);
 end;
 
+
+{ TFoodHelper }
+
+function TFoodHelper.ToSubstance: TSubstance;
+begin
+  Result[Alpha] := Self.Recipe.Percents[Alpha];
+  Result[Beta] := Self.Recipe.Percents[Beta];
+  Result[Gamma] := Self.Recipe.Percents[Gamma];
+  Result[Biomass] := 0;
+end;
 
 { TSimFrame }
 
@@ -165,15 +185,17 @@ begin
   params.InitDefaults;
   params.Seed := DEFAULT_SEED;
   params.Population.AgentCount := StrToIntDef(edtAgentCount.Text, 0);
-  params.Population.Scheme := psOnBarren;
+  params.Population.Scheme := psOnSingleResource;
+  params.DebugMode := cbDebugSession.Checked;
 
-  if WorldLibrary.RatingsCount > 0 then
-  begin
-    SetLength(params.Population.Rules, 1);
-    params.Population.Rules[0].Chance := 100;
-    params.Population.Rules[0].Target := rtConverter;
-    params.Population.Rules[0].Ratings := WorldLibrary.Ratings[0];
-  end;
+
+//  if WorldLibrary.RatingsCount > 0 then
+//  begin
+//    SetLength(params.Population.Rules, 1);
+//    params.Population.Rules[0].Chance := 100;
+//    params.Population.Rules[0].Target := rtConverter;
+//    params.Population.Rules[0].Ratings := WorldLibrary.Ratings[0];
+//  end;
 
   var world := WorldLibrary.Worlds[WorldList.ItemIndex];
 
@@ -182,6 +204,7 @@ begin
   fSession.OnLog := HandleLogEvent;
   fSession.OnAfterStep := HandleSessionAfterStep;
   fSession.OnWatchChange := HandleWatchChanged;
+  fSession.OnDebugSetup := HandleDebugSetup;
 
   // attempt to set the wheels in motion
   try
@@ -194,13 +217,13 @@ begin
 //    fSession.AddAgentWatch(1);
 
     // add a cell watch that follows agent 0 across moves
-    fSession.AddFollowingCellWatch(0, -1, nil, [stpPostEnvironment, stpPostAgents], cemAlways);
+//    fSession.AddFollowingCellWatch(0, -1, nil, [stpPostEnvironment, stpPostAgents], cemAlways);
 
     // add a fixed comparison watch where the agent started
-//    var loc := fSession.Simulator.Runtime.Population.Agents[0].Location;
+    var loc := fSession.Simulator.Runtime.Population.Agents[0].Location;
 //
-//    // this is unsafe and coincidentally works with a specific testing seed, not a pattern
-//    fSession.AddCellWatch(loc + 1, -1, nil, [stpPostEnvironment, stpPostAgents], cemAlways);
+    fSession.AddCellWatch(loc - 1, -1, nil, [stpPostEnvironment, stpPostAgents], cemAlways);
+    fSession.AddCellWatch(loc + 1, -1, nil, [stpPostEnvironment, stpPostAgents], cemAlways);
 
 
     // Prime baseline snapshots before first step so tick-1 deltas reflect true initial state.
@@ -212,7 +235,6 @@ begin
 //        fSession.AddCellWatch(cellIndex);
 //        Break;
 //      end;
-
 
 
   except
@@ -263,7 +285,6 @@ begin
     fSession := nil;
   end;
 end;
-
 
 procedure TSimFrame.WorldListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
   ARect: TRect; AState: TOwnerDrawState);
@@ -367,7 +388,7 @@ function TSimFrame.FormatDecisionTrace(const Trace: TDecisionTrace): string;
   end;
 begin
   Result := Format(
-    '    Trace Req:%s(%s) Res:%s(%s) Night:%s Energy:%s SmellMax:%s SmellTop:[N:%d C:%d D:%d S:%s] Threat:%s Smell:%s Sight:%s',
+    '    Trace Req:%s(%s) Res:%s(%s) Night:%s Energy:%s SmellMax:%s SmellTop:[N:%d C:%d D:%d S:%s] Threat:%s Smell:%s Sight:%s Conv:[In:%s Out:%s Eff:%s]',
     [
       ActionToShortStr(Trace.RequestedAction),
       TargetToShortStr(Trace.RequestedTarget),
@@ -385,7 +406,10 @@ begin
       //
       Trace.Summary.ThreatPressure.LogStr,
       Trace.Summary.HadSmellTarget.LogStr,
-      Trace.Summary.HadSightTarget.LogStr
+      Trace.Summary.HadSightTarget.LogStr,
+      Trace.ForageConsumed.LogStr,
+      Trace.ForageGain.LogStr,
+      Trace.ForageEfficiency.LogStr
     ]
   );
 end;
@@ -538,6 +562,29 @@ begin
   AgentLog.SelStart := Length(AgentLog.Text);
   AgentLog.SelLength := 0;
   AgentLog.Perform(EM_SCROLLCARET, 0, 0);
+end;
+
+procedure TSimFrame.HandleDebugSetup(Sender: TObject; var Params: TDebugParameters);
+begin
+  Params.Dimensions.cx := 256;
+  Params.Dimensions.cy := 256;
+  Params.DefaultSunlight := Normal;
+  Params.DefaultMobility := Normal;
+
+  var food := WorldLibrary.FindFood('A100');
+  Assert(Assigned(food));
+  Params.AddFood(food);
+
+  // place a cache at 10, 10
+  Params.AddResource(Point(10, 10), food, Normal);
+  Params.AddResource(Point(12, 10), food, Normal);
+
+  // place an agent at 11, 10
+  var loc := TPoint.Create(11, 10);
+  Params.AddAgent(loc, nil, nil);
+
+
+
 end;
 
 

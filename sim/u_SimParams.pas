@@ -21,6 +21,7 @@ type
   TSimParams = record
     Seed: Integer; // 0 = use current RTL seed; non-zero = force deterministic session seed
     Factor: Integer;
+    DebugMode: Boolean;
 
     Population: record
       AgentCount: Integer;

@@ -13,7 +13,7 @@ type
 
 implementation
 
-uses System.SysUtils, u_EnvironmentTypes;
+uses System.SysUtils, System.Math, u_EnvironmentTypes;
 
 const
   MAX_SMELL_QUERY_RADIUS = 2.0;
@@ -80,6 +80,15 @@ begin
   Result := Value;
 end;
 
+function ClampEdgeRetention(const Value: Single): Single;
+begin
+  if Value < 0.0 then
+    Exit(0.0);
+  if Value > 1.0 then
+    Exit(1.0);
+  Result := Value;
+end;
+
 function QuantizeEffectiveRadius(const Range: Single): Integer;
 begin
   var clampedRange := Range;
@@ -92,15 +101,27 @@ begin
   Result := Trunc(clampedRange + 0.5);
 end;
 
-function LinearDistanceFalloff(const Distance, EffectiveRadius: Integer): Single;
+function LinearDistanceFalloff(const Distance, EffectiveRadius: Integer;
+  const EdgeRetention: Single): Single;
 begin
   if EffectiveRadius <= 0 then
     Exit(1.0);
 
-  if Distance >= EffectiveRadius then
+  var normalizedDistance := Distance / EffectiveRadius;
+  if normalizedDistance < 0.0 then
+    normalizedDistance := 0.0
+  else if normalizedDistance > 1.0 then
+    normalizedDistance := 1.0;
+
+  if normalizedDistance = 0.0 then
+    Exit(1.0);
+
+  var clampedEdgeRetention := ClampEdgeRetention(EdgeRetention);
+  if clampedEdgeRetention = 0.0 then
     Exit(0.0);
 
-  Result := 1.0 - (Distance / EffectiveRadius);
+  // EdgeRetention defines signal strength exactly at max smell distance.
+  Result := Power(clampedEdgeRetention, normalizedDistance);
 end;
 
 function SignDelta(const Value: Integer): Integer;
@@ -151,13 +172,13 @@ begin
   var smellQuery: IEnvironmentSmellQuery;
   if Supports(Query, IEnvironmentSmellQuery, smellQuery) then
   begin
-    var effectiveRadius := QuantizeEffectiveRadius(Params.Range);
+    var effectiveRadius := QuantizeEffectiveRadius(MAX_SMELL_QUERY_RADIUS);
 
     var width := 0;
     var height := 0;
     smellQuery.GetGridSize(width, height);
 
-    smellQuery.FillLocalFoodCaches(Location, Params.Range, Scratch.Buffer, Scratch.Count);
+    smellQuery.FillLocalFoodCaches(Location, MAX_SMELL_QUERY_RADIUS, Scratch.Buffer, Scratch.Count);
     Result.Count := Scratch.Count;
     SetLength(Result.Details, Scratch.Count);
 
@@ -195,7 +216,7 @@ begin
       else
         Result.Details[i].Directions.Distance := distance;
 
-      var distanceFalloff := LinearDistanceFalloff(distance, effectiveRadius);
+      var distanceFalloff := LinearDistanceFalloff(distance, effectiveRadius, Params.EdgeRetention);
 
       Result.Details[i].CacheId := Scratch.Buffer[i].CacheId;
       Result.Details[i].CellIndex := Scratch.Buffer[i].CellIndex;
