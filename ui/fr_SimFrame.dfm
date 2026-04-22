@@ -12,7 +12,7 @@ inherited SimFrame: TSimFrame
     Top = 0
     Width = 990
     Height = 708
-    ActivePage = tsNoSelection
+    ActivePage = tsSelection
     Align = alClient
     TabOrder = 0
     object tsNoSelection: TTabSheet
@@ -242,7 +242,7 @@ inherited SimFrame: TSimFrame
         Top = 376
         Width = 982
         Height = 322
-        ActivePage = tsAgentLog
+        ActivePage = TabSheet2
         Align = alBottom
         Anchors = [akLeft, akTop, akRight, akBottom]
         TabOrder = 4
@@ -268,6 +268,22 @@ inherited SimFrame: TSimFrame
         object TabSheet2: TTabSheet
           Caption = 'Cells'
           ImageIndex = 1
+          object CellLog: TMemo
+            Left = 0
+            Top = 0
+            Width = 974
+            Height = 290
+            Align = alClient
+            Font.Charset = ANSI_CHARSET
+            Font.Color = clWindowText
+            Font.Height = -13
+            Font.Name = 'Lucida Console'
+            Font.Style = []
+            ParentFont = False
+            ScrollBars = ssBoth
+            TabOrder = 0
+            WordWrap = False
+          end
         end
       end
     end

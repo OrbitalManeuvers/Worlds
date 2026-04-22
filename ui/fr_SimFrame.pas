@@ -43,6 +43,7 @@ type
     tsAgentLog: TTabSheet;
     TabSheet2: TTabSheet;
     cbDebugSession: TCheckBox;
+    CellLog: TMemo;
     procedure btnCreateSimClick(Sender: TObject);
     procedure btnStepClick(Sender: TObject);
     procedure WorldListItemClick(Sender: TObject);
@@ -475,7 +476,7 @@ begin
         Single(c.LastChange.CurrentDebt - c.LastChange.PreviousDebt).LogStr
       ]
     );
-    AgentLog.Lines.Add(line);
+    CellLog.Lines.Add(line);
 
     var env := fSession.Simulator.Runtime.Environment;
     if (c.CellIndex >= 0) and (c.CellIndex < Length(env.Cells)) then
@@ -499,7 +500,7 @@ begin
           ]);
         end;
 
-        AgentLog.Lines.Add(cacheLine);
+        CellLog.Lines.Add(cacheLine);
       end;
     end;
   end;

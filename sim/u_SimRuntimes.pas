@@ -216,9 +216,44 @@ begin
     var moveCommand: IMoveAgentCommand;
     if Supports(fSimCommand, IMoveAgentCommand, moveCommand) then
     begin
+      var moveDestination := Requested.RequestedTarget.Cell;
+
+      // Decompose remote intent into a legal one-step move while preserving the
+      // original destination as the action target for continuity across ticks.
+      var width := fEnvironment.Dimensions.cx;
+      var height := fEnvironment.Dimensions.cy;
+      if (width > 0) and (height > 0) then
+      begin
+        var fromX := State.Location mod width;
+        var fromY := State.Location div width;
+        var toX := moveDestination mod width;
+        var toY := moveDestination div width;
+
+        var dx := toX - fromX;
+        var dy := toY - fromY;
+
+        if Max(Abs(dx), Abs(dy)) > 1 then
+        begin
+          var stepX := fromX;
+          var stepY := fromY;
+
+          if dx < 0 then
+            Dec(stepX)
+          else if dx > 0 then
+            Inc(stepX);
+
+          if dy < 0 then
+            Dec(stepY)
+          else if dy > 0 then
+            Inc(stepY);
+
+          moveDestination := (stepY * width) + stepX;
+        end;
+      end;
+
       var moveRequest: TMoveAgentRequest;
       moveRequest.AgentIndex := AgentIndex;
-      moveRequest.DestinationCell := Requested.RequestedTarget.Cell;
+      moveRequest.DestinationCell := moveDestination;
 
       var moveReply: TMoveAgentReply := Default(TMoveAgentReply);
       if moveCommand.TryMoveAgent(moveRequest, moveReply) then
@@ -231,8 +266,7 @@ begin
 
         State.Location := moveReply.NewCell;
         Result.RequestedAction := acMove;
-        Result.RequestedTarget.TType := ttCell;
-        Result.RequestedTarget.Cell := moveReply.NewCell;
+        Result.RequestedTarget := Requested.RequestedTarget;
       end
       else
       begin
