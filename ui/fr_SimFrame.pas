@@ -572,16 +572,24 @@ begin
   Params.DefaultSunlight := Normal;
   Params.DefaultMobility := Normal;
 
-  var food := WorldLibrary.FindFood('A100');
-  Assert(Assigned(food));
-  Params.AddFood(food);
+  var A100 := WorldLibrary.FindFood('A100');
+  Assert(Assigned(A100));
+  Params.AddFood(A100);
+
+  var B100 := WorldLibrary.FindFood('B100');
+  Assert(Assigned(B100));
+  Params.AddFood(B100);
 
   // place a cache at 10, 10
-  Params.AddResource(Point(10, 10), food, Normal);
-  Params.AddResource(Point(12, 10), food, Normal);
+  Params.AddResource(Point(10, 10), A100, Normal);
+  Params.AddResource(Point(12, 10), B100, Normal);
 
   // place an agent at 11, 10
   var loc := TPoint.Create(11, 10);
+
+  var smellRatings := WorldLibrary.FindRatings('OnlyBeta');
+  Assert(Assigned(smellRatings));
+  Params.AddAgent(loc, nil, smellRatings);
   Params.AddAgent(loc, nil, nil);
 
 

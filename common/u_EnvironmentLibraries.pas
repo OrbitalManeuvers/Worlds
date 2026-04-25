@@ -87,6 +87,7 @@ type
 
     // molecule ratings
     procedure AddRatings(aRatings: TMoleculeRatings);
+    function FindRatings(const aName: string): TMoleculeRatings;
     property RatingsCount: Integer read GetRatingsCount;
     property Ratings[I: Integer]: TMoleculeRatings read GetRatings;
 
@@ -241,6 +242,14 @@ begin
   for var seed in fSeeds do
     if SameText(seed.Name, aName) then
       Exit(seed);
+end;
+
+function TEnvironmentLibrary.FindRatings(const aName: string): TMoleculeRatings;
+begin
+  Result := nil;
+  for var ratings in fMoleculeRatings do
+    if SameText(ratings.Name, aName) then
+      Exit(ratings);
 end;
 
 function TEnvironmentLibrary.FindRegion(const aName: string): TRegion;

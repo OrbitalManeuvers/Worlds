@@ -122,6 +122,10 @@ type
   end;
   TGeneClass = class of TGene;
 
+  // ===================
+  // Observation Genes
+  // ===================
+
   // Energy
   TEnergyGene = class(TGene)
     class function EvaluateEnergyLevel(const Input: TEnergyInput): TEnergyLevel; virtual; abstract;
@@ -144,6 +148,10 @@ type
   end;
   TSightGeneClass = class of TSightGene;
 
+
+  // ===================
+  // Evaluation Genes
+  // ===================
 
   // Move evaluation
   TMoveEvalGene = class(TGene)
@@ -169,13 +177,18 @@ type
   end;
   TReproduceEvalGeneClass = class of TReproduceEvalGene;
 
-  // Cognition gene
+  // ===================
+  // Cognition Gene
+  // ===================
+
   TCognitionGene = class(TGene)
     class function Decide(const Input: TCognitionInput; var Scratch: TCognitionScratch): TCognitionOutput; virtual; abstract;
   end;
   TCognitionGeneClass = class of TCognitionGene;
 
-  // Converter gene
+  // ===================
+  // Converter Gene
+  // ===================
   TConverterGene = class(TGene)
     class function Convert(const Input: TConverterInput; var Scratch: TConverterScratch): Single; virtual; abstract;
   end;

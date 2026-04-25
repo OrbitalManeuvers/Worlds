@@ -29,7 +29,6 @@ type
   TBrainTickOutput = record
     RequestedAction: TAgentAction;
     RequestedTarget: TTarget;
-//    Scores: TActionScores;
     Evaluations: TActionEvaluations;
     Trace: TBrainTraceSummary;
   end;
@@ -180,9 +179,8 @@ begin
 
   // Shelter hold mode: keep expensive sensing/evaluators quiet while sheltered at night
   // unless energy has already dropped to low/empty.
-  var shelterHoldMode := (State.Action = acShelter)
-    and Input.IsNight
-    and (Scratch.DecisionContext.EnergyLevel > elLow);
+  var shelterHoldMode := (State.Action = acShelter) and Input.IsNight and
+    (Scratch.DecisionContext.EnergyLevel > elLow);
 
   // 2. Smell
   if not shelterHoldMode then
@@ -217,7 +215,12 @@ begin
     if Assigned(moveEval) then
     begin
       var moveInput := BuildMoveEvalInput(Scratch.DecisionContext);
+{.define no_movement}
+{$ifdef no_movement}
+      Scratch.ActionEvaluations[acMove].Score := 0.0;
+{$else}
       Scratch.ActionEvaluations[acMove] := moveEval.Evaluate(moveInput, Scratch.EvaluatorScratch.Movement);
+{$endif}
     end;
   end;
 
