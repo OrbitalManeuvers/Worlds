@@ -55,12 +55,12 @@ type
     fViewers: TList<TResViewFrame>;
 
     fVisualizer: TSubstanceVisualizer;
-//    procedure Log(const msg: string);
 
     procedure HandleLogEvent(Sender: TObject; const aMsg: string);
     procedure HandleSessionAfterStep(Sender: TObject);
     procedure HandleWatchChanged(Sender: TObject; Watch: TSimWatch);
     procedure HandleDebugSetup(Sender: TObject;  var Params: TDebugParameters);
+    procedure HandleExternalLog(const aMsg: string);
 
     function FormatActionScores(const Trace: TDecisionTrace): string;
     function FormatDecisionTrace(const Trace: TDecisionTrace): string;
@@ -87,7 +87,7 @@ implementation
 uses System.Types, System.Math, Vcl.GraphUtil,
   u_SimParams, u_EditorTypes, u_Foods,
   u_Regions, u_AgentTypes, u_BiologyTypes, u_EnvironmentTypes,
-  u_SimEnvironments;
+  u_SimEnvironments, u_DiagnosticListeners, u_SimDiagnosticsIntf;
 
 const
   DEFAULT_SEED = -1653628502;
@@ -221,10 +221,10 @@ begin
 //    fSession.AddFollowingCellWatch(0, -1, nil, [stpPostEnvironment, stpPostAgents], cemAlways);
 
     // add a fixed comparison watch where the agent started
-    var loc := fSession.Simulator.Runtime.Population.Agents[0].Location;
+//    var loc := fSession.Simulator.Runtime.Population.Agents[0].Location;
 //
-    fSession.AddCellWatch(loc - 1, -1, nil, [stpPostEnvironment, stpPostAgents], cemAlways);
-    fSession.AddCellWatch(loc + 1, -1, nil, [stpPostEnvironment, stpPostAgents], cemAlways);
+//    fSession.AddCellWatch(loc - 1, -1, nil, [stpPostEnvironment, stpPostAgents], cemAlways);
+//    fSession.AddCellWatch(loc + 1, -1, nil, [stpPostEnvironment, stpPostAgents], cemAlways);
 
 
     // Prime baseline snapshots before first step so tick-1 deltas reflect true initial state.
@@ -247,6 +247,9 @@ begin
     end;
   end;
 
+
+
+
   fVisualizer := TSubstanceVisualizer.Create;
   fVisualizer.Simulator := fSession.Simulator;
 
@@ -254,6 +257,9 @@ begin
   try
     for var food in fSession.Foods do
       foodNames.Add(food.Name);
+
+
+
 
     // connect the substance viewer frames
     for var viewer in fViewers do
@@ -267,6 +273,26 @@ begin
     foodNames.Free;
   end;
 
+  var agentListener := TAgentListener.Create;
+  agentListener.OnLog := HandleExternalLog;
+
+//  TSimEventFilter = record
+//    Kinds: TSimEventKinds;
+//    AgentId: Integer;
+//    CellIndex: Integer;
+//  end;
+  var filter: TSimEventFilter;
+  filter.Kinds := [sekAgentMoved, sekAgentBorn];
+  filter.AgentId := -1;
+  filter.CellIndex := -1;
+
+  fSession.Diagnostics.Subscribe(filter, agentListener)
+
+end;
+
+procedure TSimFrame.HandleExternalLog(const aMsg: string);
+begin
+  AgentLog.Lines.Add('[ ' + aMsg + ' ]');
 end;
 
 procedure TSimFrame.DoneSession;
@@ -331,13 +357,23 @@ begin
 end;
 
 function TSimFrame.FormatActionScores(const Trace: TDecisionTrace): string;
+  function CacheToShortStr(const Cache: TCacheRef): string;
+  begin
+    case Cache.Kind of
+      ckResource:
+        Result := 'Resource:' + Cache.Index.ToString;
+      ckBiomass:
+        Result := 'Biomass:' + Cache.Index.ToString;
+    end;
+  end;
+
   function TargetToShortStr(const Target: TTarget): string;
   begin
     case Target.TType of
       ttCell:
         Result := 'Cell:' + Target.Cell.ToString;
       ttCache:
-        Result := 'Cache:' + Target.CacheId.ToString;
+        Result := CacheToShortStr(Target.Cache);
     else
       Result := 'None';
     end;
@@ -362,6 +398,16 @@ end;
 
 function TSimFrame.FormatDecisionTrace(const Trace: TDecisionTrace): string;
 
+  function CacheToShortStr(const Cache: TCacheRef): string;
+  begin
+    case Cache.Kind of
+      ckResource:
+        Result := 'Resource:' + Cache.Index.ToString;
+      ckBiomass:
+        Result := 'Biomass:' + Cache.Index.ToString;
+    end;
+  end;
+
   function ActionToShortStr(aAction: TAgentAction): string;
   const
     action_strs: array[TAgentAction] of string = ('Move', 'Forage', 'Shelter', 'Repro', 'Idle');
@@ -375,7 +421,7 @@ function TSimFrame.FormatDecisionTrace(const Trace: TDecisionTrace): string;
       ttCell:
         Result := 'Cell:' + Target.Cell.ToString;
       ttCache:
-        Result := 'Cache:' + Target.CacheId.ToString;
+        Result := CacheToShortStr(Target.Cache);
     else
       Result := 'None';
     end;
@@ -389,19 +435,23 @@ function TSimFrame.FormatDecisionTrace(const Trace: TDecisionTrace): string;
   end;
 begin
   Result := Format(
-    '    Trace Req:%s(%s) Res:%s(%s) Night:%s Energy:%s SmellMax:%s SmellTop:[N:%d C:%d D:%d S:%s] Threat:%s Smell:%s Sight:%s Conv:[In:%s Out:%s Eff:%s]',
+    '    Trace Req:%s(%s) Res:%s(%s) Night:%s Flux:%s dFlux:%s Energy:%s TSR:%d Local:%d SmellMax:%s SmellTop:[N:%d C:%s D:%d S:%s] Threat:%s Smell:%s Sight:%s Conv:[In:%s Out:%s Eff:%s]',
     [
       ActionToShortStr(Trace.RequestedAction),
       TargetToShortStr(Trace.RequestedTarget),
       ActionToShortStr(Trace.ResolvedAction),
       TargetToShortStr(Trace.ResolvedTarget),
       Trace.IsNight.LogStr,
+      Trace.Summary.SolarFlux.LogStr,
+      Trace.Summary.SolarFluxDelta.LogStr,
       EnergyLevelToStr(Trace.Summary.EnergyLevel),
+      Trace.Summary.TicksSinceReproduction,
+      Trace.Summary.LocalAgentCount,
       // SmellMax
       Trace.Summary.StrongestSmellSignal.LogStr,
       // SmellTop
       Trace.Summary.SmellCandidateCount,   // N:
-      Trace.Summary.TopSmellCacheId,       // C:
+      CacheToShortStr(Trace.Summary.TopSmellCache), // C:
       Trace.Summary.TopSmellDistance,      // D:
       Trace.Summary.TopSmellSignal.LogStr, // S:
       //
@@ -580,16 +630,15 @@ begin
   Assert(Assigned(B100));
   Params.AddFood(B100);
 
-  // place a cache at 10, 10
+  // place two caches
   Params.AddResource(Point(10, 10), A100, Normal);
   Params.AddResource(Point(12, 10), B100, Normal);
 
-  // place an agent at 11, 10
-  var loc := TPoint.Create(11, 10);
+  var loc := TPoint.Create(14, 10);
 
-  var smellRatings := WorldLibrary.FindRatings('OnlyBeta');
-  Assert(Assigned(smellRatings));
-  Params.AddAgent(loc, nil, smellRatings);
+//  var smellRatings := WorldLibrary.FindRatings('OnlyBeta');
+//  Assert(Assigned(smellRatings));
+//  Params.AddAgent(loc, nil, smellRatings);
   Params.AddAgent(loc, nil, nil);
 
 

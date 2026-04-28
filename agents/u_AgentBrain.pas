@@ -9,12 +9,16 @@ type
 
   TBrainTraceSummary = record
     EnergyLevel: TEnergyLevel;
+    TicksSinceReproduction: Integer;
+    LocalAgentCount: Integer;
     StrongestSmellSignal: Single;
     SmellCandidateCount: Integer;
-    TopSmellCacheId: Integer;
+    TopSmellCache: TCacheRef;
     TopSmellDistance: Integer;
     TopSmellSignal: Single;
     ThreatPressure: Single;
+    SolarFlux: Single;
+    SolarFluxDelta: Single;
     HadSmellTarget: Boolean;
     HadSightTarget: Boolean;
   end;
@@ -22,6 +26,8 @@ type
   // Runtime-owned inputs for one brain decision pass.
   TBrainTickInput = record
     IsNight: Boolean;
+    SolarFlux: Single;
+    SolarFluxDelta: Single;
     Query: ISimQuery;
   end;
 
@@ -51,7 +57,11 @@ type
 
 implementation
 
-uses u_EnvironmentTypes;
+uses System.SysUtils, u_EnvironmentTypes;
+
+const
+  // Keep hold mode for deeply dark conditions; rising light should wake sensing/evals.
+  SHELTER_HOLD_MAX_SOLAR_FLUX = 0.02;
 
 function CalculateStrongestSmellSignal(const Report: TSmellReport): Single;
 begin
@@ -75,15 +85,20 @@ begin
     Result := Result + Detail.MoleculeStrength[molecule];
 end;
 
-function BuildTraceSummary(const Context: TDecisionContext): TBrainTraceSummary;
+function BuildTraceSummary(const State: TAgentState; const Context: TDecisionContext;
+  const LocalAgentCount: Integer): TBrainTraceSummary;
 begin
   Result.EnergyLevel := Context.EnergyLevel;
+  Result.TicksSinceReproduction := State.TicksSinceReproduction;
+  Result.LocalAgentCount := LocalAgentCount;
   Result.StrongestSmellSignal := CalculateStrongestSmellSignal(Context.Smell);
   Result.SmellCandidateCount := Length(Context.Smell.Details);
-  Result.TopSmellCacheId := -1;
+  Result.TopSmellCache := Default(TCacheRef);
   Result.TopSmellDistance := -1;
   Result.TopSmellSignal := 0.0;
   Result.ThreatPressure := 0.0;
+  Result.SolarFlux := Context.SolarFlux;
+  Result.SolarFluxDelta := Context.SolarFluxDelta;
   Result.HadSmellTarget := Context.Smell.Count > 0;
   Result.HadSightTarget := Context.Sight.Count > 0;
 
@@ -91,7 +106,7 @@ begin
   if Length(Context.Smell.Details) > 0 then
   begin
     var top := Context.Smell.Details[0];
-    Result.TopSmellCacheId := top.CacheId;
+    Result.TopSmellCache := top.Cache;
     Result.TopSmellDistance := top.Directions.Distance;
     Result.TopSmellSignal := CalculateDetailSignal(top);
   end;
@@ -116,10 +131,23 @@ end;
 function BuildShelterEvalInput(const Context: TDecisionContext): TShelterEvalInput;
 begin
   Result.IsNight := Context.IsNight;
+  Result.SolarFlux := Context.SolarFlux;
+  Result.SolarFluxDelta := Context.SolarFluxDelta;
   Result.EnergyLevel := Context.EnergyLevel;
   Result.CurrentAction := Context.CurrentAction;
   // Placeholder until explicit threat modeling is added.
   Result.ThreatPressure := 0.0;
+end;
+
+function BuildReproduceEvalInput(const State: TAgentState; const Context: TDecisionContext;
+  const LocalAgentCount: Integer): TReproduceEvalInput;
+begin
+  Result.IsNight := Context.IsNight;
+  Result.EnergyLevel := Context.EnergyLevel;
+  Result.Reserves := State.Reserves;
+  Result.TicksSinceReproduction := State.TicksSinceReproduction;
+  Result.CurrentAction := Context.CurrentAction;
+  Result.LocalAgentCount := LocalAgentCount;
 end;
 
 function BuildEnergyInput(const State: TAgentState): TEnergyInput;
@@ -146,6 +174,8 @@ begin
   DecisionContext := Default(TDecisionContext);
   DecisionContext.Location := State.Location;
   DecisionContext.IsNight := Input.IsNight;
+  DecisionContext.SolarFlux := Input.SolarFlux;
+  DecisionContext.SolarFluxDelta := Input.SolarFluxDelta;
   DecisionContext.CurrentAction := State.Action;
   DecisionContext.EnergyLevel := Low(TEnergyLevel);
 
@@ -169,6 +199,7 @@ begin
   Assert(Assigned(State.Genome.GeneMap.ForageEval));
   Assert(Assigned(State.Genome.GeneMap.MoveEval));
   Assert(Assigned(State.Genome.GeneMap.Cognition));
+  Assert(Assigned(State.Genome.GeneMap.ReproduceEval));
 
 
   // Observation stage: enrich context from available genes.
@@ -177,9 +208,12 @@ begin
   var energyInput := BuildEnergyInput(State);
   Scratch.DecisionContext.EnergyLevel := State.Genome.GeneMap.Energy.EvaluateEnergyLevel(energyInput);
 
-  // Shelter hold mode: keep expensive sensing/evaluators quiet while sheltered at night
-  // unless energy has already dropped to low/empty.
-  var shelterHoldMode := (State.Action = acShelter) and Input.IsNight and
+  // Shelter hold mode: keep expensive sensing/evaluators quiet while sheltered in
+  // deep darkness, unless light is rising or energy has dropped to low/empty.
+  var shelterHoldMode := (State.Action = acShelter)
+    and (Input.SolarFlux <= SHELTER_HOLD_MAX_SOLAR_FLUX)
+    and (Input.SolarFluxDelta <= 0.0)
+    and
     (Scratch.DecisionContext.EnergyLevel > elLow);
 
   // 2. Smell
@@ -244,12 +278,21 @@ begin
   end;
 
   // 4. Reproduction
+  var localAgentCount := 0;
   var reproduceEval := State.Genome.GeneMap.ReproduceEval;
   if Assigned(reproduceEval) then
   begin
-    // to do
-    Scratch.ActionEvaluations[acReproduce].Score := 0;
-    Scratch.ActionEvaluations[acReproduce].Target.TType := ttNone;
+    var crowdingQuery: IPopulationCrowdingQuery;
+    if Supports(Input.Query, IPopulationCrowdingQuery, crowdingQuery) then
+    begin
+      localAgentCount := crowdingQuery.CountAgentsWithinRadius(State.Location, 1);
+      // Query counts local living agents in the source cell too, so drop self for social pressure.
+      if localAgentCount > 0 then
+        Dec(localAgentCount);
+    end;
+
+    var reproduceInput := BuildReproduceEvalInput(State, Scratch.DecisionContext, localAgentCount);
+    Scratch.ActionEvaluations[acReproduce] := reproduceEval.Evaluate(reproduceInput, Scratch.EvaluatorScratch.Reproduce);
   end;
 
 
@@ -270,7 +313,7 @@ begin
   end;
 
   Result.Evaluations := Scratch.ActionEvaluations;
-  Result.Trace := BuildTraceSummary(Scratch.DecisionContext);
+  Result.Trace := BuildTraceSummary(State, Scratch.DecisionContext, localAgentCount);
 end;
 
 end.

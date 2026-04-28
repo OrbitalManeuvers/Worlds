@@ -7,11 +7,10 @@ uses
   System.Generics.Collections;
 
 const
-  // note to self: I can feel 200 and 4 coming here soon.
-  CLOCK_TICKS_PER_DAY = 100;
-  NIGHT_TICKS_DENOMINATOR = 5; // 20% of the day is night by default
-
+  CLOCK_TICKS_PER_DAY = 120;
+  NIGHT_TICKS_DENOMINATOR = 3;
   NIGHT_TICKS_NUMERATOR = 1;
+
   NIGHT_TICKS_PER_DAY = (CLOCK_TICKS_PER_DAY * NIGHT_TICKS_NUMERATOR) div NIGHT_TICKS_DENOMINATOR;
   DAYLIGHT_TICKS_PER_DAY = CLOCK_TICKS_PER_DAY - NIGHT_TICKS_PER_DAY;
 

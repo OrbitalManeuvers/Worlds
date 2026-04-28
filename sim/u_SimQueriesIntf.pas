@@ -2,7 +2,7 @@ unit u_SimQueriesIntf;
 
 interface
 
-uses u_SimEnvironments;
+uses u_AgentTypes, u_SimEnvironments;
 
 type
   ISimQuery = interface
@@ -22,7 +22,7 @@ type
   // Smell cache info for a single substance at a location. SubstanceIndex provides composition identity.
   TSmellCacheInfo = record
     CellIndex: Integer;
-    CacheId: Cardinal;
+    Cache: TCacheRef;
     Amount: Single;
     Substance: TSubstance;
   end;
@@ -54,7 +54,16 @@ type
     ['{5E8FE2D0-AA3F-4ECC-9258-741C7927128A}']
     // Caller owns Buffer and can reuse it across ticks to reduce allocations.
     // Count is the number of valid items populated in Buffer[0..Count-1].
+    // This query returns indexed living agents in the local neighborhood, including distance-0 entries.
+    // There is no source-agent parameter, so callers that need to exclude "self" must filter by AgentId.
     procedure FillLocalAgents(Location: Integer; Range: Single; var Buffer: TSightInfos; out Count: Integer);
+  end;
+
+  IPopulationCrowdingQuery = interface(IPopulationQuery)
+    ['{E64FAE0C-E730-4BFD-8A4A-E208EB8F3D7B}']
+    // Returns the count of indexed living agents in a local radius around CellIndex.
+    // This count includes any living agent in CellIndex itself.
+    function CountAgentsWithinRadius(CellIndex, Radius: Integer): Integer;
   end;
 
 implementation

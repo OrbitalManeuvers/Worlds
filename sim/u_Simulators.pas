@@ -2,7 +2,7 @@ unit u_Simulators;
 
 interface
 
-uses u_SimClocks, u_SimRuntimes;
+uses u_SimClocks, u_SimDiagnosticsIntf, u_SimRuntimes;
 
 type
   TSimulator = class
@@ -12,7 +12,7 @@ type
     procedure ClockCallback(Sender: TObject; const NextTick: Cardinal; var CanContinue: Boolean);
     procedure ClockTickHandler(Sender: TObject; GlobalTick: Cardinal; DayTick: TDayTick);
   public
-    constructor Create;
+    constructor Create(const aBiomassConfig: TBiomassRuntimeConfig; const aDiagnostics: ISimDiagnosticsSink = nil);
     destructor Destroy; override;
 
     property Runtime: TSimRuntime read fRuntime;
@@ -24,12 +24,12 @@ implementation
 
 { TSimulator }
 
-constructor TSimulator.Create;
+constructor TSimulator.Create(const aBiomassConfig: TBiomassRuntimeConfig; const aDiagnostics: ISimDiagnosticsSink);
 begin
   inherited Create;
   fClock := TSimClock.Create(ClockCallback);
   fClock.SubscribeTick(ClockTickHandler);
-  fRuntime := TSimRuntime.Create;
+  fRuntime := TSimRuntime.Create(aBiomassConfig, aDiagnostics);
 end;
 
 destructor TSimulator.Destroy;
@@ -42,7 +42,7 @@ end;
 
 procedure TSimulator.ClockTickHandler(Sender: TObject; GlobalTick: Cardinal; DayTick: TDayTick);
 begin
-  fRuntime.DayTick := DayTick;
+  fRuntime.AdvanceClock(GlobalTick, DayTick);
 end;
 
 procedure TSimulator.ClockCallback(Sender: TObject; const NextTick: Cardinal; var CanContinue: Boolean);

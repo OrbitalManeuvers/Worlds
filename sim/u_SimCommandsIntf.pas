@@ -2,7 +2,7 @@ unit u_SimCommandsIntf;
 
 interface
 
-uses u_SimEnvironments;
+uses u_AgentTypes, u_SimEnvironments;
 
 type
   ISimCommand = interface
@@ -18,7 +18,7 @@ type
   end;
 
   TConsumeCacheRequest = record
-    CacheId: Integer;
+    Cache: TCacheRef;
     RequestedAmount: Single;
   end;
 

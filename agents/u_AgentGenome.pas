@@ -55,6 +55,8 @@ type
 
   TShelterEvalInput = record
     IsNight: Boolean;
+    SolarFlux: Single;
+    SolarFluxDelta: Single;
     EnergyLevel: TEnergyLevel;
     CurrentAction: TAgentAction;
     ThreatPressure: Single;
@@ -63,7 +65,10 @@ type
   TReproduceEvalInput = record
     IsNight: Boolean;
     EnergyLevel: TEnergyLevel;
+    Reserves: Single;
+    TicksSinceReproduction: Integer;
     CurrentAction: TAgentAction;
+    LocalAgentCount: Integer;
   end;
 
   TConverterInput = record
@@ -254,7 +259,6 @@ type
     SmellRatings: TMoleculeFactors;
     SmellEdgeRetention: Single;
     SightRange: Single;
-    Metabolism: Single;
   end;
 
 
@@ -413,6 +417,10 @@ begin
   geneClass := GlobalGeneRegistry.FindGeneration(TShelterEvalGene, aSequence.Shelter);
   aMap.ShelterEval := TShelterEvalGeneClass(geneClass);
 
+  // reproduction
+  geneClass := GlobalGeneRegistry.FindGeneration(TReproduceEvalGene, aSequence.Reproduce);
+  aMap.ReproduceEval := TReproduceEvalGeneClass(geneClass);
+
   // decision
   geneClass := GlobalGeneRegistry.FindGeneration(TCognitionGene, aSequence.Cognition);
   aMap.Cognition := TCognitionGeneClass(geneClass);
@@ -420,6 +428,7 @@ begin
   // converter
   geneClass := GlobalGeneRegistry.FindGeneration(TConverterGene, aSequence.Convert);
   aMap.Converter := TConverterGeneClass(geneClass);
+
 
 
 end;

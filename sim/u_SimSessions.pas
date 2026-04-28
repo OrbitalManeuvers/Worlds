@@ -5,7 +5,7 @@ interface
 uses System.Classes, System.Types, System.Generics.Collections,
  u_Worlds, u_EnvironmentTypes, u_EnvironmentLibraries,
  u_Simulators, u_SimParams, u_Foods, u_SimWatches, u_SimPhases,
- u_SimUpscalers, u_BiologyTypes, u_SimEnvironments;
+ u_SimUpscalers, u_BiologyTypes, u_SimEnvironments, u_SimDiagnostics, u_SimDiagnosticsIntf;
 
 type
   TLogEvent = procedure (Sender: TObject; const aMsg: string) of object;
@@ -21,6 +21,7 @@ type
       Location: TPoint;
       ConverterRatings: TMoleculeRatings; // can be nil
       SmellRatings: TMoleculeRatings;     // can be nil
+      GeneSequence: string;
     end;
 
     Resources: array of record
@@ -42,6 +43,8 @@ type
   private
     fWorld: TWorld;
     fLibrary: TEnvironmentLibrary;
+    fDiagnostics: TSimDiagnosticsHub;
+    fDiagnosticsSink: ISimDiagnosticsSink;
     fSim: TSimulator;
     fParams: TSimParams;
     fSeed: Integer;
@@ -85,6 +88,7 @@ type
     procedure ClearWatches;
 
     property Simulator: TSimulator read fSim;
+    property Diagnostics: TSimDiagnosticsHub read fDiagnostics;
     property Foods: TList<TFood> read fFoods;
     property Seed: Integer read fSeed;
 
@@ -101,8 +105,24 @@ implementation
 uses System.SysUtils,
   u_WorldLayouts, u_SimPopulators, u_SimRuntimes, u_AgentState;
 
+const
+  NIGHTFALL_CACHE_COUNT: array[TRating] of Integer = (0, 1, 2, 4, 8, 16, 32);
+  RANDOM_INJECT_CHANCE: array[TRating] of Integer = (0, 1, 3, 6, 10, 18, 30);
+
+var
+  NextSimSessionId: Integer = 0;
+
 
 { Utils }
+function ResolveBiomassRuntimeConfig(const Params: TSimParams): TBiomassRuntimeConfig;
+begin
+  Result.InjectOnDeath := bimOnDeath in Params.Biomass.InjectionModes;
+  Result.InjectAtNightfall := bimAtNightfall in Params.Biomass.InjectionModes;
+  Result.InjectRandomlyAtNight := bimRandom in Params.Biomass.InjectionModes;
+  Result.NightfallCacheCount := NIGHTFALL_CACHE_COUNT[Params.Biomass.Density];
+  Result.RandomInjectChancePercent := RANDOM_INJECT_CHANCE[Params.Biomass.Density];
+end;
+
 function SubstanceToStr(const sub: TSubstance): string;
 const
   fmt = 'A%.3d B%.3d G%.3d X%.3d ';
@@ -131,6 +151,7 @@ begin
   Agents[last].Location := aLocation;
   Agents[last].ConverterRatings := aConverterRatings;
   Agents[last].SmellRatings := aSmellRatings;
+  Agents[last].GeneSequence := 'AAAAAAAAA';
 end;
 
 procedure TDebugParameters.AddResource(aLocation: TPoint; aFood: TFood; aGrowthRate: TRating);
@@ -182,9 +203,12 @@ begin
   fWorld := aWorld;
   fLibrary := aLibrary;
   fParams := aParams;
+  Inc(NextSimSessionId);
+  fDiagnostics := TSimDiagnosticsHub.Create(NextSimSessionId);
+  fDiagnosticsSink := fDiagnostics;
 
   //
-  fSim := TSimulator.Create;
+  fSim := TSimulator.Create(ResolveBiomassRuntimeConfig(aParams), fDiagnosticsSink);
   fSim.Runtime.OnPhase := HandleRuntimePhase;
   fFoods := TList<TFood>.Create;
   fWatches := TObjectList<TSimWatch>.Create(True);
@@ -197,6 +221,8 @@ begin
   fWatches.Free;
   fFoods.Free;
   fSim.Free;
+  fDiagnostics := nil;
+  fDiagnosticsSink := nil;
   inherited;
 end;
 
@@ -415,6 +441,7 @@ begin
   var upscaler := TDebugUpscaler.Create(env, Params.Dimensions, Params.DefaultSunlight, Params.DefaultMobility);
   try
     upscaler.SetFoods(Params.Foods);
+    Self.Foods.AddRange(Params.Foods);
 
     var resourceCount := 0;
     for var def in Params.Resources do
@@ -439,6 +466,7 @@ begin
   var population := fSim.Runtime.Population;
   var nextId: Cardinal := 1;
 
+  population.SetCellCount(Length(env.Cells));
   population.AgentCount := Length(Params.Agents);
 
   for var agentIndex := 0 to Length(Params.Agents) - 1 do
@@ -446,7 +474,7 @@ begin
     var agent := Params.Agents[agentIndex];
     var cellIndex := (agent.Location.Y * env.Dimensions.cx) + agent.Location.X;
     TDebugPopulator.PopulateAgent(population, agentIndex, nextId, cellIndex,
-      agent.ConverterRatings, agent.SmellRatings);
+      agent.ConverterRatings, agent.SmellRatings, agent.GeneSequence);
   end;
 end;
 

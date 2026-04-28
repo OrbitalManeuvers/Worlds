@@ -40,7 +40,7 @@ begin
     begin
       Result.Score := targetSignal;
       Result.Target.TType := ttCache;
-      Result.Target.CacheId := detail.CacheId;
+      Result.Target.Cache := detail.Cache;
     end;
 
     // Keep legacy/noise-tolerant behavior if strengths are absent.
@@ -59,9 +59,15 @@ begin
       begin
         Result.Score := 0.01;
         Result.Target.TType := ttCache;
-        Result.Target.CacheId := detail.CacheId;
+        Result.Target.Cache := detail.Cache;
         Break;
       end;
+
+  // Discount forage urgency when reserves are already high � other actions can outcompete.
+  case Input.EnergyLevel of
+    elFull: Result.Score := Result.Score * 0.2;
+    elHigh: Result.Score := Result.Score * 0.6;
+  end;
 end;
 
 initialization

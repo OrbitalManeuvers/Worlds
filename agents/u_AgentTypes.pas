@@ -11,12 +11,18 @@ type
 
   TEnergyLevel = (elEmpty, elLow, elMedium, elHigh, elFull);
 
+  TCacheKind = (ckResource, ckBiomass);
+  TCacheRef = record
+    Kind: TCacheKind;
+    Index: Integer;
+  end;
+
   TTargetType = (ttNone, ttCell, ttCache);
   TTarget = record
     case TType: TTargetType of
       ttNone: ();
       ttCell: (Cell: Integer);
-      ttCache: (CacheId: Integer);
+      ttCache: (Cache: TCacheRef);
   end;
 
   TMoveDirection = (mdNorth, mdNorthEast, mdEast, mdSouthEast, mdSouth, mdSouthWest, mdWest, mdNorthWest);
@@ -37,7 +43,7 @@ type
 
   // what the agent detects about a resource cache.
   TSmellDetails = record
-    CacheId: Integer;
+    Cache: TCacheRef;
     CellIndex: Integer;
     Directions: TDirections;
     MoleculesPresent: TMolecules;
@@ -52,6 +58,8 @@ type
   TDecisionContext = record
     Location: Integer;
     IsNight: Boolean;
+    SolarFlux: Single;
+    SolarFluxDelta: Single;
 
     EnergyLevel: TEnergyLevel;
     Smell: TSmellReport;

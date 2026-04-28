@@ -11,6 +11,11 @@ type
       var Scratch: TSmellScanScratch): TSmellReport; override;
   end;
 
+  TBiomassSmell = class(TBasicSmell)
+  public
+    class function GetGenerationCode: Char; override;
+  end;
+
 implementation
 
 uses System.SysUtils, System.Math, u_EnvironmentTypes;
@@ -25,6 +30,23 @@ begin
   Result := 0.0;
   for var molecule := Low(TMolecule) to High(TMolecule) do
     Result := Result + Detail.MoleculeStrength[molecule];
+end;
+
+function CompareCacheRefs(const Left, Right: TCacheRef): Integer;
+begin
+  if Left.Kind <> Right.Kind then
+  begin
+    if Left.Kind < Right.Kind then
+      Exit(-1);
+    Exit(1);
+  end;
+
+  if Left.Index < Right.Index then
+    Exit(-1);
+  if Left.Index > Right.Index then
+    Exit(1);
+
+  Result := 0;
 end;
 
 function CompareSmellDetails(const Left, Right: TSmellDetails): Integer;
@@ -46,13 +68,8 @@ begin
     Exit(1);
   end;
 
-  // Tertiary: lower cache id first for deterministic tie-breaking.
-  if Left.CacheId < Right.CacheId then
-    Exit(-1);
-  if Left.CacheId > Right.CacheId then
-    Exit(1);
-
-  Result := 0;
+  // Tertiary: lower cache reference first for deterministic tie-breaking.
+  Result := CompareCacheRefs(Left.Cache, Right.Cache);
 end;
 
 procedure SortSmellDetails(var Details: array of TSmellDetails);
@@ -218,7 +235,7 @@ begin
 
       var distanceFalloff := LinearDistanceFalloff(distance, effectiveRadius, Params.EdgeRetention);
 
-      Result.Details[i].CacheId := Scratch.Buffer[i].CacheId;
+      Result.Details[i].Cache := Scratch.Buffer[i].Cache;
       Result.Details[i].CellIndex := Scratch.Buffer[i].CellIndex;
 
       Result.Details[i].MoleculesPresent := [];
@@ -281,7 +298,15 @@ begin
   end;
 end;
 
+{ TBiomassSmell }
+
+class function TBiomassSmell.GetGenerationCode: Char;
+begin
+  Result := 'B';
+end;
+
 initialization
   GlobalGeneRegistry.RegisterGene(TBasicSmell);
+  GlobalGeneRegistry.RegisterGene(TBiomassSmell);
 
 end.

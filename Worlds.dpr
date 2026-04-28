@@ -59,7 +59,11 @@ uses
   u_ShelterGenes in 'agents\u_ShelterGenes.pas',
   u_SimPhases in 'sim\u_SimPhases.pas',
   u_MovementGenes in 'agents\u_MovementGenes.pas',
-  u_ConverterGenes in 'agents\u_ConverterGenes.pas';
+  u_ConverterGenes in 'agents\u_ConverterGenes.pas',
+  u_SimDiagnosticsIntf in 'sim\u_SimDiagnosticsIntf.pas',
+  u_SimDiagnostics in 'sim\u_SimDiagnostics.pas',
+  u_DiagnosticListeners in 'sim\u_DiagnosticListeners.pas',
+  u_ReproduceGenes in 'agents\u_ReproduceGenes.pas';
 
 {$R *.res}
 

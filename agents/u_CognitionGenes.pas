@@ -20,6 +20,10 @@ const
   MOVE_TARGET_SWITCH_RATIO = 1.35;
   MOVE_TARGET_SWITCH_ABS_MARGIN = 0.02;
 
+  // Movement must beat the next-best non-move action by this margin to win.
+  // Try .04 or .05 if still feels twitchy at times
+  MOVE_ACTION_SELECTION_MARGIN = 0.03;
+
 function SmellSignalForCell(const Smell: TSmellReport; const CellIndex: Integer): Single;
 begin
   Result := 0.0;
@@ -51,6 +55,31 @@ begin
       bestAction := action;
       bestScore := Input.ActionEvaluations[action].Score;
     end;
+
+  // Require a modest lead for move decisions to avoid oscillation on near-ties.
+  if bestAction = acMove then
+  begin
+    var bestNonMoveAction := acIdle;
+    var bestNonMoveScore := -1.0;
+
+    for var action := Low(TAgentAction) to High(TAgentAction) do
+    begin
+      if action = acMove then
+        Continue;
+
+      if Input.ActionEvaluations[action].Score > bestNonMoveScore then
+      begin
+        bestNonMoveAction := action;
+        bestNonMoveScore := Input.ActionEvaluations[action].Score;
+      end;
+    end;
+
+    if bestScore < (bestNonMoveScore + MOVE_ACTION_SELECTION_MARGIN) then
+    begin
+      bestAction := bestNonMoveAction;
+      bestScore := bestNonMoveScore;
+    end;
+  end;
 
   // Avoid sticky carry-over actions when no action has positive support this tick.
   if bestScore <= 0.0 then
@@ -98,7 +127,7 @@ begin
       if Input.Context.Smell.Details[i].Directions.Distance = 0 then
       begin
         Result.RequestedTarget.TType := ttCache;
-        Result.RequestedTarget.CacheId := Input.Context.Smell.Details[i].CacheId;
+        Result.RequestedTarget.Cache := Input.Context.Smell.Details[i].Cache;
         foundLocal := True;
         Break;
       end;
@@ -111,9 +140,18 @@ begin
     end;
   end;
 
-  // Transitional fallback while non-forage evaluators are still wiring explicit targets.
-  if (bestAction <> acForage) and (Result.RequestedTarget.TType = ttNone) then
-    Result.RequestedTarget := Input.CurrentTarget;
+  // Transitional fallback while evaluators are still wiring explicit targets.
+  // Only move should inherit an in-flight target; shelter/reproduce/idle act on the current cell.
+  if Result.RequestedTarget.TType = ttNone then
+  begin
+    if bestAction = acMove then
+      Result.RequestedTarget := Input.CurrentTarget
+    else
+    begin
+      Result.RequestedTarget.TType := ttCell;
+      Result.RequestedTarget.Cell := Input.Context.Location;
+    end;
+  end;
 
   if Result.RequestedTarget.TType = ttNone then
   begin

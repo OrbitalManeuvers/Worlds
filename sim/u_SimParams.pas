@@ -7,6 +7,9 @@ uses u_BiologyTypes, u_EnvironmentTypes;
 // used by the upscaler to configure the runtime
 
 type
+  TBiomassInjectionMode = (bimOnDeath, bimAtNightfall, bimRandom);
+  TBiomassInjectionModes = set of TBiomassInjectionMode;
+
   TRuleTarget = (rtSmell, rtConverter);
   TRuleTargets = set of TRuleTarget;
   TPopulationRule = record
@@ -36,6 +39,11 @@ type
 //      ExtraBiomass: Single;
     end;
 
+    Biomass: record
+      InjectionModes: TBiomassInjectionModes;
+      Density: TRating;
+    end;
+
     procedure InitDefaults;
   end;
 
@@ -51,6 +59,9 @@ begin
 
   Environment.DayDecayRate := Normal;
   Environment.NightDecayRate := Normal;
+
+  Biomass.InjectionModes := [bimOnDeath];
+  Biomass.Density := Normal;
 end;
 
 

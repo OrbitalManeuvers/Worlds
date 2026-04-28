@@ -249,7 +249,7 @@ begin
     ttCell:
       Result := A.Cell = B.Cell;
     ttCache:
-      Result := A.CacheId = B.CacheId;
+      Result := (A.Cache.Kind = B.Cache.Kind) and (A.Cache.Index = B.Cache.Index);
   else
     Result := False;
   end;

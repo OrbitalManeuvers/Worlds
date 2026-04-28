@@ -25,7 +25,7 @@ type
 
 implementation
 
-uses System.Math, u_AgentState;
+uses System.Math, u_AgentState, u_AgentTypes;
 
 const
   // Recoil debt added per successful consume event.
@@ -48,29 +48,54 @@ begin
   Reply := Default(TConsumeCacheReply);
   Result := False;
 
-  var cacheIndex := Request.CacheId;
-  var available := fEnvironment.Resources[cacheIndex].Amount;
-  if available <= 0.0 then
-    Exit;
+  case Request.Cache.Kind of
+    ckResource:
+      begin
+        var cacheIndex := Request.Cache.Index;
+        var available := fEnvironment.Resources[cacheIndex].Amount;
+        if available <= 0.0 then
+          Exit;
 
-  var consumed := Request.RequestedAmount;
-  if consumed > available then
-    consumed := available;
+        var consumed := Request.RequestedAmount;
+        if consumed > available then
+          consumed := available;
 
-  var substanceIndex := fEnvironment.Resources[cacheIndex].SubstanceIndex;
-  Reply.Substance := fEnvironment.Substances[substanceIndex];
+        var substanceIndex := fEnvironment.Resources[cacheIndex].SubstanceIndex;
+        Reply.Substance := fEnvironment.Substances[substanceIndex];
 
-  var remaining := available - consumed;
-  fEnvironment.Resources[cacheIndex].Amount := remaining;
+        var remaining := available - consumed;
+        fEnvironment.Resources[cacheIndex].Amount := remaining;
 
-  // Every successful bite adds recoil cooldown debt.
-  // Repeated/parallel foraging compounds this debt up to a cap.
-  var debt := fEnvironment.Resources[cacheIndex].RegenDebt + CONSUMPTION_REGEN_DEBT_PER_CONSUME;
-  fEnvironment.Resources[cacheIndex].RegenDebt := Min(CONSUMPTION_REGEN_DEBT_MAX, debt);
+        // Every successful bite adds recoil cooldown debt.
+        // Repeated/parallel foraging compounds this debt up to a cap.
+        var debt := fEnvironment.Resources[cacheIndex].RegenDebt + CONSUMPTION_REGEN_DEBT_PER_CONSUME;
+        fEnvironment.Resources[cacheIndex].RegenDebt := Min(CONSUMPTION_REGEN_DEBT_MAX, debt);
 
-  Reply.ConsumedAmount := consumed;
-  Reply.RemainingAmount := fEnvironment.Resources[cacheIndex].Amount;
-  Result := consumed > 0.0;
+        Reply.ConsumedAmount := consumed;
+        Reply.RemainingAmount := fEnvironment.Resources[cacheIndex].Amount;
+        Result := consumed > 0.0;
+      end;
+    ckBiomass:
+      begin
+        var cacheIndex := Request.Cache.Index;
+        var available := fEnvironment.BiomassCaches[cacheIndex].Amount;
+        if available <= 0.0 then
+          Exit;
+
+        var consumed := Request.RequestedAmount;
+        if consumed > available then
+          consumed := available;
+
+        Reply.Substance := BIOMASS_SUBSTANCE;
+
+        var remaining := available - consumed;
+        fEnvironment.BiomassCaches[cacheIndex].Amount := remaining;
+
+        Reply.ConsumedAmount := consumed;
+        Reply.RemainingAmount := fEnvironment.BiomassCaches[cacheIndex].Amount;
+        Result := consumed > 0.0;
+      end;
+  end;
 end;
 
 function TSimCommand.TryMoveAgent(const Request: TMoveAgentRequest; out Reply: TMoveAgentReply): Boolean;

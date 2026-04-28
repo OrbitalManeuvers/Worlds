@@ -18,6 +18,13 @@ type
     GrowthRate: Single;      // incorporates Biome.GrowthRate and Food.GrowthRate
   end;
 
+  // biomass caches are separate from growable resources - dynamic and temporary
+  TBiomassCache = record
+    CellIndex: Integer;
+    Amount: Single;
+    RegenDebt: Single;
+  end;
+
   // Grid is made up of TCell
   TCell = record
     ResourceStart: Integer;
@@ -29,6 +36,7 @@ type
   TCellArray = array of TCell;
   TResourceArray = array of TResourceCache;
   TSubstanceArray = array of TSubstance;
+  TBiomassCacheArray = array of TBiomassCache;
 
   TSimEnvironment = class
   private
@@ -38,8 +46,11 @@ type
     fResourceCount: Integer; // read only cache for instrumentation
     fSubstances: TSubstanceArray;
     fSolarFlux: Single;
+    fBiomassCaches: TBiomassCacheArray;
     procedure SetDayTick(const Value: TDayTick);
     procedure UpdateResources(const aDayTick: TDayTick);
+    procedure UpdateBiomass(const aDayTick: TDayTick);
+    function CreateBiomassCache(CellIndex: Integer; InitialAmount: Single): Integer;
   public
     constructor Create;
     destructor Destroy; override;
@@ -51,6 +62,9 @@ type
     { monolithic allocations }
     procedure SetDimensions(aSize: TSize);
     procedure SetResourceCount(aCount: Integer);
+
+    // Public biomass insertion path for runtime-controlled deposits.
+    procedure InjectBiomass(Location: Integer; BiomassAmount: Single);
 
     // Hook for runtime death events. BiomassAmount is currently caller-selected.
     // Future expansion: derive this from richer agent death metadata (mass, composition, etc.).
@@ -66,7 +80,12 @@ type
     property SolarFlux: Single read fSolarFlux write fSolarFlux;
     property DayTick: TDayTick write SetDayTick;
     property Dimensions: TSize read fDimensions;
+
+    property BiomassCaches: TBiomassCacheArray read fBiomassCaches;
   end;
+
+const
+  BIOMASS_SUBSTANCE: TSubstance = (0, 0, 0, 100);
 
 implementation
 
@@ -104,7 +123,7 @@ begin
   fSolarFlux := BaseSolarFlux(Value);
 
   UpdateResources(Value);
-  // UpdateBiomass; // planned cache pass
+  UpdateBiomass(Value);
 end;
 
 procedure TSimEnvironment.UpdateResources(const aDayTick: TDayTick);
@@ -179,8 +198,48 @@ end;
 
 procedure TSimEnvironment.NotifyAgentDeath(Location: Integer; BiomassAmount: Single);
 begin
-  // Biomass insertion is intentionally deferred; runtime now has a formal hook.
-  // TODO: route to biomass store when that subsystem is implemented.
+  InjectBiomass(Location, BiomassAmount);
+end;
+
+procedure TSimEnvironment.InjectBiomass(Location: Integer; BiomassAmount: Single);
+begin
+  // Bounds-check Location against valid cell indices.
+  if (Location < 0) or (Location > High(fCells)) then
+    Exit;
+
+  CreateBiomassCache(Location, BiomassAmount);
+end;
+
+function TSimEnvironment.CreateBiomassCache(CellIndex: Integer; InitialAmount: Single): Integer;
+var
+  NewCache: TBiomassCache;
+begin
+  NewCache.CellIndex := CellIndex;
+  NewCache.Amount := EnsureRange(InitialAmount, 0.0, 1.0);
+  NewCache.RegenDebt := 0.0;
+  
+  SetLength(fBiomassCaches, Length(fBiomassCaches) + 1);
+  fBiomassCaches[High(fBiomassCaches)] := NewCache;
+  
+  Result := High(fBiomassCaches);
+end;
+
+procedure TSimEnvironment.UpdateBiomass(const aDayTick: TDayTick);
+const
+  BIOMASS_SUNLIGHT_DECAY_RATE = 0.08;
+  BIOMASS_NIGHT_DECAY_RATE = 0.002;
+var
+  decay: Single;
+begin
+  for var cacheIndex := 0 to High(fBiomassCaches) do
+  begin
+    decay := fSolarFlux * BIOMASS_SUNLIGHT_DECAY_RATE + BIOMASS_NIGHT_DECAY_RATE;
+    fBiomassCaches[cacheIndex].Amount := EnsureRange(
+      fBiomassCaches[cacheIndex].Amount - decay,
+      0.0,
+      1.0
+    );
+  end;
 end;
 
 end.

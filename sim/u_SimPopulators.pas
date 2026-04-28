@@ -16,7 +16,7 @@ type
   TDebugPopulator = class
   public
     class procedure PopulateAgent(aPopulation: TSimPopulation; aAgentIndex, aAgentId, aLocation: Integer;
-      aConverterRatings, aSmellRatings: TMoleculeRatings);
+      aConverterRatings, aSmellRatings: TMoleculeRatings; const aGeneSequence: string = 'AAAAAAAAA');
 //    class procedure Populate(aPopulation
 //    TDebugPopulator.PopulateAgent(population, agentIndex, agentId, cellIndex,
 //      agent.ConverterRatings, agent.SmellRatings);
@@ -32,6 +32,16 @@ const
   CONVERTER_RATING_FACTOR: array[TRating] of Single = (0.00, 0.20, 0.45, 0.75, 0.88, 0.95, 1.00);
   // smell sensitivity scale (detection weighting)
   SMELL_RATING_FACTOR: array[TRating] of Single = (0.00, 0.35, 0.65, 1.00, 1.20, 1.40, 1.60);
+  INITIAL_TICKS_SINCE_REPRODUCTION = 0;
+
+procedure ApplyBiomassGeneGates(var State: TAgentState);
+begin
+  if Assigned(State.Genome.GeneMap.Smell) and (State.Genome.GeneMap.Smell.GetGenerationCode = 'A') then
+    State.Genome.SmellRatings[Biomass] := 0.0;
+
+  if Assigned(State.Genome.GeneMap.Converter) and (State.Genome.GeneMap.Converter.GetGenerationCode = 'A') then
+    State.Genome.ConverterRatings[Biomass] := 0.0;
+end;
 
 
 { TWorldPopulator }
@@ -132,6 +142,11 @@ var
   sequence: TGeneSequence;
   location: Integer;
 begin
+  if Assigned(aEnvironment) then
+    aPopulation.SetCellCount(Length(aEnvironment.Cells))
+  else
+    aPopulation.SetCellCount(0);
+
   aPopulation.AgentCount := aParams.Population.AgentCount;
   nextId := 1;
 
@@ -161,10 +176,10 @@ begin
       state.Location := location;
 
       state.Reserves := 5.0;
+      state.TicksSinceReproduction := INITIAL_TICKS_SINCE_REPRODUCTION;
       TGeneSequencer.Populate(state.Genome.GeneMap, sequence);
 
       state.Genome.SmellEdgeRetention := 0.25;
-      state.Genome.Metabolism := 0.05;
 
       // assign default smell and digestion profiles
       for var molecule := Low(TMolecule) to High(TMolecule) do
@@ -207,6 +222,8 @@ begin
         end;
       end;
 
+      ApplyBiomassGeneGates(state);
+
       aPopulation.UpdateAgentState(i, state);
     end;
   end;
@@ -217,7 +234,7 @@ end;
 
 class procedure TDebugPopulator.PopulateAgent(aPopulation: TSimPopulation;
   aAgentIndex, aAgentId, aLocation: Integer;
-  aConverterRatings, aSmellRatings: TMoleculeRatings);
+  aConverterRatings, aSmellRatings: TMoleculeRatings; const aGeneSequence: string = 'AAAAAAAAA');
 var
   sequence: TGeneSequence;
 begin
@@ -227,11 +244,15 @@ begin
   state.AgentId := aAgentId;
   state.Location := aLocation;
   state.Reserves := 5.0;
+  state.TicksSinceReproduction := INITIAL_TICKS_SINCE_REPRODUCTION;
 
   state.Genome.SmellEdgeRetention := 0.25;
-  state.Genome.Metabolism := 0.05;
 
-  sequence.AsText := 'AAAAAAAAA';
+  if Length(aGeneSequence) = 9 then
+    sequence.AsText := aGeneSequence
+  else
+    sequence.AsText := 'AAAAAAAAA';
+
   TGeneSequencer.Populate(state.Genome.GeneMap, sequence);
 
   // converter
@@ -248,9 +269,11 @@ begin
   begin
     var value: Single := 1.0;
     if Assigned(aSmellRatings) then
-      value := CONVERTER_RATING_FACTOR[aSmellRatings[molecule]];
+      value := SMELL_RATING_FACTOR[aSmellRatings[molecule]];
     state.Genome.SmellRatings[molecule] := value;
   end;
+
+  ApplyBiomassGeneGates(state);
 
   aPopulation.UpdateAgentState(aAgentIndex, state);
 end;
