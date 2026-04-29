@@ -475,6 +475,7 @@ begin
     var cellIndex := (agent.Location.Y * env.Dimensions.cx) + agent.Location.X;
     TDebugPopulator.PopulateAgent(population, agentIndex, nextId, cellIndex,
       agent.ConverterRatings, agent.SmellRatings, agent.GeneSequence);
+    Inc(nextId);
   end;
 end;
 

@@ -9,6 +9,8 @@ type
 
   TBrainTraceSummary = record
     EnergyLevel: TEnergyLevel;
+    ActionProgress: Integer;
+    ReserveDelta: Single;
     TicksSinceReproduction: Integer;
     LocalAgentCount: Integer;
     StrongestSmellSignal: Single;
@@ -89,6 +91,8 @@ function BuildTraceSummary(const State: TAgentState; const Context: TDecisionCon
   const LocalAgentCount: Integer): TBrainTraceSummary;
 begin
   Result.EnergyLevel := Context.EnergyLevel;
+  Result.ActionProgress := State.ActionProgress;
+  Result.ReserveDelta := State.ReserveDelta;
   Result.TicksSinceReproduction := State.TicksSinceReproduction;
   Result.LocalAgentCount := LocalAgentCount;
   Result.StrongestSmellSignal := CalculateStrongestSmellSignal(Context.Smell);
@@ -145,6 +149,7 @@ begin
   Result.IsNight := Context.IsNight;
   Result.EnergyLevel := Context.EnergyLevel;
   Result.Reserves := State.Reserves;
+  Result.ReserveDelta := State.ReserveDelta;
   Result.TicksSinceReproduction := State.TicksSinceReproduction;
   Result.CurrentAction := Context.CurrentAction;
   Result.LocalAgentCount := LocalAgentCount;
@@ -210,11 +215,16 @@ begin
 
   // Shelter hold mode: keep expensive sensing/evaluators quiet while sheltered in
   // deep darkness, unless light is rising or energy has dropped to low/empty.
+  // Gestating shelter is always runtime-owned hold state.
   var shelterHoldMode := (State.Action = acShelter)
-    and (Input.SolarFlux <= SHELTER_HOLD_MAX_SOLAR_FLUX)
-    and (Input.SolarFluxDelta <= 0.0)
-    and
-    (Scratch.DecisionContext.EnergyLevel > elLow);
+    and (
+      (State.ActionProgress > 0)
+      or (
+        (Input.SolarFlux <= SHELTER_HOLD_MAX_SOLAR_FLUX)
+        and (Input.SolarFluxDelta <= 0.0)
+        and (Scratch.DecisionContext.EnergyLevel > elLow)
+      )
+    );
 
   // 2. Smell
   if not shelterHoldMode then
@@ -280,7 +290,7 @@ begin
   // 4. Reproduction
   var localAgentCount := 0;
   var reproduceEval := State.Genome.GeneMap.ReproduceEval;
-  if Assigned(reproduceEval) then
+  if Assigned(reproduceEval) and (State.Action <> acShelter) then
   begin
     var crowdingQuery: IPopulationCrowdingQuery;
     if Supports(Input.Query, IPopulationCrowdingQuery, crowdingQuery) then

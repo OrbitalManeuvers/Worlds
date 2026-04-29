@@ -12,9 +12,13 @@ const
   AGENT_BASE_METABOLISM = 0.01;  // physics floor: applies to all agents regardless of genome
   GENE_GENERATION_COST = 0.005;  // upkeep added per generation above A for each gene slot
   AGENT_MAX_RESERVES = 10.0;     // hard ceiling on energy reserves
-  REPRODUCTION_PARENT_MIN_RESERVES = 4.0;
+  REPRODUCTION_DURATION_TICKS = 3;
   REPRODUCTION_CHILD_START_RESERVES = 2.0;
-  REPRODUCTION_PARENT_COST = 2.0;
+  REPRODUCTION_FATIGUE_BASE = 0.10;
+  REPRODUCTION_FATIGUE_STEP = 0.10;
+  // Completion still carries the main drain, but gestation now pays meaningful
+  // sunk cost before birth so abandoning it is less free.
+  REPRODUCTION_PARENT_COST = 3.8;
 
 type
   TRuntimePhaseEvent = procedure (Sender: TObject; Phase: TSimTickPhase) of object;
@@ -58,7 +62,7 @@ type
     fSimCommand: ISimCommand;
     fOnPhase: TRuntimePhaseEvent;
     function BuildEventHeader(aKind: TSimEventKind; const aPhase: TSimTickPhase): TSimEventHeader;
-    procedure EmitActionResolved(const State: TAgentState; const Requested, Resolved: TBrainTickOutput);
+    procedure EmitActionResolved(const StateBeforeResolution, State: TAgentState; const Requested, Resolved: TBrainTickOutput);
     procedure EmitAgentBorn(const OffspringState: TAgentState; const ParentAgentId: Integer);
     procedure EmitAgentDied(const State: TAgentState; const ReservesBeforeDeath: Single);
     procedure EmitAgentMoved(const State: TAgentState; const FromCell, ToCell: Integer; const MoveCost: Single);
@@ -156,6 +160,16 @@ function TSimRuntime.CalculateAgentTickCost(const State: TAgentState): Single;
     if Result < 0.0 then
       Result := 0.0;
   end;
+  function GestationFatigueCost: Single;
+  begin
+    Result := 0.0;
+
+    if (State.Action <> acShelter) or (State.ActionProgress <= 0) then
+      Exit;
+
+    Result := REPRODUCTION_FATIGUE_BASE
+      + ((State.ActionProgress - 1) * REPRODUCTION_FATIGUE_STEP);
+  end;
 begin
   if State.Action = acShelter then
   begin
@@ -166,6 +180,7 @@ begin
       + GeneGenerationCost(State.Genome.GeneMap.Cognition);
 
     Result := Result * SHELTER_UPKEEP_MULTIPLIER;
+    Result := Result + GestationFatigueCost;
     Exit;
   end;
 
@@ -179,7 +194,8 @@ begin
     + GeneGenerationCost(State.Genome.GeneMap.ShelterEval)
     + GeneGenerationCost(State.Genome.GeneMap.ReproduceEval)
     + GeneGenerationCost(State.Genome.GeneMap.Cognition)
-    + GeneGenerationCost(State.Genome.GeneMap.Converter);
+    + GeneGenerationCost(State.Genome.GeneMap.Converter)
+    + GestationFatigueCost;
 end;
 
 function TSimRuntime.ApplyAgentUpkeep(var State: TAgentState): Boolean;
@@ -305,8 +321,8 @@ begin
   Result.Kind := aKind;
 end;
 
-procedure TSimRuntime.EmitActionResolved(const State: TAgentState; const Requested,
-  Resolved: TBrainTickOutput);
+procedure TSimRuntime.EmitActionResolved(const StateBeforeResolution, State: TAgentState;
+  const Requested, Resolved: TBrainTickOutput);
 begin
   if not Assigned(fDiagnostics) then
     Exit;
@@ -318,6 +334,30 @@ begin
   event.ActionResolved.RequestedTarget := Requested.RequestedTarget;
   event.ActionResolved.ResolvedAction := Resolved.RequestedAction;
   event.ActionResolved.ResolvedTarget := Resolved.RequestedTarget;
+  event.ActionResolved.Reserves := State.Reserves;
+  event.ActionResolved.ActionProgress := State.ActionProgress;
+
+  if (Requested.RequestedAction = acReproduce)
+    and (Resolved.RequestedAction = acIdle)
+    and (StateBeforeResolution.Action <> acShelter)
+    and (StateBeforeResolution.Reserves < REPRODUCTION_MIN_ATTEMPT_RESERVES) then
+    event.ActionResolved.Note := arnReproduceBlockedLowReserves
+  else if (Requested.RequestedAction = acReproduce)
+    and (Resolved.RequestedAction = acShelter)
+    and (StateBeforeResolution.Action <> acShelter)
+    and (State.ActionProgress > 0) then
+    event.ActionResolved.Note := arnGestationStarted
+  else if (StateBeforeResolution.Action = acShelter)
+    and (StateBeforeResolution.ActionProgress > 0)
+    and (Resolved.RequestedAction = acShelter)
+    and (State.ActionProgress > 0) then
+    event.ActionResolved.Note := arnGestationContinuing
+  else if (StateBeforeResolution.Action = acShelter)
+    and (StateBeforeResolution.ActionProgress > 0)
+    and (Resolved.RequestedAction = acIdle)
+    and (State.ActionProgress = 0) then
+    event.ActionResolved.Note := arnGestationCompleted;
+
   fDiagnostics.Emit(event);
 end;
 
@@ -360,7 +400,8 @@ begin
   event.AgentMoved.AgentId := State.AgentId;
   event.AgentMoved.FromCell := FromCell;
   event.AgentMoved.ToCell := ToCell;
-  event.AgentMoved.MoveCost := MoveCost;
+  event.AgentMoved.MoveCost := movecost;
+  event.AgentMoved.Reserves := State.Reserves;
   fDiagnostics.Emit(event);
 end;
 
@@ -462,28 +503,54 @@ begin
   ForageConsumed := 0.0;
   ForageGain := 0.0;
 
-  if Requested.RequestedAction = acReproduce then
+  if (State.Action = acShelter) and (State.ActionProgress > 0) then
   begin
-    if State.Reserves < REPRODUCTION_PARENT_MIN_RESERVES then
+    Result.RequestedTarget.TType := ttCell;
+    Result.RequestedTarget.Cell := State.Location;
+
+    if State.ActionProgress >= REPRODUCTION_DURATION_TICKS then
+      State.ActionProgress := REPRODUCTION_DURATION_TICKS - 1;
+
+    if State.ActionProgress >= (REPRODUCTION_DURATION_TICKS - 1) then
     begin
+      var offspringState := BuildOffspringState(State, NextAgentId);
+      State.Reserves := State.Reserves - REPRODUCTION_PARENT_COST;
+      if State.Reserves < 0.0 then
+        State.Reserves := 0.0;
+      State.TicksSinceReproduction := 0;
+      State.ActionProgress := 0;
+      fPopulation.AppendAgent(offspringState);
+      EmitAgentBorn(offspringState, State.AgentId);
+
       Result.RequestedAction := acIdle;
-      Result.RequestedTarget.TType := ttCell;
-      Result.RequestedTarget.Cell := State.Location;
       Exit;
     end;
 
-    var offspringState := BuildOffspringState(State, NextAgentId);
-    State.Reserves := State.Reserves - REPRODUCTION_PARENT_COST;
-    if State.Reserves < 0.0 then
-      State.Reserves := 0.0;
-    State.TicksSinceReproduction := 0;
-    fPopulation.AppendAgent(offspringState);
-    EmitAgentBorn(offspringState, State.AgentId);
+    Inc(State.ActionProgress);
+    Result.RequestedAction := acShelter;
+    Exit;
+  end;
 
-    Result.RequestedAction := acReproduce;
+  if State.ActionProgress <> 0 then
+    State.ActionProgress := 0;
+
+  if Requested.RequestedAction = acReproduce then
+  begin
     Result.RequestedTarget.TType := ttCell;
     Result.RequestedTarget.Cell := State.Location;
-    Exit;
+
+    if State.Action <> acShelter then
+    begin
+      if State.Reserves < REPRODUCTION_MIN_ATTEMPT_RESERVES then
+      begin
+        Result.RequestedAction := acIdle;
+        Exit;
+      end;
+
+      State.ActionProgress := 1;
+      Result.RequestedAction := acShelter;
+      Exit;
+    end;
   end;
 
   if Requested.RequestedAction = acMove then
@@ -654,11 +721,13 @@ begin
   Inc(state.Age);
   Inc(state.TicksSinceReproduction);
 
+  var reservesAtTickStart := state.Reserves;
   var reservesBeforeUpkeep := state.Reserves;
 
   if not ApplyAgentUpkeep(state) then
   begin
     // Dead agents do not think or request actions.
+    state.ReserveDelta := state.Reserves - reservesAtTickStart;
     state.Action := acIdle;
     fPopulation.UpdateAgentState(aIndex, state);
     EmitAgentDied(state, reservesBeforeUpkeep);
@@ -678,9 +747,11 @@ begin
   var requested := fPopulation.RequestAgentStep(aIndex, Input);
   var forageConsumed: Single := 0.0;
   var forageGain: Single := 0.0;
+  var stateBeforeResolution := state;
   var resolved := ResolveRequestedStep(aIndex, state, requested, forageConsumed, forageGain);
+  state.ReserveDelta := state.Reserves - reservesAtTickStart;
   CaptureDecisionTrace(aIndex, state, Input, requested, resolved, forageConsumed, forageGain);
-  EmitActionResolved(state, requested, resolved);
+  EmitActionResolved(stateBeforeResolution, state, requested, resolved);
   fPopulation.UpdateAgentState(aIndex, state);
   fPopulation.ApplyAgentStep(aIndex, resolved);
 end;

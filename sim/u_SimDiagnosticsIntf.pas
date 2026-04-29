@@ -24,6 +24,14 @@ type
     bcrAgentDeath
   );
 
+  TActionResolutionNote = (
+    arnNone,
+    arnReproduceBlockedLowReserves,
+    arnGestationStarted,
+    arnGestationContinuing,
+    arnGestationCompleted
+  );
+
   TSimEventHeader = record
     SessionId: Integer;
     Sequence: Int64;
@@ -39,6 +47,9 @@ type
     RequestedTarget: TTarget;
     ResolvedAction: TAgentAction;
     ResolvedTarget: TTarget;
+    Reserves: Single;
+    ActionProgress: Integer;
+    Note: TActionResolutionNote;
   end;
 
   TAgentMovedEvent = record
@@ -46,6 +57,7 @@ type
     FromCell: Integer;
     ToCell: Integer;
     MoveCost: Single;
+    Reserves: Single;
   end;
 
   TAgentBornEvent = record

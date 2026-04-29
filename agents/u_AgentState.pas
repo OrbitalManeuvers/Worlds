@@ -13,6 +13,7 @@ type
     // Lifecycle
     Age: Cardinal;  // in ticks
     Reserves: Single;  // energy
+    ReserveDelta: Single;  // end-of-last-live-tick reserves minus prior tick reserves
     TicksSinceReproduction: Integer;
 
     // Current action

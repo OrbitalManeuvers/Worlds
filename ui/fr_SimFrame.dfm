@@ -44,7 +44,7 @@ inherited SimFrame: TSimFrame
           Left = 4
           Top = 2
           Width = 165
-          Height = 41
+          Height = -4
           Margins.Left = 4
           Margins.Top = 2
           Margins.Bottom = 2
@@ -52,6 +52,7 @@ inherited SimFrame: TSimFrame
           AutoSize = False
           Caption = '[world]'
           Layout = tlCenter
+          ExplicitHeight = 41
         end
       end
       object btnCreateSim: TButton
@@ -242,7 +243,7 @@ inherited SimFrame: TSimFrame
         Top = 376
         Width = 982
         Height = 322
-        ActivePage = TabSheet2
+        ActivePage = tsAgentLog
         Align = alBottom
         Anchors = [akLeft, akTop, akRight, akBottom]
         TabOrder = 4

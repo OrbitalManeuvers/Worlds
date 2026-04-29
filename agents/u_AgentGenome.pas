@@ -6,6 +6,11 @@ uses System.Generics.Collections,
 
   u_SimQueriesIntf, u_EnvironmentTypes, u_SimEnvironments, u_AgentTypes;
 
+const
+  // Shared fit-parent start floor for reproduction. Runtime still owns actual spawning,
+  // but evaluators should not ask for reproduction below this legal minimum.
+  REPRODUCTION_MIN_ATTEMPT_RESERVES = 6.0;
+
 // In this simulated universe, a "gene" is just an upgradable bit of agent that makes them tick. Every tick.
 
 type
@@ -66,6 +71,7 @@ type
     IsNight: Boolean;
     EnergyLevel: TEnergyLevel;
     Reserves: Single;
+    ReserveDelta: Single;
     TicksSinceReproduction: Integer;
     CurrentAction: TAgentAction;
     LocalAgentCount: Integer;

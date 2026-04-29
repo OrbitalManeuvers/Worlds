@@ -214,7 +214,7 @@ begin
     edtSeedName.Text := IntToStr(fSession.Seed);
 
 
-    fSession.AddAgentWatch(0);
+//    fSession.AddAgentWatch(0);
 //    fSession.AddAgentWatch(1);
 
     // add a cell watch that follows agent 0 across moves
@@ -282,7 +282,7 @@ begin
 //    CellIndex: Integer;
 //  end;
   var filter: TSimEventFilter;
-  filter.Kinds := [sekAgentMoved, sekAgentBorn];
+  filter.Kinds := [sekAgentBorn, sekAgentDied]; // [sekActionResolved, sekAgentMoved, sekAgentBorn, sekAgentDied];
   filter.AgentId := -1;
   filter.CellIndex := -1;
 
@@ -292,7 +292,7 @@ end;
 
 procedure TSimFrame.HandleExternalLog(const aMsg: string);
 begin
-  AgentLog.Lines.Add('[ ' + aMsg + ' ]');
+  AgentLog.Lines.Add(aMsg);
 end;
 
 procedure TSimFrame.DoneSession;
@@ -435,7 +435,7 @@ function TSimFrame.FormatDecisionTrace(const Trace: TDecisionTrace): string;
   end;
 begin
   Result := Format(
-    '    Trace Req:%s(%s) Res:%s(%s) Night:%s Flux:%s dFlux:%s Energy:%s TSR:%d Local:%d SmellMax:%s SmellTop:[N:%d C:%s D:%d S:%s] Threat:%s Smell:%s Sight:%s Conv:[In:%s Out:%s Eff:%s]',
+    '    Trace Req:%s(%s) Res:%s(%s) Night:%s Flux:%s dFlux:%s dRes:%s Energy:%s AP:%d TSR:%d Local:%d SmellMax:%s SmellTop:[N:%d C:%s D:%d S:%s] Threat:%s Smell:%s Sight:%s Conv:[In:%s Out:%s Eff:%s]',
     [
       ActionToShortStr(Trace.RequestedAction),
       TargetToShortStr(Trace.RequestedTarget),
@@ -444,7 +444,9 @@ begin
       Trace.IsNight.LogStr,
       Trace.Summary.SolarFlux.LogStr,
       Trace.Summary.SolarFluxDelta.LogStr,
+      Trace.Summary.ReserveDelta.LogStr,
       EnergyLevelToStr(Trace.Summary.EnergyLevel),
+      Trace.Summary.ActionProgress,
       Trace.Summary.TicksSinceReproduction,
       Trace.Summary.LocalAgentCount,
       // SmellMax
@@ -496,7 +498,7 @@ begin
         w.AgentIndex,
         w.LastChange.PreviousState.Location,
         w.LastChange.CurrentState.Reserves.LogStr,
-        Single(w.LastChange.CurrentState.Reserves - w.LastChange.PreviousState.Reserves).LogStr,
+        w.LastChange.CurrentState.ReserveDelta.LogStr,
         actionStr
       ]
     );
@@ -631,14 +633,15 @@ begin
   Params.AddFood(B100);
 
   // place two caches
-  Params.AddResource(Point(10, 10), A100, Normal);
+  Params.AddResource(Point(11, 10), A100, Normal);
   Params.AddResource(Point(12, 10), B100, Normal);
 
-  var loc := TPoint.Create(14, 10);
+  var loc := TPoint.Create(11, 12);
 
 //  var smellRatings := WorldLibrary.FindRatings('OnlyBeta');
 //  Assert(Assigned(smellRatings));
 //  Params.AddAgent(loc, nil, smellRatings);
+  Params.AddAgent(loc, nil, nil);
   Params.AddAgent(loc, nil, nil);
 
 
