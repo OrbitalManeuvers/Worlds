@@ -33,12 +33,12 @@ type
     lblMobility: TLabel;
     lblGrowthRate: TLabel;
     bvGrowthRate: TBevel;
-    bvCapacity: TBevel;
-    lblCapacity: TLabel;
+    bvDensity: TBevel;
+    lblDensity: TLabel;
     lblGrowthRateInfo: TLabel;
     lblSunlightInfo: TLabel;
     lblMobilityInfo: TLabel;
-    lblCapacityInfo: TLabel;
+    lblDensityInfo: TLabel;
     shBiomeMapColor: TShape;
     FoodList: TControlList;
     cbFoodActive: TControlListCheckBox;
@@ -48,7 +48,7 @@ type
     SunlightEditor: TRatingEditorFrame;
     MobilityEditor: TRatingEditorFrame;
     GrowthEditor: TRatingEditorFrame;
-    CapacityEditor: TRatingEditorFrame;
+    DensityEditor: TRatingEditorFrame;
     procedure BiomeListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
     procedure pbPresetsPaint(Sender: TObject);
@@ -60,7 +60,7 @@ type
     procedure SunlightClick(Sender: TObject);
     procedure MobilityClick(Sender: TObject);
     procedure GrowthRateClick(Sender: TObject);
-    procedure CapacityClick(Sender: TObject);
+    procedure DensityClick(Sender: TObject);
     procedure pbPresetsMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure NameChanged(Sender: TObject);
@@ -112,7 +112,7 @@ const
    'Well Fertilized',
    'Mostly Poop'
   );
-  CapacityCaptions: TRatingNames = (
+  DensityCaptions: TRatingNames = (
    'None for Miles',
    'Long Drive',
    'Special Order',
@@ -143,8 +143,8 @@ begin
   MobilityEditor.RatingNames := MobilityCaptions;
   GrowthEditor.OnChange := GrowthRateClick;
   GrowthEditor.RatingNames := GrowthCaptions;
-  CapacityEditor.OnChange := CapacityClick;
-  CapacityEditor.RatingNames := CapacityCaptions;
+  DensityEditor.OnChange := DensityClick;
+  DensityEditor.RatingNames := DensityCaptions;
 
   UpdateControls;
 end;
@@ -232,7 +232,7 @@ begin
     GrowthEditor.Rating := Biome.GrowthRate;
     SunlightEditor.Rating := Biome.Sunlight;
     MobilityEditor.Rating := Biome.Mobility;
-    CapacityEditor.Rating := Biome.Capacity;
+    DensityEditor.Rating := Biome.Density;
 
     if Biome.Marker = 0 then
       FoodList.ItemCount := 0
@@ -301,7 +301,7 @@ begin
   edtDescription.Enabled := Biome.Marker <> 0;
   SunlightEditor.IsReadOnly := Biome.Marker = 0;
   MobilityEditor.IsReadOnly := Biome.Marker = 0;
-  CapacityEditor.IsReadOnly := Biome.Marker = 0;
+  DensityEditor.IsReadOnly := Biome.Marker = 0;
   GrowthEditor.IsReadOnly := Biome.Marker = 0;
 end;
 
@@ -317,10 +317,10 @@ end;
 
 
 {$region 'Rating Clicks'}
-procedure TBiomeEditor.CapacityClick(Sender: TObject);
+procedure TBiomeEditor.DensityClick(Sender: TObject);
 begin
   if Assigned(Biome) then
-    Biome.Capacity := CapacityEditor.Rating;
+    Biome.Density := DensityEditor.Rating;
 end;
 procedure TBiomeEditor.SunlightClick(Sender: TObject);
 begin

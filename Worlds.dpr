@@ -28,7 +28,7 @@ uses
   u_SimUpscalers in 'sim\u_SimUpscalers.pas',
   u_SimEnvironments in 'sim\u_SimEnvironments.pas',
   u_SimPopulations in 'sim\u_SimPopulations.pas',
-  fr_SimFrame in 'ui\fr_SimFrame.pas' {SimFrame: TFrame},
+  fr_Session in 'ui\fr_Session.pas' {SessionFrame: TFrame},
   u_CellVisualizers in 'ui\u_CellVisualizers.pas',
   u_SimLoggers in 'sim\u_SimLoggers.pas',
   u_SimVisualizer in 'ui\u_SimVisualizer.pas',
@@ -63,7 +63,23 @@ uses
   u_SimDiagnosticsIntf in 'sim\u_SimDiagnosticsIntf.pas',
   u_SimDiagnostics in 'sim\u_SimDiagnostics.pas',
   u_DiagnosticListeners in 'sim\u_DiagnosticListeners.pas',
-  u_ReproduceGenes in 'agents\u_ReproduceGenes.pas';
+  u_ReproduceGenes in 'agents\u_ReproduceGenes.pas',
+  u_EventSinkIntf in 'sim\u_EventSinkIntf.pas',
+  u_EventSinks in 'sim\u_EventSinks.pas',
+  u_SessionComposerIntf in 'sim\u_SessionComposerIntf.pas',
+  u_SessionComposers in 'sim\u_SessionComposers.pas',
+  u_DebugSessionComposers in 'sim\u_DebugSessionComposers.pas',
+  u_SessionParameters in 'sim\u_SessionParameters.pas',
+  u_SimDebug in 'sim\u_SimDebug.pas',
+  u_MulticastEvents in 'common\u_MulticastEvents.pas',
+  u_WorldsMessages in 'common\u_WorldsMessages.pas',
+  fr_Simulator in 'ui\fr_Simulator.pas' {SimulatorFrame: TFrame},
+  u_BiomassConfigResolvers in 'sim\u_BiomassConfigResolvers.pas',
+  u_SimpleJSON in 'common\u_SimpleJSON.pas',
+  fr_SimController in 'ui\fr_SimController.pas' {ControllerFrame: TFrame},
+  u_LogTreeViews in 'ui\u_LogTreeViews.pas',
+  u_LogFormatting in 'ui\u_LogFormatting.pas',
+  u_LogExport in 'ui\u_LogExport.pas';
 
 {$R *.res}
 

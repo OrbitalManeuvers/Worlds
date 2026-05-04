@@ -17,7 +17,7 @@ type
 
 implementation
 
-uses System.SysUtils, u_AgentTypes;
+uses System.SysUtils, u_AgentTypes, u_AgentGenome;
 
 function ActionToShortStr(aAction: TAgentAction): string;
 const
@@ -61,6 +61,42 @@ begin
   Result := noteStrs[aNote];
 end;
 
+function EnergyLevelToShortStr(aEnergyLevel: TEnergyLevel): string;
+const
+  energyStrs: array[TEnergyLevel] of string = ('Empty', 'Low', 'Medium', 'High', 'Full');
+begin
+  Result := energyStrs[aEnergyLevel];
+end;
+
+function BoolToLogStr(const Value: Boolean): string;
+begin
+  if Value then
+    Result := 'T'
+  else
+    Result := 'F';
+end;
+
+function FloatToLogStr(const Value: Single): string;
+begin
+  Result := FloatToStrF(Value, ffFixed, 18, 3);
+end;
+
+function FormatActionEvaluations(const Evaluations: TActionEvaluations): string;
+begin
+  Result := Format('scores M:%s(%s) F:%s(%s) S:%s(%s) R:%s(%s) I:%s(%s)', [
+    FloatToLogStr(Evaluations[acMove].Score),
+    TargetToShortStr(Evaluations[acMove].Target),
+    FloatToLogStr(Evaluations[acForage].Score),
+    TargetToShortStr(Evaluations[acForage].Target),
+    FloatToLogStr(Evaluations[acShelter].Score),
+    TargetToShortStr(Evaluations[acShelter].Target),
+    FloatToLogStr(Evaluations[acReproduce].Score),
+    TargetToShortStr(Evaluations[acReproduce].Target),
+    FloatToLogStr(Evaluations[acIdle].Score),
+    TargetToShortStr(Evaluations[acIdle].Target)
+  ]);
+end;
+
 { TAgentListener }
 
 procedure TAgentListener.Consume(const Event: TSimEvent);
@@ -93,6 +129,39 @@ begin
 
           msg := msg + lifecycle;
         end;
+      sekDecisionTrace:
+        msg := Format(
+          '%.2d:%.3d trace agent %d cell %d req %s(%s) res %s(%s) night %s flux %s dFlux %s dRes %s energy %s ap %d tsr %d local %d smellMax %s smellTop [n:%d c:%s d:%d s:%s] threat %s smell %s sight %s conv [in:%s out:%s eff:%s] %s',
+          [
+            Event.Header.DayNumber,
+            Event.Header.DayTick,
+            Event.DecisionTrace.AgentId,
+            Event.DecisionTrace.CellIndex,
+            ActionToShortStr(Event.DecisionTrace.RequestedAction),
+            TargetToShortStr(Event.DecisionTrace.RequestedTarget),
+            ActionToShortStr(Event.DecisionTrace.ResolvedAction),
+            TargetToShortStr(Event.DecisionTrace.ResolvedTarget),
+            BoolToLogStr(Event.DecisionTrace.IsNight),
+            FloatToLogStr(Event.DecisionTrace.Summary.SolarFlux),
+            FloatToLogStr(Event.DecisionTrace.Summary.SolarFluxDelta),
+            FloatToLogStr(Event.DecisionTrace.Summary.ReserveDelta),
+            EnergyLevelToShortStr(Event.DecisionTrace.Summary.EnergyLevel),
+            Event.DecisionTrace.Summary.ActionProgress,
+            Event.DecisionTrace.Summary.TicksSinceReproduction,
+            Event.DecisionTrace.Summary.LocalAgentCount,
+            FloatToLogStr(Event.DecisionTrace.Summary.StrongestSmellSignal),
+            Event.DecisionTrace.Summary.SmellCandidateCount,
+            CacheToShortStr(Event.DecisionTrace.Summary.TopSmellCache),
+            Event.DecisionTrace.Summary.TopSmellDistance,
+            FloatToLogStr(Event.DecisionTrace.Summary.TopSmellSignal),
+            FloatToLogStr(Event.DecisionTrace.Summary.ThreatPressure),
+            BoolToLogStr(Event.DecisionTrace.Summary.HadSmellTarget),
+            BoolToLogStr(Event.DecisionTrace.Summary.HadSightTarget),
+            FloatToLogStr(Event.DecisionTrace.ForageConsumed),
+            FloatToLogStr(Event.DecisionTrace.ForageGain),
+            FloatToLogStr(Event.DecisionTrace.ForageEfficiency),
+            FormatActionEvaluations(Event.DecisionTrace.Evaluations)
+          ]);
       sekAgentBorn:
         msg := Format('%.2d:%.3d agent %d born from %d at %d reserves %.3f', [
           Event.Header.DayNumber,
@@ -120,6 +189,14 @@ begin
           Event.AgentDied.CellIndex,
           Event.AgentDied.Age,
           Event.AgentDied.ReservesBeforeDeath
+        ]);
+      sekResourceSampled:
+        msg := Format('%.2d:%.3d resource cache %d amount %.4f debt %.4f', [
+          Event.Header.DayNumber,
+          Event.Header.DayTick,
+          Event.ResourceSampled.CacheIndex,
+          Event.ResourceSampled.Amount,
+          Event.ResourceSampled.RegenDebt
         ]);
     end;
 

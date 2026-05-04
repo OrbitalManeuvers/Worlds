@@ -12,7 +12,7 @@ type
     procedure ClockCallback(Sender: TObject; const NextTick: Cardinal; var CanContinue: Boolean);
     procedure ClockTickHandler(Sender: TObject; GlobalTick: Cardinal; DayTick: TDayTick);
   public
-    constructor Create(const aBiomassConfig: TBiomassRuntimeConfig; const aDiagnostics: ISimDiagnosticsSink = nil);
+    constructor Create(const aDiagnostics: ISimDiagnosticsSink = nil);
     destructor Destroy; override;
 
     property Runtime: TSimRuntime read fRuntime;
@@ -24,12 +24,12 @@ implementation
 
 { TSimulator }
 
-constructor TSimulator.Create(const aBiomassConfig: TBiomassRuntimeConfig; const aDiagnostics: ISimDiagnosticsSink);
+constructor TSimulator.Create(const aDiagnostics: ISimDiagnosticsSink);
 begin
   inherited Create;
   fClock := TSimClock.Create(ClockCallback);
   fClock.SubscribeTick(ClockTickHandler);
-  fRuntime := TSimRuntime.Create(aBiomassConfig, aDiagnostics);
+  fRuntime := TSimRuntime.Create(aDiagnostics);
 end;
 
 destructor TSimulator.Destroy;

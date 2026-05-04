@@ -3,8 +3,8 @@ unit u_SimClocks;
 interface
 
 uses
-  System.Classes,
-  System.Generics.Collections;
+  System.Classes, System.Generics.Collections,
+  u_MulticastEvents;
 
 const
   CLOCK_TICKS_PER_DAY = 120;
@@ -32,12 +32,10 @@ type
     TClockControlEvent = procedure (Sender: TObject; const NextTick: Cardinal; var CanContinue: Boolean) of object;
   private
     fTick: Cardinal;
-//    fInfo: TClockInfo; // not implemented
     fStopped: Boolean;
     fOnControl: TClockControlEvent;
-    fTickSubscribers: TList<TClockTickEvent>;
+    fTickEvent: TMulticastEvent<TClockTickEvent>;
     procedure Callback;
-    function IndexOfTickHandler(const AHandler: TClockTickEvent): Integer;
     procedure NotifyTick;
     function GetDayTick: TDayTick;
     function GetDayNumber: Cardinal;
@@ -55,8 +53,6 @@ type
     property Tick: Cardinal read fTick;
     property DayTick: TDayTick read GetDayTick;
     property DayNumber: Cardinal read GetDayNumber;
-
-
   end;
 
 implementation
@@ -66,38 +62,30 @@ implementation
 constructor TSimClock.Create(aController: TClockControlEvent);
 begin
   inherited Create;
-  fTickSubscribers := TList<TClockTickEvent>.Create;
+  fTickEvent := TMulticastEvent<TClockTickEvent>.Create;
   fOnControl := aController;
   FTick := 0;
 end;
 
 destructor TSimClock.Destroy;
 begin
-  fTickSubscribers.Free;
+  fTickEvent.Free;
   inherited;
 end;
 
 procedure TSimClock.SubscribeTick(const AHandler: TClockTickEvent);
 begin
-  if Assigned(AHandler) and (IndexOfTickHandler(AHandler) = -1) then
-    fTickSubscribers.Add(AHandler);
+  fTickEvent.Subscribe(aHandler);
 end;
 
 procedure TSimClock.UnsubscribeTick(const AHandler: TClockTickEvent);
-var
-  Index: Integer;
 begin
-  if Assigned(AHandler) then
-  begin
-    Index := IndexOfTickHandler(AHandler);
-    if Index > -1 then
-      fTickSubscribers.Delete(Index);
-  end;
+  fTickEvent.Unsubscribe(aHandler);
 end;
 
 procedure TSimClock.ClearTickSubscribers;
 begin
-  fTickSubscribers.Clear;
+  fTickEvent.Clear;
 end;
 
 function TSimClock.GetDayNumber: Cardinal;
@@ -110,31 +98,14 @@ begin
   Result := fTick mod CLOCK_TICKS_PER_DAY;
 end;
 
-function TSimClock.IndexOfTickHandler(const AHandler: TClockTickEvent): Integer;
-var
-  I: Integer;
-  AMethod: TMethod;
-  ExistingMethod: TMethod;
-begin
-  AMethod := TMethod(AHandler);
-  for I := 0 to fTickSubscribers.Count - 1 do
-  begin
-    ExistingMethod := TMethod(fTickSubscribers[I]);
-    if (AMethod.Code = ExistingMethod.Code) and (AMethod.Data = ExistingMethod.Data) then
-      Exit(I);
-  end;
-
-  Result := -1;
-end;
-
 procedure TSimClock.NotifyTick;
-var
-  Handlers: TArray<TClockTickEvent>;
-  Handler: TClockTickEvent;
 begin
-  Handlers := fTickSubscribers.ToArray;
-  for Handler in Handlers do
-    Handler(Self, fTick, DayTick);
+  fTickEvent.Notify(
+    procedure(Handler: TClockTickEvent)
+    begin
+      Handler(Self, fTick, DayTick);
+    end
+  );
 end;
 
 procedure TSimClock.Callback;

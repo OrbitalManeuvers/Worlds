@@ -76,6 +76,8 @@ begin
     case Event.Header.Kind of
       sekActionResolved:
         Result := Event.ActionResolved.AgentId = Filter.AgentId;
+      sekDecisionTrace:
+        Result := Event.DecisionTrace.AgentId = Filter.AgentId;
       sekAgentBorn:
         Result := (Event.AgentBorn.AgentId = Filter.AgentId)
           or (Event.AgentBorn.ParentAgentId = Filter.AgentId);
@@ -85,6 +87,8 @@ begin
         Result := Event.BiomassConsumed.AgentId = Filter.AgentId;
       sekAgentDied:
         Result := Event.AgentDied.AgentId = Filter.AgentId;
+      sekResourceSampled:
+        Result := False;
     else
       Result := Event.BiomassCreated.SourceAgentId = Filter.AgentId;
     end;
@@ -93,6 +97,8 @@ begin
   if Result and (Filter.CellIndex <> -1) then
   begin
     case Event.Header.Kind of
+      sekDecisionTrace:
+        Result := Event.DecisionTrace.CellIndex = Filter.CellIndex;
       sekAgentBorn:
         Result := Event.AgentBorn.CellIndex = Filter.CellIndex;
       sekAgentMoved:

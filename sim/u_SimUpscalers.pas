@@ -72,9 +72,9 @@ const
   // E.g. yourRate = normalRate * GROWTH_FACTOR[rating]
   GROWTH_FACTOR: array[TRating] of Single = (0.10, 0.35, 0.60, 1.00, 1.10, 1.18, 1.35);
 
-  // Capacity Rating controls cache occurrence density (sparse vs abundant).
-  // E.g. yourDensityChance = baseChance * CAPACITY_DENSITY_FACTOR[rating]
-  CAPACITY_DENSITY_FACTOR: array[TRating] of Single = (0.01, 0.03, 0.06, 0.10, 0.11, 0.118, 0.135);
+  // Density Rating controls cache occurrence density (sparse vs abundant).
+  // E.g. yourDensityChance = baseChance * DENSITY_FACTOR[rating]
+  DENSITY_FACTOR: array[TRating] of Single = (0.01, 0.03, 0.06, 0.10, 0.11, 0.118, 0.135);
 
 
 { TBiomeHelper }
@@ -142,7 +142,7 @@ procedure TWorldUpscaler.UpscaleWorld(aLayout: TWorldLayout);
 
   function CacheOccupancyChance(const aBiome: TBiome): Single;
   begin
-    Result := EnsureRange(CAPACITY_DENSITY_FACTOR[aBiome.Capacity], 0.0, 1.0);
+    Result := EnsureRange(DENSITY_FACTOR[aBiome.Density], 0.0, 1.0);
   end;
 
   function ShouldPlaceCache(const aBiome: TBiome): Boolean;
@@ -164,7 +164,7 @@ begin
 
   Environment.SetSubstanceCount(aLayout.Foods.Count);
   for var subIndex := 0 to aLayout.Foods.Count - 1 do
-    Environment.SetSubstance(subIndex, aLayout.Foods[subIndex].ToSubstance);
+    Environment.SetSubstanceEntry(subIndex, aLayout.Foods[subIndex].ToSubstance, aLayout.Foods[subIndex].Name);
 
   Environment.SetDimensions(simSize);
 
@@ -265,17 +265,14 @@ procedure TDebugUpscaler.SetFoods(const Foods: array of TFood);
 begin
   Environment.SetSubstanceCount(Length(Foods));
   for var i := 0 to Length(Foods) - 1 do
-  begin
-    var food := Foods[i];
-    Environment.SetSubstance(i, food.ToSubstance);
-  end;
+    Environment.SetSubstanceEntry(i, Foods[i].ToSubstance, Foods[i].Name);
 end;
 
 procedure TDebugUpscaler.SetCellResourceCount(aCellX, aCellY, aCount: Integer);
 begin
   var cellIndex := (aCellY * Environment.Dimensions.cx) + aCellX;
   Assert((cellIndex >= 0) and (cellIndex < Length(Environment.Cells)));
-  Assert(aCount <= Length(Environment.Substances));
+  Assert(aCount <= Length(Environment.SubstanceEntries));
 
   // can only do this once
   Assert(Environment.Cells[cellIndex].ResourceCount = 0);

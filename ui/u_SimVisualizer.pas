@@ -315,7 +315,7 @@ begin
     Exit;
 
   var env := Simulator.Runtime.Environment;
-  if (fSubstanceIndex < 0) or (fSubstanceIndex >= Length(env.Substances)) then
+  if (fSubstanceIndex < 0) or (fSubstanceIndex >= Length(env.SubstanceEntries)) then
     Exit;
 
   var envWidth := env.Dimensions.cx;

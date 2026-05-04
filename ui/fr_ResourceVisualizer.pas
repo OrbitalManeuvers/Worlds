@@ -38,6 +38,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure InvalidateView;
+    procedure ApplySubstanceNames(const Value: TArray<string>); overload;
 
     property IsActive: Boolean read fIsActive write SetIsActive;
     property OnPaint: TNotifyEvent read fOnPaint write fOnPaint;
@@ -148,6 +149,21 @@ end;
 procedure TResViewFrame.SetSubstanceNames(const Value: TStrings);
 begin
   fSubstanceNames.Assign(Value);
+  fSubstanceIndex := 0;
+  pbSubstance.Invalidate;
+end;
+
+procedure TResViewFrame.ApplySubstanceNames(const Value: TArray<string>);
+begin
+  fSubstanceNames.BeginUpdate;
+  try
+    fSubstanceNames.Clear;
+    for var name in Value do
+      fSubstanceNames.Add(name);
+  finally
+    fSubstanceNames.EndUpdate;
+  end;
+
   fSubstanceIndex := 0;
   pbSubstance.Invalidate;
 end;

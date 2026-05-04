@@ -16,13 +16,13 @@ type
     fSunlight: TRating;
     fMobility: TRating;
     fGrowthRate: TRating;
-    fCapacity: TRating;
+    fDensity: TRating;
     function GetFoodCount: Integer;
     function GetFood(I: Integer): TFood;
     procedure SetColor(const Value: TColor);
     procedure SetDescription(const Value: string);
     procedure SetMarker(const Value: TBiomeMarker);
-    procedure SetCapcity(const Value: TRating);
+    procedure SetDensity(const Value: TRating);
     procedure SetGrowthRate(const Value: TRating);
     procedure SetMobility(const Value: TRating);
     procedure SetSunlight(const Value: TRating);
@@ -42,7 +42,7 @@ type
     property Sunlight: TRating read fSunlight write SetSunlight;
     property Mobility: TRating read fMobility write SetMobility;
     property GrowthRate: TRating read fGrowthRate write SetGrowthRate;
-    property Capacity: TRating read fCapacity write SetCapcity;
+    property Density: TRating read fDensity write SetDensity;
     property FoodCount: Integer read GetFoodCount;
     property Foods[I: Integer]: TFood read GetFood;
   end;
@@ -60,7 +60,7 @@ begin
   fMarker := High(TBiomeMarker);
   Sunlight := Great;
   Mobility := Normal;
-  Capacity := Normal;
+  Density := Normal;
   GrowthRate := Normal;
 end;
 
@@ -101,11 +101,11 @@ begin
   end;
 end;
 
-procedure TBiome.SetCapcity(const Value: TRating);
+procedure TBiome.SetDensity(const Value: TRating);
 begin
-  if Value <> fCapacity then
+  if Value <> fDensity then
   begin
-    fCapacity := Value;
+    fDensity := Value;
     Changed;
   end;
 end;

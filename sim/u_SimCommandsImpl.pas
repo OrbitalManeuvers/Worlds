@@ -61,7 +61,7 @@ begin
           consumed := available;
 
         var substanceIndex := fEnvironment.Resources[cacheIndex].SubstanceIndex;
-        Reply.Substance := fEnvironment.Substances[substanceIndex];
+        Reply.Substance := fEnvironment.SubstanceEntries[substanceIndex].Substance;
 
         var remaining := available - consumed;
         fEnvironment.Resources[cacheIndex].Amount := remaining;

@@ -173,18 +173,18 @@ inherited BiomeEditor: TBiomeEditor
             Width = 240
             Height = 137
           end
-          object bvCapacity: TBevel
+          object bvDensity: TBevel
             Left = 280
             Top = 168
             Width = 240
             Height = 137
           end
-          object lblCapacity: TLabel
+          object lblDensity: TLabel
             Left = 367
             Top = 178
-            Width = 62
+            Width = 54
             Height = 21
-            Caption = 'Capacity'
+            Caption = 'Density'
             Font.Charset = DEFAULT_CHARSET
             Font.Color = clWindowText
             Font.Height = -16
@@ -224,7 +224,7 @@ inherited BiomeEditor: TBiomeEditor
             Enabled = False
             WordWrap = True
           end
-          object lblCapacityInfo: TLabel
+          object lblDensityInfo: TLabel
             Left = 289
             Top = 254
             Width = 220
@@ -261,7 +261,7 @@ inherited BiomeEditor: TBiomeEditor
             ExplicitLeft = 32
             ExplicitTop = 200
           end
-          inline CapacityEditor: TRatingEditorFrame
+          inline DensityEditor: TRatingEditorFrame
             Left = 299
             Top = 200
             Width = 205

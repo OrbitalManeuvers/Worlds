@@ -3,16 +3,18 @@ unit u_SimDiagnosticsIntf;
 interface
 
 uses
-  u_AgentTypes, u_SimClocks, u_SimPhases;
+  u_AgentTypes, u_AgentBrain, u_AgentGenome, u_SimClocks, u_SimPhases;
 
 type
   TSimEventKind = (
     sekActionResolved,
+    sekDecisionTrace,
     sekAgentBorn,
     sekAgentMoved,
     sekBiomassCreated,
     sekBiomassConsumed,
-    sekAgentDied
+    sekAgentDied,
+    sekResourceSampled
   );
 
   TSimEventKinds = set of TSimEventKind;
@@ -52,6 +54,21 @@ type
     Note: TActionResolutionNote;
   end;
 
+  TDecisionTraceEvent = record
+    AgentId: Integer;
+    CellIndex: Integer;
+    IsNight: Boolean;
+    RequestedAction: TAgentAction;
+    RequestedTarget: TTarget;
+    ResolvedAction: TAgentAction;
+    ResolvedTarget: TTarget;
+    ForageConsumed: Single;
+    ForageGain: Single;
+    ForageEfficiency: Single;
+    Evaluations: TActionEvaluations;
+    Summary: TBrainTraceSummary;
+  end;
+
   TAgentMovedEvent = record
     AgentId: Integer;
     FromCell: Integer;
@@ -89,14 +106,22 @@ type
     ReservesBeforeDeath: Single;
   end;
 
+  TResourceSampledEvent = record
+    CacheIndex: Integer;
+    Amount: Single;
+    RegenDebt: Single;
+  end;
+
   TSimEvent = record
     Header: TSimEventHeader;
     ActionResolved: TActionResolvedEvent;
+    DecisionTrace: TDecisionTraceEvent;
     AgentBorn: TAgentBornEvent;
     AgentMoved: TAgentMovedEvent;
     BiomassCreated: TBiomassCreatedEvent;
     BiomassConsumed: TBiomassConsumedEvent;
     AgentDied: TAgentDiedEvent;
+    ResourceSampled: TResourceSampledEvent;
   end;
 
   TSimEventFilter = record

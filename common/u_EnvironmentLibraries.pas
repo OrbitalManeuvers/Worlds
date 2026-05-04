@@ -151,7 +151,7 @@ begin
     ground.Color := clBlack;
     ground.Sunlight := Best;    // i.e. unmodified
     ground.Mobility := Best;    // i.e. unmodified
-    ground.Capacity := Worst;   // doesn't really matter
+    ground.Density := Worst;   // doesn't really matter
     ground.GrowthRate := Worst; // doesn't really matter
     AddBiome(ground);
   except

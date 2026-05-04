@@ -121,7 +121,7 @@ begin
         if resource.Amount <= MIN_SMELL_DETECTABLE_AMOUNT then
           Continue;
 
-        if resource.SubstanceIndex > High(fEnvironment.Substances) then
+        if resource.SubstanceIndex > High(fEnvironment.SubstanceEntries) then
           Continue;
 
         if Count >= Length(Buffer) then
@@ -131,7 +131,7 @@ begin
         Buffer[Count].Cache.Kind := ckResource;
         Buffer[Count].Cache.Index := resourceIndex;
         Buffer[Count].Amount := resource.Amount;
-        Buffer[Count].Substance := fEnvironment.Substances[resource.SubstanceIndex];
+        Buffer[Count].Substance := fEnvironment.SubstanceEntries[resource.SubstanceIndex].Substance;
 
         Inc(Count);
       end;

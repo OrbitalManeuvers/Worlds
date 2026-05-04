@@ -34,7 +34,7 @@ const
   KEY_BIOME_GRID = 'biomeGrid';
 
   KEY_GROWTH_RATE = 'growthRate';
-  KEY_CAPACITY = 'capacity';
+  KEY_DENSITY = 'density';
   KEY_SUNLIGHT = 'sunlight';
   KEY_MOBILITY = 'mobility';
 
@@ -526,7 +526,7 @@ begin
   Result.AddPair(KEY_COLOR, ColorToWebColorStr(Color));
 
   Result.AddPair(KEY_GROWTH_RATE, GrowthRate.AsText);
-  Result.AddPair(KEY_CAPACITY, Capacity.AsText);
+  Result.AddPair(KEY_DENSITY, Density.AsText);
   Result.AddPair(KEY_SUNLIGHT, Sunlight.AsText);
   Result.AddPair(KEY_MOBILITY, Mobility.AsText);
 
@@ -552,8 +552,8 @@ begin
 
   if Value.TryGetValue(KEY_GROWTH_RATE, strVal) then
     GrowthRate.AsText := strVal;
-  if Value.TryGetValue(KEY_CAPACITY, strVal) then
-    Capacity.AsText := strVal;
+  if Value.TryGetValue(KEY_DENSITY, strVal) then
+    Density.AsText := strVal;
   if Value.TryGetValue(KEY_SUNLIGHT, strVal) then
     Sunlight.AsText := strVal;
   if Value.TryGetValue(KEY_MOBILITY, strVal) then

@@ -160,9 +160,8 @@ end;
 
 procedure TSimLogger.LogSubstances;
 begin
-  for var i := 0 to Length(Sim.Runtime.Environment.Substances) - 1 do
-    Log('[%.02d %s]', [i, SubstanceToStr(Sim.Runtime.Environment.Substances[i])]);
-
+  for var i := 0 to Length(Sim.Runtime.Environment.SubstanceEntries) - 1 do
+    Log('[%.02d %s]', [i, SubstanceToStr(Sim.Runtime.Environment.SubstanceEntries[i].Substance)]);
 end;
 
 end.

@@ -38,13 +38,19 @@ type
   TSubstanceArray = array of TSubstance;
   TBiomassCacheArray = array of TBiomassCache;
 
+  TSubstanceEntry = record
+    Substance: TSubstance;
+    Name: string;
+  end;
+  TSubstanceEntries = array of TSubstanceEntry;
+
   TSimEnvironment = class
   private
     fDimensions: TSize;
     fCells: TCellArray;
     fResources: TResourceArray;
     fResourceCount: Integer; // read only cache for instrumentation
-    fSubstances: TSubstanceArray;
+    fSubstanceEntries: TSubstanceEntries;
     fSolarFlux: Single;
     fBiomassCaches: TBiomassCacheArray;
     procedure SetDayTick(const Value: TDayTick);
@@ -57,7 +63,7 @@ type
 
     { runtime lookups built by upscaler }
     procedure SetSubstanceCount(aCount: Integer);
-    procedure SetSubstance(aIndex: Integer; aSubstance: TSubstance);
+    procedure SetSubstanceEntry(aIndex: Integer; const aSubstance: TSubstance; const aName: string);
 
     { monolithic allocations }
     procedure SetDimensions(aSize: TSize);
@@ -71,11 +77,9 @@ type
     procedure NotifyAgentDeath(Location: Integer; BiomassAmount: Single);
 
     property Cells: TCellArray read fCells;
-
     property Resources: TResourceArray read fResources;
     property ResourceCount: Integer read fResourceCount;
-
-    property Substances: TSubstanceArray read fSubstances;
+    property SubstanceEntries: TSubstanceEntries read fSubstanceEntries;
 
     property SolarFlux: Single read fSolarFlux write fSolarFlux;
     property DayTick: TDayTick write SetDayTick;
@@ -186,14 +190,15 @@ begin
   SetLength(fResources, aCount);
 end;
 
-procedure TSimEnvironment.SetSubstance(aIndex: Integer; aSubstance: TSubstance);
+procedure TSimEnvironment.SetSubstanceEntry(aIndex: Integer; const aSubstance: TSubstance; const aName: string);
 begin
-  fSubstances[aIndex] := aSubstance;
+  fSubstanceEntries[aIndex].Substance := aSubstance;
+  fSubstanceEntries[aIndex].Name := aName;
 end;
 
 procedure TSimEnvironment.SetSubstanceCount(aCount: Integer);
 begin
-  SetLength(fSubstances, aCount);
+  SetLength(fSubstanceEntries, aCount);
 end;
 
 procedure TSimEnvironment.NotifyAgentDeath(Location: Integer; BiomassAmount: Single);

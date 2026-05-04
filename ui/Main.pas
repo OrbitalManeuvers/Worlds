@@ -7,11 +7,11 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.Buttons, Vcl.ComCtrls, Vcl.AppEvnts, Vcl.ExtCtrls, PngSpeedButton,
 
-  fr_ContentFrames;
+  fr_ContentFrames, u_WorldsMessages;
 
 
 type
-  TContentFrameType = (cfFood, cfBiomes, cfRegions, cfBiology, cfWorlds, cfSimulator);
+  TContentFrameType = (cfFood, cfBiomes, cfRegions, cfBiology, cfWorlds, cfSession, cfSimulator);
 
   TMainForm = class(TForm)
     StatusBar: TStatusBar;
@@ -20,7 +20,7 @@ type
     btnFood: TPngSpeedButton;
     btnBiomes: TPngSpeedButton;
     btnWorlds: TPngSpeedButton;
-    btnSimulator: TPngSpeedButton;
+    btnSessions: TPngSpeedButton;
     btnRegions: TPngSpeedButton;
     btnSave: TPngSpeedButton;
     btnBiology: TPngSpeedButton;
@@ -32,6 +32,10 @@ type
     procedure ContentSelectorClick(Sender: TObject);
     procedure btnSaveClick(Sender: TObject);
     procedure btnTestClick(Sender: TObject);
+
+    procedure WMBeginSimulation(var Msg: TMessage); message WM_BEGIN_SIMULATION;
+    procedure WMEndSimulation(var Msg: TMessage); message WM_END_SIMULATION;
+
   private
     ActiveFrameType: TContentFrameType;
     ContentFrames: array[TContentFrameType] of TContentFrame;
@@ -54,7 +58,13 @@ uses System.IOUtils, System.UITypes, Vcl.GraphUtil, Vcl.Themes,
   fr_RegionEditor,
   fr_BiologyEditor,
   fr_WorldEditor,
-  fr_SimFrame, u_WorldLayouts;
+  fr_Session,
+  fr_Simulator,
+  u_WorldLayouts,
+  u_SessionComposers,
+  u_DebugSessionComposers,
+  u_SessionComposerIntf,
+  u_SimDebug;
 
 {$R *.dfm}
 
@@ -65,15 +75,25 @@ const
     TRegionEditor,
     TBiologyEditor,
     TWorldEditor,
-    TSimFrame
+    TSessionFrame,
+    TSimulatorFrame
   );
 
 { Utility }
-function LibraryFileName: string;
+function RuntimeFilePath(const aFileName: string): string;
 begin
-  Result := TPath.Combine(ExtractFilePath(Application.ExeName), 'WorldLibrary.json');
+  Result := TPath.Combine(ExtractFilePath(Application.ExeName), aFileName);
 end;
 
+function LibraryFileName: string;
+begin
+  Result := RuntimeFilePath('WorldLibrary.json');
+end;
+
+function ScenarioFileName: string;
+begin
+  Result := RuntimeFilePath('DebugScenarios.json');
+end;
 
 
 { TMainForm }
@@ -93,7 +113,7 @@ begin
   btnRegions.Tag := Ord(cfRegions);
   btnBiology.Tag := Ord(cfBiology);
   btnWorlds.Tag := Ord(cfWorlds);
-  btnSimulator.Tag := Ord(cfSimulator);
+  btnSessions.Tag := Ord(cfSession);
 
   ActiveFrameType := High(TContentFrameType); // ensure a change
   ActivateContent(Low(TContentFrameType));
@@ -112,6 +132,49 @@ end;
 procedure TMainForm.UpdateControls;
 begin
   btnSave.Enabled := WorldLibrary.Modified;
+end;
+
+procedure TMainForm.WMBeginSimulation(var Msg: TMessage);
+begin
+  inherited;
+  Assert(ActiveFrameType = cfSession);
+
+  var composer: ISessionComposer;
+
+  var frame: TSessionFrame := ContentFrames[cfSession] as TSessionFrame;
+  if u_SimDebug.DebugScenarioName <> '' then
+  begin
+    composer := TDebugSessionComposer.Create(WorldLibrary, scenarioFileName,
+      u_SimDebug.DebugScenarioName);
+  end
+  else
+  begin
+    var params := frame.SessionParameters;
+    composer := TSessionComposer.Create(frame.World, WorldLibrary, params);
+  end;
+
+  ActivateContent(cfSimulator);
+
+  var simFrame: TSimulatorFrame := ContentFrames[cfSimulator] as TSimulatorFrame;
+  simFrame.CreateSession(composer);
+
+
+end;
+
+procedure TMainForm.WMEndSimulation(var Msg: TMessage);
+begin
+  inherited;
+  Assert(ActiveFrameType = cfSimulator);
+  ActivateContent(cfSession);
+
+//  var simFrame: TSimulatorFrame := ContentFrames[cfSimulator] as TSimulatorFrame;
+//  if Assigned(simFrame) then
+//  begin
+//    simFrame.Free;
+//    ContentFrames[cfSimulator] := nil;
+//  end;
+
+  //
 end;
 
 procedure TMainForm.WorldLibraryModified(Sender: TObject);
@@ -166,6 +229,7 @@ begin
     end;
 
     ContentFrames[ActiveFrameType].ActivateContent;
+    pnlTaskbar.Visible := ActiveFrameType <> cfSimulator;
     ContentFrames[ActiveFrameType].Show;
 
     // if we need to someday, on the sim page we can free the other content pages

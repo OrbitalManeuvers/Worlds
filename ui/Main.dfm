@@ -75,7 +75,7 @@ object MainForm: TMainForm
       ExplicitTop = 4
       ExplicitHeight = 39
     end
-    object btnSimulator: TPngSpeedButton
+    object btnSessions: TPngSpeedButton
       Tag = 5
       Left = 552
       Top = 2
@@ -83,7 +83,7 @@ object MainForm: TMainForm
       Height = 29
       Align = alLeft
       GroupIndex = 1
-      Caption = 'SIMULATOR'
+      Caption = 'SESSIONS'
       OnClick = ContentSelectorClick
       ExplicitLeft = 478
       ExplicitTop = 4

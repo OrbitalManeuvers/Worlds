@@ -61,14 +61,17 @@ type
     fSimQuery: ISimQuery;
     fSimCommand: ISimCommand;
     fOnPhase: TRuntimePhaseEvent;
+    fTrackedResourceCacheIndex: Integer;
     function BuildEventHeader(aKind: TSimEventKind; const aPhase: TSimTickPhase): TSimEventHeader;
     procedure EmitActionResolved(const StateBeforeResolution, State: TAgentState; const Requested, Resolved: TBrainTickOutput);
+    procedure EmitDecisionTrace(const State: TAgentState; const Trace: TDecisionTrace);
     procedure EmitAgentBorn(const OffspringState: TAgentState; const ParentAgentId: Integer);
     procedure EmitAgentDied(const State: TAgentState; const ReservesBeforeDeath: Single);
     procedure EmitAgentMoved(const State: TAgentState; const FromCell, ToCell: Integer; const MoveCost: Single);
     procedure EmitBiomassConsumed(const State: TAgentState; const Cache: TCacheRef; const ConsumedAmount, GainAmount: Single);
     procedure EmitBiomassCreated(const CellIndex: Integer; const Amount: Single;
       const Reason: TBiomassCreateReason; const SourceAgentId: Integer; const Phase: TSimTickPhase);
+    procedure EmitResourceSampled;
     procedure CaptureDecisionTrace(AgentIndex: Integer; const State: TAgentState; const Input: TBrainTickInput;
       const Requested, Resolved: TBrainTickOutput;
       const ForageConsumed, ForageGain: Single);
@@ -85,8 +88,10 @@ type
     procedure NotifyPhase(const Phase: TSimTickPhase);
     procedure SetDayTick(const Value: TDayTick);
   public
-    constructor Create(const aBiomassConfig: TBiomassRuntimeConfig; const aDiagnostics: ISimDiagnosticsSink = nil);
+    constructor Create(const aDiagnostics: ISimDiagnosticsSink = nil);
     destructor Destroy; override;
+
+    procedure ConfigureBiomass(const aConfig: TBiomassRuntimeConfig);
 
     procedure AdvanceClock(const GlobalTick: Cardinal; const DayTick: TDayTick);
     function TryGetLastDecision(AgentIndex: Integer; out Trace: TDecisionTrace): Boolean;
@@ -95,6 +100,7 @@ type
     property Population: TSimPopulation read fPopulation;
 
     property OnPhase: TRuntimePhaseEvent read fOnPhase write fOnPhase;
+    property TrackedResourceCacheIndex: Integer read fTrackedResourceCacheIndex write fTrackedResourceCacheIndex;
   end;
 
 implementation
@@ -104,15 +110,22 @@ uses System.Math, System.SysUtils, u_SimQueriesImpl,
 
 { TSimRuntime }
 
-constructor TSimRuntime.Create(const aBiomassConfig: TBiomassRuntimeConfig; const aDiagnostics: ISimDiagnosticsSink);
+constructor TSimRuntime.Create(const aDiagnostics: ISimDiagnosticsSink);
 begin
   inherited Create;
-  fBiomassConfig := aBiomassConfig;
+  fBiomassConfig := Default(TBiomassRuntimeConfig);
+  fBiomassConfig.InjectOnDeath := True;
   fDiagnostics := aDiagnostics;
+  fTrackedResourceCacheIndex := -1;
   fEnvironment := TSimEnvironment.Create;
   fPopulation := TSimPopulation.Create;
   fSimQuery := TSimQuery.Create(fEnvironment, fPopulation);
   fSimCommand := TSimCommand.Create(fEnvironment, fPopulation);
+end;
+
+procedure TSimRuntime.ConfigureBiomass(const aConfig: TBiomassRuntimeConfig);
+begin
+  fBiomassConfig := aConfig;
 end;
 
 destructor TSimRuntime.Destroy;
@@ -361,6 +374,28 @@ begin
   fDiagnostics.Emit(event);
 end;
 
+procedure TSimRuntime.EmitDecisionTrace(const State: TAgentState; const Trace: TDecisionTrace);
+begin
+  if not Assigned(fDiagnostics) then
+    Exit;
+
+  var event := Default(TSimEvent);
+  event.Header := BuildEventHeader(sekDecisionTrace, stpPostAgents);
+  event.DecisionTrace.AgentId := Trace.AgentId;
+  event.DecisionTrace.CellIndex := State.Location;
+  event.DecisionTrace.IsNight := Trace.IsNight;
+  event.DecisionTrace.RequestedAction := Trace.RequestedAction;
+  event.DecisionTrace.RequestedTarget := Trace.RequestedTarget;
+  event.DecisionTrace.ResolvedAction := Trace.ResolvedAction;
+  event.DecisionTrace.ResolvedTarget := Trace.ResolvedTarget;
+  event.DecisionTrace.ForageConsumed := Trace.ForageConsumed;
+  event.DecisionTrace.ForageGain := Trace.ForageGain;
+  event.DecisionTrace.ForageEfficiency := Trace.ForageEfficiency;
+  event.DecisionTrace.Evaluations := Trace.Evaluations;
+  event.DecisionTrace.Summary := Trace.Summary;
+  fDiagnostics.Emit(event);
+end;
+
 procedure TSimRuntime.EmitAgentBorn(const OffspringState: TAgentState; const ParentAgentId: Integer);
 begin
   if not Assigned(fDiagnostics) then
@@ -433,6 +468,23 @@ begin
   event.BiomassCreated.Amount := Amount;
   event.BiomassCreated.Reason := Reason;
   event.BiomassCreated.SourceAgentId := SourceAgentId;
+  fDiagnostics.Emit(event);
+end;
+
+procedure TSimRuntime.EmitResourceSampled;
+begin
+  if not Assigned(fDiagnostics) then
+    Exit;
+  if fTrackedResourceCacheIndex < 0 then
+    Exit;
+  if fTrackedResourceCacheIndex >= Length(fEnvironment.Resources) then
+    Exit;
+
+  var event := Default(TSimEvent);
+  event.Header := BuildEventHeader(sekResourceSampled, stpPostEnvironment);
+  event.ResourceSampled.CacheIndex := fTrackedResourceCacheIndex;
+  event.ResourceSampled.Amount := fEnvironment.Resources[fTrackedResourceCacheIndex].Amount;
+  event.ResourceSampled.RegenDebt := fEnvironment.Resources[fTrackedResourceCacheIndex].RegenDebt;
   fDiagnostics.Emit(event);
 end;
 
@@ -752,6 +804,8 @@ begin
   state.ReserveDelta := state.Reserves - reservesAtTickStart;
   CaptureDecisionTrace(aIndex, state, Input, requested, resolved, forageConsumed, forageGain);
   EmitActionResolved(stateBeforeResolution, state, requested, resolved);
+  if (aIndex >= 0) and (aIndex < Length(fLastDecisionTraces)) and fHasDecisionTrace[aIndex] then
+    EmitDecisionTrace(state, fLastDecisionTraces[aIndex]);
   fPopulation.UpdateAgentState(aIndex, state);
   fPopulation.ApplyAgentStep(aIndex, resolved);
 end;
@@ -781,6 +835,7 @@ begin
   if isNightTick then
     InjectSimBiomass(isNightfall);
 
+  EmitResourceSampled;
   NotifyPhase(stpPostEnvironment);
 
   if Length(fLastDecisionTraces) <> fPopulation.AgentCount then
