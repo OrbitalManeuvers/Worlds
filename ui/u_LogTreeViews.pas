@@ -36,7 +36,7 @@ type
     procedure ApplyCanvasDefaults(const PaintInfo: TVTPaintInfo);
   public
     constructor Create(aTree: TVirtualDrawTree; const aEventLog: IEventLog;
-      aGridWidth: Integer);
+      aGridWidth: Integer); virtual;
     destructor Destroy; override;
 
     procedure AddEvent(const aEvent: TSimEvent);
@@ -67,7 +67,7 @@ type
     procedure DoDrawNode(const PaintInfo: TVTPaintInfo); override;
   public
     constructor Create(aTree: TVirtualDrawTree; const aEventLog: IEventLog;
-      aGridWidth: Integer);
+      aGridWidth: Integer); override;
 
     property TargetId: Integer read FTargetId write FTargetId;
   end;

@@ -15,28 +15,49 @@ uses
 type
   TSessionFrame = class(TContentFrame)
     Label2: TLabel;
+    btnCreateSim: TButton;
+    pcPages: TPageControl;
+    tsStandard: TTabSheet;
+    tsDebug: TTabSheet;
     WorldList: TControlList;
     lblWorldName: TLabel;
-    btnCreateSim: TButton;
-    gbPopulation: TGroupBox;
-    edtAgentCount: TLabeledEdit;
+    Label3: TLabel;
+    seAgentCount: TSpinEdit;
+    Label1: TLabel;
+    Label4: TLabel;
+    SeedList: TControlList;
+    lblSeedName: TLabel;
+    SpinEdit2: TSpinEdit;
+    Label5: TLabel;
+    ScenarioList: TControlList;
+    Label6: TLabel;
+    lblScenarioName: TLabel;
+    GroupBox1: TGroupBox;
+    Label7: TLabel;
+    edtSessionLogFile: TEdit;
+    edtScratchFolder: TEdit;
+    edtSessionName: TEdit;
+    Label8: TLabel;
+    Label9: TLabel;
     procedure btnCreateSimClick(Sender: TObject);
     procedure WorldListItemClick(Sender: TObject);
     procedure WorldListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
+    procedure SeedListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
+      ARect: TRect; AState: TOwnerDrawState);
+    procedure ScenarioListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
+      ARect: TRect; AState: TOwnerDrawState);
   private
-    fWorld: TWorld;
-    fSessionParameters: TSessionParameters;
+    fCommonParameters: TCommonSessionParameters;
+    fUpscalerParameters: TUpscalerParameters;
+    fDebugSessionParameters: TDebugSessionParameters;
 
     procedure UpdateControls;
+    function BuildCommonParameters: TCommonSessionParameters;
   public
     procedure Init; override;
     procedure Done; override;
     procedure ActivateContent; override;
-
-    { This is the contract with the session creation: a world and params }
-    property World: TWorld read fWorld;
-    property SessionParameters: TSessionParameters read fSessionParameters;
   end;
 
 
@@ -48,7 +69,7 @@ uses System.Types, System.Math, Vcl.GraphUtil,
   u_SimParams, u_EditorTypes, u_Foods,
   u_Regions, u_AgentTypes, u_BiologyTypes, u_EnvironmentTypes,
   u_SimEnvironments, u_DiagnosticListeners, u_SimDiagnosticsIntf,
-  u_WorldsMessages;
+  u_DebugLibraries, u_SessionManager;
 
 const
   DEFAULT_SEED = -1653628502;
@@ -103,9 +124,27 @@ end;
 procedure TSessionFrame.Init;
 begin
   inherited;
-  fSessionParameters := Default(TSessionParameters);
+  fCommonParameters := Default(TCommonSessionParameters);
+  fUpscalerParameters := Default(TUpscalerParameters);
+  fDebugSessionParameters := Default(TDebugSessionParameters);
+
+  pcPages.ActivePage := tsStandard;
 
   UpdateControls;
+end;
+
+procedure TSessionFrame.ScenarioListBeforeDrawItem(AIndex: Integer;
+  ACanvas: TCanvas; ARect: TRect; AState: TOwnerDrawState);
+begin
+  if (AIndex >= 0) and (AIndex < Length(DebugLibrary.Scenarios)) then
+    lblScenarioName.Caption := DebugLibrary.Scenarios[AIndex].Name;
+end;
+
+procedure TSessionFrame.SeedListBeforeDrawItem(AIndex: Integer;
+  ACanvas: TCanvas; ARect: TRect; AState: TOwnerDrawState);
+begin
+  if (AIndex >= 0) and (AIndex < WorldLibrary.SeedCount) then
+    lblSeedName.Caption := WorldLibrary.Seeds[AIndex].Name;
 end;
 
 procedure TSessionFrame.Done;
@@ -128,7 +167,18 @@ end;
 
 procedure TSessionFrame.UpdateControls;
 begin
-  var agentCount := StrToIntDef(edtAgentCount.Text, 0);
+//  var ok := False;
+  var agentCount := seAgentCount.Value;
+
+  if pcPages.ActivePage = tsStandard then
+  begin
+
+  end
+  else
+  begin
+
+  end;
+
   btnCreateSim.Enabled := (WorldList.ItemIndex <> -1) and (agentCount > 0) and (agentCount < 100); // !!
 end;
 
@@ -136,21 +186,46 @@ procedure TSessionFrame.ActivateContent;
 begin
   inherited;
 
-  if WorldLibrary.WorldCount <> WorldList.ItemCount then
-  begin
-    WorldList.ItemCount := WorldLibrary.WorldCount;
-    if WorldList.ItemCount > 0 then
-      WorldList.ItemIndex := 0;
-  end;
+  WorldList.ItemCount := WorldLibrary.WorldCount;
+  if WorldList.ItemCount > 0 then
+    WorldList.ItemIndex := 0;
+
+  SeedList.ItemCount := WorldLibrary.SeedCount;
+  if SeedList.ItemCount > 0 then
+    Seedlist.ItemIndex := 0;
+
+  ScenarioList.ItemCount := Length(DebugLibrary.Scenarios);
+  if ScenarioList.ItemCount > 0 then
+    ScenarioList.ItemIndex := 0;
 
   UpdateControls;
 end;
 
-procedure TSessionFrame.btnCreateSimClick(Sender: TObject);
+function TSessionFrame.BuildCommonParameters: TCommonSessionParameters;
 begin
-  PostMessage(Application.MainForm.Handle, WM_BEGIN_SIMULATION, 0, 0);
+  if pcPages.ActivePage = tsStandard then
+    Result.SessionType := stStandard
+  else
+    Result.SessionType := stDebug;
+  Result.SessionName := edtSessionName.Text;
+  Result.SessionLogFile := edtSessionLogFile.Text;
+  Result.ScratchFolder := edtScratchFolder.Text;
 end;
 
+procedure TSessionFrame.btnCreateSimClick(Sender: TObject);
+begin
+  if pcPages.ActivePage = tsStandard then
+  begin
+
+//    SessionManager.SubmitStandardSession(BuildCommonParameters, fUpscalerParameters);
+
+  end
+  else if pcPages.ActivePage = tsDebug then
+  begin
+    fDebugSessionParameters.ScenarioName := DebugLibrary.Scenarios[ScenarioList.ItemIndex].Name;
+    SessionManager.SubmitDebugSession(BuildCommonParameters, fDebugSessionParameters);
+  end;
+end;
 
 initialization
   LogFormatSettings := TFormatSettings.Create;

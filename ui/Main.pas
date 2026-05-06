@@ -7,7 +7,8 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.Buttons, Vcl.ComCtrls, Vcl.AppEvnts, Vcl.ExtCtrls, PngSpeedButton,
 
-  fr_ContentFrames, u_WorldsMessages;
+  fr_ContentFrames, u_WorldsMessages, System.ImageList, Vcl.ImgList,
+  PngImageList;
 
 
 type
@@ -25,6 +26,7 @@ type
     btnSave: TPngSpeedButton;
     btnBiology: TPngSpeedButton;
     btnTest: TPngSpeedButton;
+    MainToolImages: TPngImageList;
     procedure FormCreate(Sender: TObject);
     procedure AppEventsHint(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -33,7 +35,7 @@ type
     procedure btnSaveClick(Sender: TObject);
     procedure btnTestClick(Sender: TObject);
 
-    procedure WMBeginSimulation(var Msg: TMessage); message WM_BEGIN_SIMULATION;
+    procedure WMSessionSubmitted(var Msg: TWMSessionSubmitted); message WM_SESSION_SUBMITTED;
     procedure WMEndSimulation(var Msg: TMessage); message WM_END_SIMULATION;
 
   private
@@ -64,6 +66,9 @@ uses System.IOUtils, System.UITypes, Vcl.GraphUtil, Vcl.Themes,
   u_SessionComposers,
   u_DebugSessionComposers,
   u_SessionComposerIntf,
+  u_DebugLibraries,
+  u_SessionManager,
+  u_SessionParameters,
   u_SimDebug;
 
 {$R *.dfm}
@@ -87,16 +92,17 @@ end;
 
 function LibraryFileName: string;
 begin
-  Result := RuntimeFilePath('WorldLibrary.json');
+  Result := RuntimeFilePath('WorldsEnvironmentLibrary.json');
 end;
 
-function ScenarioFileName: string;
+function DebugLibraryFileName: string;
 begin
-  Result := RuntimeFilePath('DebugScenarios.json');
+  Result := RuntimeFilePath('WorldsDebugLibrary.json');
 end;
 
 
 { TMainForm }
+
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   // initialize global library
@@ -104,6 +110,12 @@ begin
   TSerializer.LoadLibrary(WorldLibrary, LibraryFileName());
   WorldLibrary.Modified := False;
   WorldLibrary.OnChange := WorldLibraryModified;
+
+  // global debug library
+  DebugLibrary := TDebugLibrary.Create(DebugLibraryFileName());
+
+  // global session manager
+  SessionManager := TSessionManager.Create;
 
   pnlTaskbar.StyleElements := pnlTaskbar.StyleElements - [seClient];
   pnlTaskbar.Color := GetHighlightColor(StyleServices.GetSystemColor(clBtnFace), 8);
@@ -126,6 +138,8 @@ begin
     if ContentFrames[frameType] <> nil then
       ContentFrames[frameType].Done;
 
+  SessionManager.Free;
+  DebugLibrary.Free;
   WorldLibrary.Free;
 end;
 
@@ -134,31 +148,22 @@ begin
   btnSave.Enabled := WorldLibrary.Modified;
 end;
 
-procedure TMainForm.WMBeginSimulation(var Msg: TMessage);
+procedure TMainForm.WMSessionSubmitted(var Msg: TWMSessionSubmitted);
 begin
-  inherited;
-  Assert(ActiveFrameType = cfSession);
+  var rec := SessionManager.GetSession(Msg.SessionId);
 
   var composer: ISessionComposer;
-
-  var frame: TSessionFrame := ContentFrames[cfSession] as TSessionFrame;
-  if u_SimDebug.DebugScenarioName <> '' then
-  begin
-    composer := TDebugSessionComposer.Create(WorldLibrary, scenarioFileName,
-      u_SimDebug.DebugScenarioName);
-  end
-  else
-  begin
-    var params := frame.SessionParameters;
-    composer := TSessionComposer.Create(frame.World, WorldLibrary, params);
+  case rec.SessionType of
+    stStandard:
+      composer := TSessionComposer.Create(rec.StandardParams);
+    stDebug:
+      composer := TDebugSessionComposer.Create(rec.DebugParams.ScenarioName);
   end;
 
   ActivateContent(cfSimulator);
 
   var simFrame: TSimulatorFrame := ContentFrames[cfSimulator] as TSimulatorFrame;
-  simFrame.CreateSession(composer);
-
-
+  simFrame.CreateSession(composer, rec.CommonParams);
 end;
 
 procedure TMainForm.WMEndSimulation(var Msg: TMessage);
@@ -166,15 +171,6 @@ begin
   inherited;
   Assert(ActiveFrameType = cfSimulator);
   ActivateContent(cfSession);
-
-//  var simFrame: TSimulatorFrame := ContentFrames[cfSimulator] as TSimulatorFrame;
-//  if Assigned(simFrame) then
-//  begin
-//    simFrame.Free;
-//    ContentFrames[cfSimulator] := nil;
-//  end;
-
-  //
 end;
 
 procedure TMainForm.WorldLibraryModified(Sender: TObject);
@@ -231,12 +227,6 @@ begin
     ContentFrames[ActiveFrameType].ActivateContent;
     pnlTaskbar.Visible := ActiveFrameType <> cfSimulator;
     ContentFrames[ActiveFrameType].Show;
-
-    // if we need to someday, on the sim page we can free the other content pages
-    // and nil out the instance pointers.
-    // consider adding another virtual pair to TContentFrame for save/restore
-
-
   end;
   UpdateControls;
 end;
@@ -273,14 +263,6 @@ end;
 
 procedure TMainForm.btnTestClick(Sender: TObject);
 begin
-
-//  var layout := TWorldMap.Create(WorldLibrary.Worlds[0], WorldLibrary);
-//  try
-//
-//  finally
-//    layout.Free;
-//  end;
-
 end;
 
 

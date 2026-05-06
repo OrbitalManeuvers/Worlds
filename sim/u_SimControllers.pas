@@ -30,11 +30,10 @@ type
 
   TPlaylist = TList<TSegment>;
 
-  TSimController = class(TInterfacedPersistent, ISimEventConsumer)
+  TSimController = class
   private
     fClock: TSimClock;
-    fDiagnostics: ISimDiagnosticsSink;
-    fSink: IEventSink;
+//    fDiagnostics: ISimDiagnosticsSink;
     fRecording: Boolean;
     fRunning: Boolean;
     fCurrentSegmentIndex: Integer;
@@ -47,13 +46,9 @@ type
     procedure NotifyAfterAdvance;
     function GetCurrentDate: TSimDate;
 
-    // ISimEventConsumer
-    procedure Consume(const Event: TSimEvent);
-
   public
-    constructor Create(aClock: TSimClock; aDiagnostics: ISimDiagnosticsSink; aSink: IEventSink);
+    constructor Create(aClock: TSimClock);
     destructor Destroy; override;
-    property EventSink: IEventSink read fSink;
 
     procedure Step(Recording: Boolean = False);
 
@@ -73,12 +68,10 @@ implementation
 
 { TSimController }
 
-constructor TSimController.Create(aClock: TSimClock; aDiagnostics: ISimDiagnosticsSink; aSink: IEventSink);
+constructor TSimController.Create(aClock: TSimClock);
 begin
   inherited Create;
   fClock := aClock;
-  fDiagnostics := aDiagnostics;
-  fSink := aSink;
   fBeforeAdvance := TMulticastEvent<TNotifyEvent>.Create;
   fAfterAdvance := TMulticastEvent<TNotifyEvent>.Create;
 end;
@@ -196,16 +189,6 @@ begin
 
   NotifyAfterAdvance;
 end;
-
-procedure TSimController.Consume(const Event: TSimEvent);
-begin
-  if fRecording then
-    fSink.Write(Event);
-
-  if fRunning and (fActiveEndEvents <> []) and (Event.Header.Kind in fActiveEndEvents) then
-    fEndEventFired := True;
-end;
-
 
 { TSimDate }
 

@@ -10,7 +10,7 @@ uses
   u_SessionParameters;
 
 function ResolveBiomassRuntimeConfig(const Params: TSimParams): TBiomassRuntimeConfig; overload;
-function ResolveBiomassRuntimeConfig(const Params: TSessionParameters): TBiomassRuntimeConfig; overload;
+function ResolveBiomassRuntimeConfig(const Params: TUpscalerParameters): TBiomassRuntimeConfig; overload;
 
 implementation
 
@@ -27,7 +27,7 @@ begin
   Result.RandomInjectChancePercent := RANDOM_INJECT_CHANCE[Params.Biomass.Density];
 end;
 
-function ResolveBiomassRuntimeConfig(const Params: TSessionParameters): TBiomassRuntimeConfig;
+function ResolveBiomassRuntimeConfig(const Params: TUpscalerParameters): TBiomassRuntimeConfig;
 begin
   Result.InjectOnDeath := u_SessionParameters.bimOnDeath in Params.Biomass.InjectionModes;
   Result.InjectAtNightfall := u_SessionParameters.bimAtNightfall in Params.Biomass.InjectionModes;

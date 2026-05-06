@@ -79,7 +79,10 @@ uses
   fr_SimController in 'ui\fr_SimController.pas' {ControllerFrame: TFrame},
   u_LogTreeViews in 'ui\u_LogTreeViews.pas',
   u_LogFormatting in 'ui\u_LogFormatting.pas',
-  u_LogExport in 'ui\u_LogExport.pas';
+  u_LogExport in 'ui\u_LogExport.pas',
+  u_MappedFileSink in 'sim\u_MappedFileSink.pas',
+  u_DebugLibraries in 'common\u_DebugLibraries.pas',
+  u_SessionManager in 'sim\u_SessionManager.pas';
 
 {$R *.res}
 

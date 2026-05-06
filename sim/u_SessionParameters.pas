@@ -2,11 +2,19 @@ unit u_SessionParameters;
 
 interface
 
-uses System.Types, u_BiologyTypes, u_EnvironmentTypes;
+uses System.Types, u_BiologyTypes, u_EnvironmentTypes, u_Worlds;
 
 type
+  TSessionType = (stStandard, stDebug);
 
-  { TSessionParameters - parameters for a normal (upscaled) session }
+  TCommonSessionParameters = record
+    SessionType: TSessionType;
+    SessionName: string;
+    SessionLogFile: string;
+    ScratchFolder: string;
+  end;
+
+  { TUpscalerParameters - parameters for a normal (upscaled) session }
 
   TBiomassInjectionMode = (bimOnDeath, bimAtNightfall, bimRandom);
   TBiomassInjectionModes = set of TBiomassInjectionMode;
@@ -22,7 +30,8 @@ type
   // revisit this list for non-debugging value
   TPopulationScheme = (psAtZero, psOnSingleResource, psOnMultiResource, psOnBarren, psOnBarrenNextToResource, psOnBarrenCloseToResource);
 
-  TSessionParameters = record
+  TUpscalerParameters = record
+    World: TWorld;    // the world to upscale
     Seed: Integer;    // 0 = use current RTL seed; non-zero = force deterministic session seed
     Factor: Integer;
 
@@ -46,12 +55,16 @@ type
     procedure InitDefaults;
   end;
 
+  TDebugSessionParameters = record
+    ScenarioName: string;
+  end;
+
 
 implementation
 
-{ TSessionParameters }
+{ TUpscalerParameters }
 
-procedure TSessionParameters.InitDefaults;
+procedure TUpscalerParameters.InitDefaults;
 begin
   Seed := 0;
   Factor := 8;

@@ -5,23 +5,27 @@ interface
 uses System.Classes, System.Types, System.Generics.Collections,
  u_Simulators, u_SimWatches, u_SimPhases,
  u_SimDiagnostics, u_SimDiagnosticsIntf,
- u_SimControllers, u_EventSinkIntf;
+ u_SimControllers, u_EventSinkIntf,
+ u_SessionParameters;
 
 type
   TSimSession = class
   private
+    fCommonParams: TCommonSessionParameters;
     fDiagnostics: TSimDiagnosticsHub;
+    fScratchFileName: string;
+    fMappedFileSubscriptionId: Integer;
+    fMappedFileSink: ISimEventConsumer;
+    fMappedFileLog: IEventLog;
     fSim: TSimulator;
     fWatches: TObjectList<TSimWatch>;
     fNextWatchId: Integer;
     fOnWatchChange: TWatchChangedEvent;
     fController: TSimController;
-    fControllerDiagnosticsSubscriptionId: Integer;
+//    fControllerDiagnosticsSubscriptionId: Integer;
 
     fSampleRangeStart: Integer;
     fSampleRangeCount: Integer;
-
-    fEventSink: IEventSink; // !! consider passing in and owning externally
 
     procedure EvaluateWatches(const Phase: TSimTickPhase);
     procedure HandleRuntimePhase(Sender: TObject; Phase: TSimTickPhase);
@@ -31,13 +35,18 @@ type
     procedure UpdateWatchBindings;
     function RegisterWatch(AWatch: TSimWatch): TSimWatch;
   public
-    constructor Create(aSim: TSimulator);
+    constructor Create(const aCommonParams: TCommonSessionParameters;
+      aSim: TSimulator = nil);
     destructor Destroy; override;
 
+    procedure AssertScratchLogReadable;
     procedure BeginSession;
     procedure EndSession;
     procedure PrimeWatches;
+    function ScratchEventCount: Integer;
     property Controller: TSimController read fController;
+    property EventLog: IEventLog read fMappedFileLog;
+    property ScratchFileName: string read fScratchFileName;
 
     function AddAgentWatch(AgentIndex: Integer; const Callback: TWatchChangedEvent = nil;
       const Phases: TSimTickPhases = [stpPostAgents]): TAgentWatch;
@@ -54,12 +63,17 @@ type
 
     property Simulator: TSimulator read fSim;
     property Diagnostics: TSimDiagnosticsHub read fDiagnostics;
+    property CommonParams: TCommonSessionParameters read fCommonParams;
     property OnWatchChange: TWatchChangedEvent read fOnWatchChange write fOnWatchChange;
   end;
 
 implementation
 
-uses u_EventSinks;
+uses System.SysUtils, System.IOUtils,
+  u_MappedFileSink;
+
+const
+  SCRATCH_FILE_NAME = 'scratch.simlog';
 
 var
   NextSimSessionId: Integer = 0;
@@ -67,13 +81,16 @@ var
 
 { TSimSession }
 
-constructor TSimSession.Create(aSim: TSimulator);
+constructor TSimSession.Create(const aCommonParams: TCommonSessionParameters;
+  aSim: TSimulator);
 begin
   inherited Create;
+  fCommonParams := aCommonParams;
   Inc(NextSimSessionId);
   fDiagnostics := TSimDiagnosticsHub.Create(NextSimSessionId);
   fSampleRangeStart := 0;
   fSampleRangeCount := 0;
+  fMappedFileSubscriptionId := 0;
 
   if Assigned(aSim) then
     fSim := aSim
@@ -83,26 +100,37 @@ begin
   fSim.Runtime.OnPhase := HandleRuntimePhase;
   fWatches := TObjectList<TSimWatch>.Create(True);
 
-  fEventSink := TEventSink.Create;
-
-  fController := TSimController.Create(fSim.Clock, fDiagnostics as ISimDiagnosticsSink, fEventSink);
+  fController := TSimController.Create(fSim.Clock); //, fDiagnostics as ISimDiagnosticsSink);
   fController.BeforeAdvance.Subscribe(HandleControllerBeforeAdvance);
   fController.AfterAdvance.Subscribe(HandleControllerAfterAdvance);
-  fControllerDiagnosticsSubscriptionId := fDiagnostics.Subscribe(AnySimEventFilter, fController);
+
+  // set up the session recording file
+  fScratchFileName := fCommonParams.ScratchFolder.Trim;
+  Assert((fScratchFileName <> '') and TDirectory.Exists(fScratchFileName));
+  fScratchFileName := TPath.Combine(fScratchFileName, SCRATCH_FILE_NAME);
+  if TFile.Exists(fScratchFileName) then
+    TFile.Delete(fScratchFileName);
+  fMappedFileSink := TMappedFileSink.Create(fScratchFileName);
+  fMappedFileSubscriptionId := fDiagnostics.Subscribe(AnySimEventFilter, fMappedFileSink);
+  fMappedFileLog := TMappedFileLog.Create(fScratchFileName);
+
 end;
 
 destructor TSimSession.Destroy;
 begin
+  if Assigned(fDiagnostics) and (fMappedFileSubscriptionId <> 0) then
+  begin
+    fDiagnostics.Unsubscribe(fMappedFileSubscriptionId);
+    fMappedFileSubscriptionId := 0;
+  end;
+
+  fMappedFileLog := nil;
+  fMappedFileSink := nil;
+
   if Assigned(fController) then
   begin
     fController.BeforeAdvance.Unsubscribe(HandleControllerBeforeAdvance);
     fController.AfterAdvance.Unsubscribe(HandleControllerAfterAdvance);
-  end;
-
-  if Assigned(fDiagnostics) and (fControllerDiagnosticsSubscriptionId <> 0) then
-  begin
-    fDiagnostics.Unsubscribe(fControllerDiagnosticsSubscriptionId);
-    fControllerDiagnosticsSubscriptionId := 0;
   end;
 
   fController.Free;
@@ -112,7 +140,6 @@ begin
   fWatches.Free;
   fSim.Free;
   fDiagnostics := nil;
-  fEventSink := nil;
   inherited;
 end;
 
@@ -186,6 +213,23 @@ begin
     watch.Reset;
 end;
 
+procedure TSimSession.AssertScratchLogReadable;
+begin
+  Assert(Assigned(fMappedFileLog));
+
+  var count := fMappedFileLog.Count;
+  if count = 0 then
+    Exit;
+
+  var lastEvent := fMappedFileLog.Events[count - 1];
+  Assert(lastEvent.Header.Sequence = count);
+
+  var mappedLog := fMappedFileLog as TMappedFileLog;
+  var header := mappedLog.Header;
+  Assert(header.Magic = $534C4F47);
+  Assert(header.EventCount = count);
+end;
+
 procedure TSimSession.EndSession;
 begin
   for var watch in fWatches do
@@ -247,6 +291,12 @@ begin
   // Capture initial baselines without emitting watch change callbacks.
   for var watch in fWatches do
     watch.Prime(fSim, fSim.Clock.Tick);
+end;
+
+function TSimSession.ScratchEventCount: Integer;
+begin
+  Assert(Assigned(fMappedFileLog));
+  Result := fMappedFileLog.Count;
 end;
 
 end.

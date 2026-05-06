@@ -50,7 +50,7 @@ begin
          trace.Summary.EnergyLevel.AsLabel]));
 
       // evaluation scores
-      lines.Add('  ' + EvaluationsAsScoreLine(trace.Evaluations, trace.ResolvedAction));
+      lines.Add('  ' + EvaluationsAsRawLine(trace.Evaluations));
 
       // conflict line only when the brain's request was overridden
       if trace.RequestedAction <> trace.ResolvedAction then

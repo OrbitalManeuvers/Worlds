@@ -159,6 +159,17 @@ begin
     raise;
   end;
 
+  // there's always a random seed
+  var seed := TSeed.Create;
+  try
+    seed.Name := 'Random';
+    seed.Value := 0;
+    AddSeed(seed);
+  except
+    seed.Free;
+    raise;
+  end;
+
 end;
 
 procedure TEnvironmentLibrary.UpdateBiomeColorPalette(var aPalette: TBiomeColorPalette);

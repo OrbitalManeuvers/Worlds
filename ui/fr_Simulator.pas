@@ -9,7 +9,8 @@ uses
   VirtualTrees, VirtualTrees.DrawTree,
 
   u_SessionComposerIntf, u_SimSessions, u_SimDiagnosticsIntf,
-  fr_SimController, u_EventSinkIntf, u_LogTreeViews, Vcl.Menus;
+  fr_SimController, u_EventSinkIntf, u_LogTreeViews, Vcl.Menus,
+  u_SessionParameters;
 
 type
   TStepViewerInstance = record
@@ -18,7 +19,7 @@ type
     ExportFileName: string;
   end;
 
-  TSimulatorFrame = class(TContentFrame, ISimEventConsumer)
+  TSimulatorFrame = class(TContentFrame)
     btnClose: TButton;
     AgentTree: TVirtualDrawTree;
     StepViewPopup: TPopupMenu;
@@ -30,7 +31,6 @@ type
     fSession: TSimSession;
     fEventLog: IEventLog;
     fControllerFrame: TControllerFrame;
-    fDiagnosticsSubscriptionId: Integer;
 
     fStepViewers: TList<TStepViewerInstance>;
 
@@ -39,17 +39,15 @@ type
     procedure HandleBeforeRun(Sender: TObject);
     procedure HandleAfterRun(Sender: TObject);
 
-    // ISimEventConsumer
-    procedure Consume(const Event: TSimEvent);
-    procedure CreateStepViewer(aTree: TVirtualDrawTree;
-      aViewerClass: TLogViewerClass;
-      const aExportFileName: string);
+//    procedure CreateStepViewer(aTree: TVirtualDrawTree; aViewerClass: TLogViewerClass;
+//      const aExportFileName: string);
   public
     procedure Init; override;
     procedure Done; override;
     procedure DeactivateContent; override;
 
-    procedure CreateSession(const aComposer: ISessionComposer);
+    procedure CreateSession(const aComposer: ISessionComposer;
+      const aCommonParams: TCommonSessionParameters);
 
     property Session: TSimSession read fSession;
   end;
@@ -120,15 +118,11 @@ end;
 
 procedure TSimulatorFrame.HandleAfterRun(Sender: TObject);
 begin
+  if Assigned(fSession) then
+    fSession.AssertScratchLogReadable;
+
   for var viewerInstance in fStepViewers do
     viewerInstance.Treeview.EndUpdate;
-end;
-
-procedure TSimulatorFrame.Consume(const Event: TSimEvent);
-begin
-  // handle incoming sim events
-  for var viewerInstance in fStepViewers do
-    viewerInstance.Viewer.AddEvent(Event);
 end;
 
 procedure TSimulatorFrame.DestroySession;
@@ -136,18 +130,14 @@ begin
   if not Assigned(fSession) then
     Exit;
 
+  fEventLog := nil;
+
   // clean up viewers tied to this session
   if Assigned(fStepViewers) then
   begin
     for var viewerInstance in fStepViewers do
       viewerInstance.Viewer.Free;
     fStepViewers.Clear;
-  end;
-
-  if fDiagnosticsSubscriptionId <> 0 then
-  begin
-    fSession.Diagnostics.Unsubscribe(fDiagnosticsSubscriptionId);
-    fDiagnosticsSubscriptionId := 0;
   end;
 
   fSession.EndSession;
@@ -161,47 +151,22 @@ begin
   PostMessage(Application.MainForm.Handle, WM_END_SIMULATION, 0, 0);
 end;
 
-procedure TSimulatorFrame.CreateSession(const aComposer: ISessionComposer);
+procedure TSimulatorFrame.CreateSession(const aComposer: ISessionComposer;
+  const aCommonParams: TCommonSessionParameters);
 begin
   DestroySession;
 
-  fSession := TSimSession.Create(nil);
+  fSession := TSimSession.Create(aCommonParams);
+  fEventLog := fSession.EventLog;
   try
     aComposer.Compose(fSession.Simulator.Runtime);
     fSession.BeginSession;
-    fDiagnosticsSubscriptionId := fSession.Diagnostics.Subscribe(AnySimEventFilter, Self);
+    fSession.AssertScratchLogReadable;
     fControllerFrame.Controller := fSession.Controller;
-
-    fEventLog := nil;
-    if Supports(fSession.Controller.EventSink, IEventLog, fEventLog) then
-    begin
-
-      // create the step viewers
-      CreateStepViewer(AgentTree, TDecisionTraceViewer, 'decision-trace.txt');
-      CreateStepViewer(LifetimeTree, TDecisionTraceViewer, 'lifetimes.txt');
-
-//      var v := TLogViewer.Create(AgentTree, fEventlog, fSession.Simulator.Runtime.Environment.Dimensions.cx);
-//      fLogViewers.Add(v);
-
-
-
-    end;
-
   except
     DestroySession;
     raise;
   end;
-end;
-
-procedure TSimulatorFrame.CreateStepViewer(aTree: TVirtualDrawTree;
-  aViewerClass: TLogViewerClass; const aExportFileName: string);
-begin
-  var viewerInstance := Default(TStepViewerInstance);
-  viewerInstance.Treeview := aTree;
-  viewerInstance.Viewer := aViewerClass.Create(aTree, fEventLog,
-    fSession.Simulator.Runtime.Environment.Dimensions.cx);
-  viewerInstance.ExportFileName := aExportFileName;
-  fStepViewers.Add(viewerInstance);
 end;
 
 procedure TSimulatorFrame.DeactivateContent;

@@ -18,10 +18,13 @@ type
 
   TActionEvalResultHelper = record helper for TActionEvalResult
     function AsPercent: string;
+    function AsRaw: string;
   end;
 
 function EvaluationsAsScoreLine(const aEvals: TActionEvaluations;
   aWinner: TAgentAction): string;
+
+function EvaluationsAsRawLine(const aEvals: TActionEvaluations): string;
 
 function CellIndexToStr(aCellIndex, aGridWidth: Integer): string;
 
@@ -60,6 +63,11 @@ begin
   Result := IntToStr(Round(Self.Score * 100)) + '%';
 end;
 
+function TActionEvalResultHelper.AsRaw: string;
+begin
+  Result := FormatFloat('0.000', Self.Score);
+end;
+
 { EvaluationsAsScoreLine }
 
 function EvaluationsAsScoreLine(const aEvals: TActionEvaluations;
@@ -73,6 +81,21 @@ begin
     if Result <> '' then
       Result := Result + '  ';
     Result := Result + LABELS[action] + ':' + aEvals[action].AsPercent;
+  end;
+end;
+
+{ EvaluationsAsRawLine }
+
+function EvaluationsAsRawLine(const aEvals: TActionEvaluations): string;
+const
+  LABELS: array[TAgentAction] of string = ('M', 'F', 'S', 'R', 'I');
+begin
+  Result := '';
+  for var action := Low(TAgentAction) to High(TAgentAction) do
+  begin
+    if Result <> '' then
+      Result := Result + '  ';
+    Result := Result + LABELS[action] + ':' + aEvals[action].AsRaw;
   end;
 end;
 

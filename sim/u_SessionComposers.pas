@@ -4,17 +4,15 @@ interface
 
 uses
   u_SimRuntimes, u_SessionComposerIntf,
-  u_SessionParameters, u_Worlds, u_EnvironmentLibraries;
+  u_SessionParameters;
 
 type
   TSessionComposer = class(TInterfacedObject, ISessionComposer)
   private
-    fParams: TSessionParameters;
-    fWorld: TWorld;
-    fLibrary: TEnvironmentLibrary;
+    fParams: TUpscalerParameters;
     procedure Compose(aRuntime: TSimRuntime);
   public
-    constructor Create(aWorld: TWorld; aLibrary: TEnvironmentLibrary; const Params: TSessionParameters);
+    constructor Create(const aParams: TUpscalerParameters);
     destructor Destroy; override;
   end;
 
@@ -27,16 +25,15 @@ uses
   u_SimParams,
   u_SimPopulators,
   u_SimUpscalers,
-  u_WorldLayouts;
+  u_WorldLayouts,
+  u_EnvironmentLibraries;
 
 { TSessionComposer }
 
-constructor TSessionComposer.Create(aWorld: TWorld; aLibrary: TEnvironmentLibrary; const Params: TSessionParameters);
+constructor TSessionComposer.Create(const aParams: TUpscalerParameters);
 begin
   inherited Create;
-  fWorld := aWorld;
-  fLibrary := aLibrary;
-  fParams := Params;
+  fParams := aParams;
 end;
 
 destructor TSessionComposer.Destroy;
@@ -91,7 +88,7 @@ begin
   ApplySeedPolicy;
   aRuntime.ConfigureBiomass(ResolveBiomassRuntimeConfig(fParams));
 
-  var layout := TWorldLayout.Create(fWorld, fLibrary);
+  var layout := TWorldLayout.Create(fParams.World, WorldLibrary);
   try
     var upscaler := TWorldUpscaler.Create(aRuntime.Environment, simParams);
     try
