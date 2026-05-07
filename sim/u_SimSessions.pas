@@ -4,8 +4,8 @@ interface
 
 uses System.Classes, System.Types, System.Generics.Collections,
  u_Simulators, u_SimWatches, u_SimPhases,
- u_SimDiagnostics, u_SimDiagnosticsIntf,
- u_SimControllers, u_EventSinkIntf,
+ u_SimDiagnostics, u_SimEventTypes,
+ u_SimControllers,
  u_SessionParameters;
 
 type

@@ -4,7 +4,7 @@ interface
 
 uses
   System.Generics.Collections,
-  u_SimDiagnosticsIntf;
+  u_SimEventTypes;
 
 type
   TSimEventSubscription = record

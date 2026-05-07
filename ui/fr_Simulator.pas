@@ -5,51 +5,41 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, fr_ContentFrames, Vcl.StdCtrls,
-  System.Generics.Collections,
-  VirtualTrees, VirtualTrees.DrawTree,
+  System.Generics.Collections, Vcl.Menus,
+  VirtualTrees, VirtualTrees.DrawTree, Vcl.ExtCtrls,
 
-  u_SessionComposerIntf, u_SimSessions, u_SimDiagnosticsIntf,
-  fr_SimController, u_EventSinkIntf, u_LogTreeViews, Vcl.Menus,
+  u_SessionComposerIntf, u_SimSessions, u_SimEventTypes, u_EventLogViews,
+  fr_SimController, fr_LogViewer,
   u_SessionParameters;
 
 type
-  TStepViewerInstance = record
-    Viewer: TLogViewer;
-    Treeview: TVirtualDrawTree;
-    ExportFileName: string;
-  end;
-
   TSimulatorFrame = class(TContentFrame)
     btnClose: TButton;
-    AgentTree: TVirtualDrawTree;
-    StepViewPopup: TPopupMenu;
+    ViewPopup: TPopupMenu;
     mniExport: TMenuItem;
-    LifetimeTree: TVirtualDrawTree;
+    phController: TShape;
+    phLogViewer: TShape;
     procedure btnCloseClick(Sender: TObject);
     procedure mniExportClick(Sender: TObject);
   private
-    fSession: TSimSession;
-    fEventLog: IEventLog;
-    fControllerFrame: TControllerFrame;
-
-    fStepViewers: TList<TStepViewerInstance>;
-
+    Session: TSimSession;
+    EventLog: IEventLog;
+    EventLogView: IEventLogView;
+    Controller: TControllerFrame;
+    LogViewer: TLogViewer;
 
     procedure DestroySession;
     procedure HandleBeforeRun(Sender: TObject);
     procedure HandleAfterRun(Sender: TObject);
 
-//    procedure CreateStepViewer(aTree: TVirtualDrawTree; aViewerClass: TLogViewerClass;
-//      const aExportFileName: string);
   public
     procedure Init; override;
     procedure Done; override;
     procedure DeactivateContent; override;
 
+    { called externally }
     procedure CreateSession(const aComposer: ISessionComposer;
       const aCommonParams: TCommonSessionParameters);
-
-    property Session: TSimSession read fSession;
   end;
 
 
@@ -57,92 +47,76 @@ implementation
 
 {$R *.dfm}
 
-uses u_WorldsMessages, u_LogExport, System.IOUtils;
+uses u_WorldsMessages, {u_LogExport,} System.IOUtils;
 
 { TSimulatorFrame }
 
 procedure TSimulatorFrame.Init;
+
+  procedure InitFrame(aFrame: TFrame; aPlaceholder: TShape);
+  begin
+    aFrame.BoundsRect := aPlaceholder.BoundsRect;
+    aFrame.Parent := aPlaceholder.Parent;
+    aPlaceholder.Hide;
+    aFrame.Show;
+  end;
+
 begin
   inherited;
-  //
-  fStepViewers := TList<TStepViewerInstance>.Create;
 
-  fControllerFrame := TControllerFrame.Create(Self);
-  fControllerFrame.Parent := Self;
-  fControllerFrame.Show;
-  fControllerFrame.OnBeforeRun := HandleBeforeRun;
-  fControllerFrame.OnAfterRun := HandleAfterRun;
+  { UI for controlling the session }
+  Controller := TControllerFrame.Create(Self);
+  InitFrame(Controller, phController);
+  Controller.OnBeforeRun := HandleBeforeRun;
+  Controller.OnAfterRun := HandleAfterRun;
+
+  { UI for displaying scratch log events }
+  LogViewer := TLogViewer.Create(Self);
+  InitFrame(LogViewer, phLogViewer);
+
+
 end;
 
 procedure TSimulatorFrame.mniExportClick(Sender: TObject);
 begin
   inherited;
-
-  var sourceTree := StepViewPopup.PopupComponent as TVirtualDrawTree;
-  if not Assigned(sourceTree) then
-    Exit;
-
-  for var viewerInstance in fStepViewers do
-    if viewerInstance.Treeview = sourceTree then
-    begin
-      var eventMap: TArray<Integer>;
-      SetLength(eventMap, 0);
-      viewerInstance.Viewer.GetSelectedEvents(eventMap);
-
-      var fileName := TPath.Combine(ExtractFilePath(Application.ExeName), viewerInstance.ExportFileName);
-      u_LogExport.ExportDecisionTraces(fEventLog, eventMap,
-        fSession.Simulator.Runtime.Environment.Dimensions.cx,
-        fileName);
-
-      Break;
-    end;
+  //
 end;
 
 procedure TSimulatorFrame.Done;
 begin
-  for var viewerInstance in fStepViewers do
-    viewerInstance.Viewer.Free;
-  fStepViewers.Free;
-  fStepViewers := nil;
-
-  fControllerFrame.Controller := nil;
   DestroySession;
   inherited;
 end;
 
 procedure TSimulatorFrame.HandleBeforeRun(Sender: TObject);
 begin
-  for var viewerInstance in fStepViewers do
-    viewerInstance.Treeview.BeginUpdate;
+  LogViewer.Tree.BeginUpdate;
 end;
 
 procedure TSimulatorFrame.HandleAfterRun(Sender: TObject);
 begin
-  if Assigned(fSession) then
-    fSession.AssertScratchLogReadable;
+  if Assigned(Session) then
+    Session.AssertScratchLogReadable;
 
-  for var viewerInstance in fStepViewers do
-    viewerInstance.Treeview.EndUpdate;
+  LogViewer.Refresh;
+  LogViewer.Tree.EndUpdate;
 end;
 
 procedure TSimulatorFrame.DestroySession;
 begin
-  if not Assigned(fSession) then
+  if not Assigned(Session) then
     Exit;
 
-  fEventLog := nil;
+  Controller.Controller := nil;
 
-  // clean up viewers tied to this session
-  if Assigned(fStepViewers) then
-  begin
-    for var viewerInstance in fStepViewers do
-      viewerInstance.Viewer.Free;
-    fStepViewers.Clear;
-  end;
+  LogViewer.Connect(nil);
+  EventLogView := nil;
+  EventLog := nil;
 
-  fSession.EndSession;
-  fSession.Free;
-  fSession := nil;
+  Session.EndSession;
+  Session.Free;
+  Session := nil;
 end;
 
 procedure TSimulatorFrame.btnCloseClick(Sender: TObject);
@@ -156,13 +130,26 @@ procedure TSimulatorFrame.CreateSession(const aComposer: ISessionComposer;
 begin
   DestroySession;
 
-  fSession := TSimSession.Create(aCommonParams);
-  fEventLog := fSession.EventLog;
+  Session := TSimSession.Create(aCommonParams);
+  EventLog := Session.EventLog;
+  EventLogView := TEventLogView.Create(EventLog);
+
+  // view definition
+  var def := Default(TSimEventViewDef);
+  def.StartSequence := -1;
+  def.StopSequence := -1;
+  def.Kinds := [sekDecisionTrace];
+
+//  EventLogView.Define(AnySimEventViewDef);
+  EventLogView.Define(def);
+
+
+  LogViewer.Connect(EventLogView);
   try
-    aComposer.Compose(fSession.Simulator.Runtime);
-    fSession.BeginSession;
-    fSession.AssertScratchLogReadable;
-    fControllerFrame.Controller := fSession.Controller;
+    aComposer.Compose(Session.Simulator.Runtime);
+    Session.BeginSession;
+    Session.AssertScratchLogReadable;
+    Controller.Controller := Session.Controller;
   except
     DestroySession;
     raise;

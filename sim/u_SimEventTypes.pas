@@ -1,4 +1,4 @@
-unit u_SimDiagnosticsIntf;
+unit u_SimEventTypes;
 
 interface
 
@@ -130,6 +130,13 @@ type
     CellIndex: Integer;
   end;
 
+  TSimEventViewDef = record
+    Kinds: TSimEventKinds;
+    AgentIds: TArray<Integer>;
+    StartSequence: Int64; // < 0 means unbounded start
+    StopSequence: Int64;  // < 0 means unbounded stop
+  end;
+
   ISimDiagnosticsSink = interface
     ['{E9073AA2-4F5D-47F3-BD9E-711D2DB53F9D}']
     procedure Emit(const Event: TSimEvent);
@@ -140,8 +147,34 @@ type
     procedure Consume(const Event: TSimEvent);
   end;
 
+  IEventSink = interface
+    ['{E42567E7-85F6-4C87-90BE-B00699011824}']
+    procedure Write(aEvent: TSimEvent);
+  end;
+
+  IEventLog = interface
+    ['{3894A514-3F88-4E07-9618-1A1E588CE60C}']
+    function GetCount: Integer;
+    function GetEvent(aIndex: Integer): TSimEvent;
+    property Count: Integer read GetCount;
+    property Events[aIndex: Integer]: TSimEvent read GetEvent;
+  end;
+
+  // parameterized view onto an event log
+  IEventLogView = interface
+    ['{11664E6F-DDB0-4C5B-B0E9-57587E32AEC2}']
+    function GetCount: Integer;
+    function GetEvent(aIndex: Integer): TSimEvent; // indirection through internal list
+    procedure Define(const aViewDef: TSimEventViewDef);
+    procedure Extend; // scan new log entries since last Define/Extend
+    property Count: Integer read GetCount;
+    property Events[aIndex: Integer]: TSimEvent read GetEvent;
+  end;
+
+
 function AnySimEventKinds: TSimEventKinds;
 function AnySimEventFilter: TSimEventFilter;
+function AnySimEventViewDef: TSimEventViewDef;
 
 
 implementation
@@ -156,6 +189,14 @@ begin
   Result.Kinds := AnySimEventKinds;
   Result.AgentId := -1;
   Result.CellIndex := -1;
+end;
+
+function AnySimEventViewDef: TSimEventViewDef;
+begin
+  Result.Kinds := AnySimEventKinds;
+  SetLength(Result.AgentIds, 0);
+  Result.StartSequence := -1;
+  Result.StopSequence := -1;
 end;
 
 end.

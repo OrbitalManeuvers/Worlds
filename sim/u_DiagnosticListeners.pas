@@ -2,7 +2,7 @@ unit u_DiagnosticListeners;
 
 interface
 
-uses u_SimDiagnosticsIntf;
+uses u_SimEventTypes;
 
 type
   TLogEvent = procedure (const Msg: string) of object;

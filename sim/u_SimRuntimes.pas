@@ -2,7 +2,7 @@ unit u_SimRuntimes;
 
 interface
 
-uses u_AgentState, u_SimDiagnosticsIntf, u_SimEnvironments, u_SimPopulations, u_SimClocks, u_SimQueriesIntf,
+uses u_AgentState, u_SimEventTypes, u_SimEnvironments, u_SimPopulations, u_SimClocks, u_SimQueriesIntf,
   u_SimCommandsIntf, u_AgentBrain, u_AgentTypes, u_SimPhases, u_AgentGenome;
 
 const

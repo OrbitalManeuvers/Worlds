@@ -28,7 +28,7 @@ inherited SessionFrame: TSessionFrame
     Top = 184
     Width = 673
     Height = 415
-    ActivePage = tsDebug
+    ActivePage = tsStandard
     TabOrder = 1
     object tsStandard: TTabSheet
       Caption = 'Standard'

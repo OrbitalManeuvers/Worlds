@@ -1,8 +1,8 @@
 object ControllerFrame: TControllerFrame
   Left = 0
   Top = 0
-  Width = 467
-  Height = 108
+  Width = 494
+  Height = 138
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -13
@@ -10,19 +10,36 @@ object ControllerFrame: TControllerFrame
   Font.Style = []
   ParentFont = False
   TabOrder = 0
-  object bvBk: TBevel
-    Left = 0
-    Top = 0
-    Width = 467
-    Height = 108
-    Align = alClient
-    Style = bsRaised
-    ExplicitWidth = 473
-    ExplicitHeight = 149
+  object Shape1: TShape
+    Left = 3
+    Top = 2
+    Width = 89
+    Height = 120
+    Brush.Style = bsClear
+    Pen.Color = clGray
+    Pen.Width = 2
+  end
+  object Shape2: TShape
+    Left = 147
+    Top = 2
+    Width = 89
+    Height = 28
+    Brush.Style = bsClear
+    Pen.Color = clGray
+    Pen.Width = 2
+  end
+  object Shape3: TShape
+    Left = 104
+    Top = 40
+    Width = 381
+    Height = 81
+    Brush.Style = bsClear
+    Pen.Color = clGray
+    Pen.Width = 2
   end
   object btnRecord: TPngSpeedButton
-    Left = 8
-    Top = 32
+    Left = 12
+    Top = 48
     Width = 72
     Height = 65
     AllowAllUp = True
@@ -34,8 +51,8 @@ object ControllerFrame: TControllerFrame
     SelectedImageIndex = 5
   end
   object btnStep: TPngSpeedButton
-    Left = 88
-    Top = 32
+    Left = 112
+    Top = 48
     Width = 72
     Height = 65
     Caption = 'Step Once'
@@ -45,8 +62,8 @@ object ControllerFrame: TControllerFrame
     OnClick = btnStepClick
   end
   object btnRun5: TPngSpeedButton
-    Left = 162
-    Top = 32
+    Left = 186
+    Top = 48
     Width = 72
     Height = 65
     Caption = 'Run 5'
@@ -56,8 +73,8 @@ object ControllerFrame: TControllerFrame
     OnClick = btnRun5Click
   end
   object btnRun10: TPngSpeedButton
-    Left = 236
-    Top = 32
+    Left = 260
+    Top = 48
     Width = 72
     Height = 65
     Caption = 'Run 10'
@@ -67,8 +84,8 @@ object ControllerFrame: TControllerFrame
     OnClick = btnRun10Click
   end
   object btnSunset: TPngSpeedButton
-    Left = 310
-    Top = 32
+    Left = 334
+    Top = 48
     Width = 72
     Height = 65
     Caption = 'Sunset'
@@ -78,8 +95,8 @@ object ControllerFrame: TControllerFrame
     OnClick = btnSunsetClick
   end
   object btnSunrise: TPngSpeedButton
-    Left = 384
-    Top = 32
+    Left = 408
+    Top = 48
     Width = 72
     Height = 65
     Caption = 'Sunrise'
@@ -89,11 +106,11 @@ object ControllerFrame: TControllerFrame
     OnClick = btnSunriseClick
   end
   object lblClock: TLabel
-    Left = 53
+    Left = 12
     Top = 6
-    Width = 40
+    Width = 70
     Height = 22
-    Caption = '000:'
+    Caption = '000:000'
     Font.Charset = ANSI_CHARSET
     Font.Color = clAqua
     Font.Height = -19
@@ -101,13 +118,6 @@ object ControllerFrame: TControllerFrame
     Font.Style = []
     ParentFont = False
     StyleElements = [seClient, seBorder]
-  end
-  object Label3: TLabel
-    Left = 8
-    Top = 8
-    Width = 34
-    Height = 17
-    Caption = 'Clock:'
   end
   object ilController: TPngImageList
     Height = 32
@@ -331,7 +341,7 @@ object ControllerFrame: TControllerFrame
           B7A137A13F92A8E2A9D9AE9A22302B9939815F3A641F5D9CFC078D0000000049
           454E44AE426082}
       end>
-    Left = 544
-    Top = 24
+    Left = 488
+    Top = 40
   end
 end

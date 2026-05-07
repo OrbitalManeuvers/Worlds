@@ -17,11 +17,12 @@ type
     btnStep: TPngSpeedButton;
     btnRun5: TPngSpeedButton;
     btnRun10: TPngSpeedButton;
-    bvBk: TBevel;
     btnSunset: TPngSpeedButton;
     btnSunrise: TPngSpeedButton;
     lblClock: TLabel;
-    Label3: TLabel;
+    Shape1: TShape;
+    Shape2: TShape;
+    Shape3: TShape;
     procedure btnStepClick(Sender: TObject);
     procedure btnRun5Click(Sender: TObject);
     procedure btnRun10Click(Sender: TObject);
@@ -62,7 +63,7 @@ end;
 
 procedure TControllerFrame.btnStepClick(Sender: TObject);
 begin
-  fController.Step(btnRecord.Down);
+  RunToDate(fController.CurrentDate.AddTicks(1));
 end;
 
 procedure TControllerFrame.btnSunriseClick(Sender: TObject);

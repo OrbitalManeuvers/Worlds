@@ -68,7 +68,7 @@ implementation
 uses System.Types, System.Math, Vcl.GraphUtil,
   u_SimParams, u_EditorTypes, u_Foods,
   u_Regions, u_AgentTypes, u_BiologyTypes, u_EnvironmentTypes,
-  u_SimEnvironments, u_DiagnosticListeners, u_SimDiagnosticsIntf,
+  u_SimEnvironments, u_DiagnosticListeners, u_SimEventTypes,
   u_DebugLibraries, u_SessionManager;
 
 const
@@ -167,8 +167,11 @@ end;
 
 procedure TSessionFrame.UpdateControls;
 begin
-//  var ok := False;
+
   var agentCount := seAgentCount.Value;
+
+  // !! change eventually
+  var valid := (agentCount < 10);
 
   if pcPages.ActivePage = tsStandard then
   begin
@@ -176,10 +179,10 @@ begin
   end
   else
   begin
-
+    valid := valid and (ScenarioList.ItemIndex <> -1);
   end;
 
-  btnCreateSim.Enabled := (WorldList.ItemIndex <> -1) and (agentCount > 0) and (agentCount < 100); // !!
+  btnCreateSim.Enabled := valid;
 end;
 
 procedure TSessionFrame.ActivateContent;

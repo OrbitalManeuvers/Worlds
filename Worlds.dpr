@@ -60,11 +60,10 @@ uses
   u_SimPhases in 'sim\u_SimPhases.pas',
   u_MovementGenes in 'agents\u_MovementGenes.pas',
   u_ConverterGenes in 'agents\u_ConverterGenes.pas',
-  u_SimDiagnosticsIntf in 'sim\u_SimDiagnosticsIntf.pas',
+  u_SimEventTypes in 'sim\u_SimEventTypes.pas',
   u_SimDiagnostics in 'sim\u_SimDiagnostics.pas',
   u_DiagnosticListeners in 'sim\u_DiagnosticListeners.pas',
   u_ReproduceGenes in 'agents\u_ReproduceGenes.pas',
-  u_EventSinkIntf in 'sim\u_EventSinkIntf.pas',
   u_EventSinks in 'sim\u_EventSinks.pas',
   u_SessionComposerIntf in 'sim\u_SessionComposerIntf.pas',
   u_SessionComposers in 'sim\u_SessionComposers.pas',
@@ -77,12 +76,14 @@ uses
   u_BiomassConfigResolvers in 'sim\u_BiomassConfigResolvers.pas',
   u_SimpleJSON in 'common\u_SimpleJSON.pas',
   fr_SimController in 'ui\fr_SimController.pas' {ControllerFrame: TFrame},
-  u_LogTreeViews in 'ui\u_LogTreeViews.pas',
   u_LogFormatting in 'ui\u_LogFormatting.pas',
   u_LogExport in 'ui\u_LogExport.pas',
   u_MappedFileSink in 'sim\u_MappedFileSink.pas',
   u_DebugLibraries in 'common\u_DebugLibraries.pas',
-  u_SessionManager in 'sim\u_SessionManager.pas';
+  u_SessionManager in 'sim\u_SessionManager.pas',
+  u_DiagnosticsHelpers in 'sim\u_DiagnosticsHelpers.pas',
+  fr_LogViewer in 'ui\fr_LogViewer.pas' {LogViewer: TFrame},
+  u_EventLogViews in 'sim\u_EventLogViews.pas';
 
 {$R *.res}
 

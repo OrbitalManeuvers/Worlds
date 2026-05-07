@@ -20,8 +20,7 @@ uses
   Winapi.Windows,
   System.Classes,
   System.SysUtils,
-  u_SimDiagnosticsIntf,
-  u_EventSinkIntf;
+  u_SimEventTypes;
 
 type
   /// <summary>
@@ -106,10 +105,6 @@ type
     destructor Destroy; override;
 
     { IEventLog }
-    { TODO: remove when IEventLog is cleaned up }
-    procedure Subscribe(const aHandler: TNotifyEvent);
-    { TODO: remove when IEventLog is cleaned up }
-    procedure Unsubscribe(const aHandler: TNotifyEvent);
     function GetCount: Integer;
     function GetEvent(aIndex: Integer): TSimEvent;
 
@@ -420,16 +415,6 @@ begin
   end;
 
   inherited;
-end;
-
-procedure TMappedFileLog.Subscribe(const aHandler: TNotifyEvent);
-begin
-  { TODO: remove when IEventLog is cleaned up }
-end;
-
-procedure TMappedFileLog.Unsubscribe(const aHandler: TNotifyEvent);
-begin
-  { TODO: remove when IEventLog is cleaned up }
 end;
 
 function TMappedFileLog.GetCount: Integer;

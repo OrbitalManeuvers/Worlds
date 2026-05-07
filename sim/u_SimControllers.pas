@@ -4,7 +4,7 @@ interface
 
 uses System.Classes, System.Generics.Collections,
   u_MulticastEvents,
-  u_SimClocks, u_EventSinkIntf, u_SimDiagnosticsIntf;
+  u_SimClocks, u_SimEventTypes;
 
 // The TSimController will be created/owned by TSimSession and a property
 // of the session. Session.Step will go away eventually
@@ -33,7 +33,6 @@ type
   TSimController = class
   private
     fClock: TSimClock;
-//    fDiagnostics: ISimDiagnosticsSink;
     fRecording: Boolean;
     fRunning: Boolean;
     fCurrentSegmentIndex: Integer;
@@ -52,7 +51,7 @@ type
 
     procedure Step(Recording: Boolean = False);
 
-    // there is no unbounded run yet, caller provides a stopping mechanism
+    // there is no unbounded run yet, caller must provide a stopping mechanism
     procedure Run(aStop: TSimStopPredicate; Recording: Boolean = False);
 
     // playlist specifies stop definition, optionally provide alternate method

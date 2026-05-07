@@ -1,4 +1,4 @@
-unit u_LogExport;
+﻿unit u_LogExport;
 
 // Exports a curated list of DecisionTrace events from an IEventLog to a
 // structured text file suitable for AI review.
@@ -9,7 +9,7 @@ unit u_LogExport;
 interface
 
 uses System.Generics.Collections,
-  u_EventSinkIntf;
+  u_SimEventTypes;
 
 procedure ExportDecisionTraces(
   const aLog: IEventLog;
@@ -20,7 +20,7 @@ procedure ExportDecisionTraces(
 implementation
 
 uses System.SysUtils, System.Classes,
-  u_AgentTypes, u_SimDiagnosticsIntf, u_LogFormatting;
+  u_AgentTypes, u_LogFormatting;
 
 procedure ExportDecisionTraces(
   const aLog: IEventLog;
