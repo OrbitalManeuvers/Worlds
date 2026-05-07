@@ -1,0 +1,36 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{BAB7EE28-50F7-4BC9-A3EE-086042F689EF}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="Worlds.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="Worlds">
+        <MSBuild Projects="Worlds.dproj"/>
+    </Target>
+    <Target Name="Worlds:Clean">
+        <MSBuild Projects="Worlds.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Worlds:Make">
+        <MSBuild Projects="Worlds.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="Worlds"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="Worlds:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="Worlds:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

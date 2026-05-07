@@ -49,7 +49,3 @@ node_modules/
 # VS Code
 .vscode/
 
-# Local scratch workspace (not in source control)
-scratch/
-
-trash/

@@ -2,7 +2,7 @@ unit u_SimEventTypes;
 
 interface
 
-uses
+uses System.Types,
   u_AgentTypes, u_AgentBrain, u_AgentGenome, u_SimClocks, u_SimPhases;
 
 type
@@ -43,12 +43,19 @@ type
     Kind: TSimEventKind;
   end;
 
+  TTargetRef = record
+    case TType: TTargetType of
+      ttNone: ();
+      ttCell: (Cell: TPoint);
+      ttCache: (Cache: TCacheRef);
+  end;
+
   TActionResolvedEvent = record
     AgentId: Integer;
     RequestedAction: TAgentAction;
-    RequestedTarget: TTarget;
+    RequestedTarget: TTargetRef;
     ResolvedAction: TAgentAction;
-    ResolvedTarget: TTarget;
+    ResolvedTarget: TTargetRef;
     Reserves: Single;
     ActionProgress: Integer;
     Note: TActionResolutionNote;
@@ -56,12 +63,12 @@ type
 
   TDecisionTraceEvent = record
     AgentId: Integer;
-    CellIndex: Integer;
+    Cell: TPoint;
     IsNight: Boolean;
     RequestedAction: TAgentAction;
-    RequestedTarget: TTarget;
+    RequestedTarget: TTargetRef;
     ResolvedAction: TAgentAction;
-    ResolvedTarget: TTarget;
+    ResolvedTarget: TTargetRef;
     ForageConsumed: Single;
     ForageGain: Single;
     ForageEfficiency: Single;
@@ -71,8 +78,8 @@ type
 
   TAgentMovedEvent = record
     AgentId: Integer;
-    FromCell: Integer;
-    ToCell: Integer;
+    FromCell: TPoint;
+    ToCell: TPoint;
     MoveCost: Single;
     Reserves: Single;
   end;
@@ -80,12 +87,12 @@ type
   TAgentBornEvent = record
     AgentId: Integer;
     ParentAgentId: Integer;
-    CellIndex: Integer;
+    Cell: TPoint;
     InitialReserves: Single;
   end;
 
   TBiomassCreatedEvent = record
-    CellIndex: Integer;
+    Cell: TPoint;
     Amount: Single;
     Reason: TBiomassCreateReason;
     SourceAgentId: Integer;
@@ -93,7 +100,7 @@ type
 
   TBiomassConsumedEvent = record
     AgentId: Integer;
-    CellIndex: Integer;
+    Cell: TPoint;
     Cache: TCacheRef;
     ConsumedAmount: Single;
     GainAmount: Single;
@@ -101,7 +108,7 @@ type
 
   TAgentDiedEvent = record
     AgentId: Integer;
-    CellIndex: Integer;
+    Cell: TPoint;
     Age: Integer;
     ReservesBeforeDeath: Single;
   end;
@@ -124,11 +131,11 @@ type
     ResourceSampled: TResourceSampledEvent;
   end;
 
-  TSimEventFilter = record
-    Kinds: TSimEventKinds;
-    AgentId: Integer;
-    CellIndex: Integer;
-  end;
+//  TSimEventFilter = record
+//    Kinds: TSimEventKinds;
+//    AgentId: Integer;
+//    CellIndex: Integer;
+//  end;
 
   TSimEventViewDef = record
     Kinds: TSimEventKinds;
@@ -173,7 +180,7 @@ type
 
 
 function AnySimEventKinds: TSimEventKinds;
-function AnySimEventFilter: TSimEventFilter;
+//function AnySimEventFilter: TSimEventFilter;
 function AnySimEventViewDef: TSimEventViewDef;
 
 
@@ -184,12 +191,12 @@ begin
   Result := [Low(TSimEventKind)..High(TSimEventKind)];
 end;
 
-function AnySimEventFilter: TSimEventFilter;
-begin
-  Result.Kinds := AnySimEventKinds;
-  Result.AgentId := -1;
-  Result.CellIndex := -1;
-end;
+//function AnySimEventFilter: TSimEventFilter;
+//begin
+//  Result.Kinds := AnySimEventKinds;
+//  Result.AgentId := -1;
+//  Result.CellIndex := -1;
+//end;
 
 function AnySimEventViewDef: TSimEventViewDef;
 begin

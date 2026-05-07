@@ -111,7 +111,7 @@ begin
   if TFile.Exists(fScratchFileName) then
     TFile.Delete(fScratchFileName);
   fMappedFileSink := TMappedFileSink.Create(fScratchFileName);
-  fMappedFileSubscriptionId := fDiagnostics.Subscribe(AnySimEventFilter, fMappedFileSink);
+  fMappedFileSubscriptionId := fDiagnostics.Subscribe(fMappedFileSink);
   fMappedFileLog := TMappedFileLog.Create(fScratchFileName);
 
 end;

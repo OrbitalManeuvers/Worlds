@@ -75,11 +75,11 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <DCC_UsePackage>vclwinx;fmx;vclie;DbxCommonDriver;bindengine;IndyIPCommon;VCLRESTComponents;FireDACCommonODBC;FireDACCommonDriver;appanalytics;IndyProtocols;vclx;Skia.Package.RTL;IndyIPClient;dbxcds;vcledge;bindcompvclwinx;bindcompfmx;inetdb;FireDACSqliteDriver;DbxClientDriver;soapmidas;vclactnband;fmxFireDAC;dbexpress;DBXMySQLDriver;VclSmp;inet;vcltouch;fmxase;dbrtl;Skia.Package.FMX;fmxdae;FireDACMSAccDriver;CustomIPTransport;vcldsnap;DBXInterBaseDriver;IndySystem;PngComponentsD;Skia.Package.VCL;vcldb;vclFireDAC;bindcomp;FireDACCommon;IndyCore;RESTBackendComponents;bindcompdbx;rtl;FireDACMySQLDriver;FireDACADSDriver;RESTComponents;DBXSqliteDriver;vcl;IndyIPServer;dsnapxml;dsnapcon;adortl;VirtualTreesDR;vclimg;FireDACPgDriver;FireDAC;inetdbxpress;xmlrtl;tethering;bindcompvcl;dsnap;CloudService;fmxobj;bindcompvclsmp;soaprtl;soapserver;FireDACIBDriver;$(DCC_UsePackage)</DCC_UsePackage>
-        <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
+        <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
         <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
@@ -104,7 +104,7 @@
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
         <AppDPIAwarenessMode>PerMonitorV2</AppDPIAwarenessMode>
-        <DCC_ExeOutput>.\bin</DCC_ExeOutput>
+        <DCC_ExeOutput>.\..\bin</DCC_ExeOutput>
         <DCC_DcuOutput>.\dcu</DCC_DcuOutput>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
@@ -178,13 +178,11 @@
         <DCCReference Include="sim\u_SimUpscalers.pas"/>
         <DCCReference Include="sim\u_SimEnvironments.pas"/>
         <DCCReference Include="sim\u_SimPopulations.pas"/>
-        <DCCReference Include="ui\fr_SimFrame.pas">
-            <Form>SimFrame</Form>
-            <FormType>dfm</FormType>
+        <DCCReference Include="ui\fr_Session.pas">
+            <Form>SessionFrame</Form>
             <DesignClass>TFrame</DesignClass>
         </DCCReference>
         <DCCReference Include="ui\u_CellVisualizers.pas"/>
-        <DCCReference Include="sim\u_SimLoggers.pas"/>
         <DCCReference Include="ui\u_SimVisualizer.pas"/>
         <DCCReference Include="ui\fr_BiologyEditor.pas">
             <Form>BiologyEditor</Form>
@@ -194,12 +192,12 @@
         <DCCReference Include="agents\u_AgentTypes.pas"/>
         <DCCReference Include="common\u_BiologyTypes.pas"/>
         <DCCReference Include="agents\u_AgentGenome.pas"/>
-        <DCCReference Include="agents\u_Sight.pas"/>
+        <DCCReference Include="agents\u_SightGenes.pas"/>
         <DCCReference Include="sim\u_SimQueriesIntf.pas"/>
-        <DCCReference Include="agents\u_Smell.pas"/>
+        <DCCReference Include="agents\u_SmellGenes.pas"/>
         <DCCReference Include="agents\u_AgentState.pas"/>
         <DCCReference Include="sim\u_SimQueriesImpl.pas"/>
-        <DCCReference Include="agents\u_Foraging.pas"/>
+        <DCCReference Include="agents\u_ForagingGenes.pas"/>
         <DCCReference Include="agents\u_AgentBrain.pas"/>
         <DCCReference Include="ui\fr_WorldEditor.pas">
             <Form>WorldEditor</Form>
@@ -210,11 +208,56 @@
         <DCCReference Include="ui\u_GraphicButtonBars.pas"/>
         <DCCReference Include="common\u_WorldLayouts.pas"/>
         <DCCReference Include="sim\u_SimSessions.pas"/>
+        <DCCReference Include="sim\u_SimWatches.pas"/>
         <DCCReference Include="ui\fr_ResourceVisualizer.pas">
             <Form>ResVisFrame</Form>
             <FormType>dfm</FormType>
             <DesignClass>TFrame</DesignClass>
         </DCCReference>
+        <DCCReference Include="sim\u_SimPopulators.pas"/>
+        <DCCReference Include="agents\u_EnergyGenes.pas"/>
+        <DCCReference Include="agents\u_CognitionGenes.pas"/>
+        <DCCReference Include="sim\u_SimCommandsIntf.pas"/>
+        <DCCReference Include="sim\u_SimCommandsImpl.pas"/>
+        <DCCReference Include="common\u_Seeds.pas"/>
+        <DCCReference Include="agents\u_ShelterGenes.pas"/>
+        <DCCReference Include="sim\u_SimPhases.pas"/>
+        <DCCReference Include="agents\u_MovementGenes.pas"/>
+        <DCCReference Include="agents\u_ConverterGenes.pas"/>
+        <DCCReference Include="sim\u_SimEventTypes.pas"/>
+        <DCCReference Include="sim\u_SimDiagnostics.pas"/>
+        <DCCReference Include="agents\u_ReproduceGenes.pas"/>
+        <DCCReference Include="sim\u_EventSinks.pas"/>
+        <DCCReference Include="sim\u_SessionComposerIntf.pas"/>
+        <DCCReference Include="sim\u_SessionComposers.pas"/>
+        <DCCReference Include="sim\u_DebugSessionComposers.pas"/>
+        <DCCReference Include="sim\u_SessionParameters.pas"/>
+        <DCCReference Include="sim\u_SimDebug.pas"/>
+        <DCCReference Include="common\u_MulticastEvents.pas"/>
+        <DCCReference Include="common\u_WorldsMessages.pas"/>
+        <DCCReference Include="ui\fr_Simulator.pas">
+            <Form>SimulatorFrame</Form>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
+        <DCCReference Include="sim\u_BiomassConfigResolvers.pas"/>
+        <DCCReference Include="common\u_SimpleJSON.pas"/>
+        <DCCReference Include="ui\fr_SimController.pas">
+            <Form>ControllerFrame</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
+        <DCCReference Include="ui\u_LogFormatting.pas"/>
+        <DCCReference Include="ui\u_LogExport.pas"/>
+        <DCCReference Include="sim\u_MappedFileSink.pas"/>
+        <DCCReference Include="common\u_DebugLibraries.pas"/>
+        <DCCReference Include="sim\u_SessionManager.pas"/>
+        <DCCReference Include="sim\u_DiagnosticsHelpers.pas"/>
+        <DCCReference Include="ui\fr_LogViewer.pas">
+            <Form>LogViewer</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
+        <DCCReference Include="sim\u_EventLogViews.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

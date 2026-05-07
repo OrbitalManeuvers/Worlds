@@ -68,56 +68,8 @@ implementation
 uses System.Types, System.Math, Vcl.GraphUtil,
   u_SimParams, u_EditorTypes, u_Foods,
   u_Regions, u_AgentTypes, u_BiologyTypes, u_EnvironmentTypes,
-  u_SimEnvironments, u_DiagnosticListeners, u_SimEventTypes,
+  u_SimEnvironments, u_SimEventTypes,
   u_DebugLibraries, u_SessionManager;
-
-const
-  DEFAULT_SEED = -1653628502;
-
-var
-  LogFormatSettings: TFormatSettings;
-
-
-type
-  TBooleanHelper = record helper for Boolean
-    function LogStr: string;
-  end;
-
-  TSingleHelper = record helper for Single
-    function LogStr: string;
-  end;
-
-  TFoodHelper = class helper for TFood
-    function ToSubstance: TSubstance;
-  end;
-
-
-{ TBooleanHelper }
-function TBooleanHelper.LogStr: string;
-begin
-  if Self then
-    Result := 'T'
-  else
-    Result := 'F';
-end;
-
-{ TSingleHelper }
-
-function TSingleHelper.LogStr: string;
-begin
-  Result := FloatToStrF(Self, ffFixed, 18, 3, LogFormatSettings);
-end;
-
-
-{ TFoodHelper }
-
-function TFoodHelper.ToSubstance: TSubstance;
-begin
-  Result[Alpha] := Self.Recipe.Percents[Alpha];
-  Result[Beta] := Self.Recipe.Percents[Beta];
-  Result[Gamma] := Self.Recipe.Percents[Gamma];
-  Result[Biomass] := 0;
-end;
 
 { TSimFrame }
 
@@ -219,7 +171,7 @@ procedure TSessionFrame.btnCreateSimClick(Sender: TObject);
 begin
   if pcPages.ActivePage = tsStandard then
   begin
-
+    Assert(False);
 //    SessionManager.SubmitStandardSession(BuildCommonParameters, fUpscalerParameters);
 
   end
@@ -229,9 +181,5 @@ begin
     SessionManager.SubmitDebugSession(BuildCommonParameters, fDebugSessionParameters);
   end;
 end;
-
-initialization
-  LogFormatSettings := TFormatSettings.Create;
-  LogFormatSettings.DecimalSeparator := '.';
 
 end.

@@ -2,7 +2,8 @@ unit u_SimRuntimes;
 
 interface
 
-uses u_AgentState, u_SimEventTypes, u_SimEnvironments, u_SimPopulations, u_SimClocks, u_SimQueriesIntf,
+uses System.Types,
+  u_AgentState, u_SimEventTypes, u_SimEnvironments, u_SimPopulations, u_SimClocks, u_SimQueriesIntf,
   u_SimCommandsIntf, u_AgentBrain, u_AgentTypes, u_SimPhases, u_AgentGenome;
 
 const
@@ -87,6 +88,9 @@ type
     procedure ProcessAgentTick(aIndex: Integer; const Input: TBrainTickInput);
     procedure NotifyPhase(const Phase: TSimTickPhase);
     procedure SetDayTick(const Value: TDayTick);
+    { conversions for event emission }
+    function CellToPoint(aCell: Integer): TPoint;
+    function TargetToRef(const aTarget: TTarget): TTargetRef;
   public
     constructor Create(const aDiagnostics: ISimDiagnosticsSink = nil);
     destructor Destroy; override;
@@ -160,6 +164,11 @@ begin
     fLastDecisionTraces[AgentIndex].ForageEfficiency := 0.0;
   fLastDecisionTraces[AgentIndex].Evaluations := Requested.Evaluations;
   fLastDecisionTraces[AgentIndex].Summary := Requested.Trace;
+end;
+
+function TSimRuntime.CellToPoint(aCell: Integer): TPoint;
+begin
+  Result := Point(aCell mod fEnvironment.Dimensions.cx, aCell div fEnvironment.Dimensions.cx);
 end;
 
 function TSimRuntime.CalculateAgentTickCost(const State: TAgentState): Single;
@@ -344,9 +353,9 @@ begin
   event.Header := BuildEventHeader(sekActionResolved, stpPostAgents);
   event.ActionResolved.AgentId := State.AgentId;
   event.ActionResolved.RequestedAction := Requested.RequestedAction;
-  event.ActionResolved.RequestedTarget := Requested.RequestedTarget;
+  event.ActionResolved.RequestedTarget := TargetToRef(Requested.RequestedTarget);
   event.ActionResolved.ResolvedAction := Resolved.RequestedAction;
-  event.ActionResolved.ResolvedTarget := Resolved.RequestedTarget;
+  event.ActionResolved.ResolvedTarget := TargetToRef(Resolved.RequestedTarget);
   event.ActionResolved.Reserves := State.Reserves;
   event.ActionResolved.ActionProgress := State.ActionProgress;
 
@@ -382,12 +391,12 @@ begin
   var event := Default(TSimEvent);
   event.Header := BuildEventHeader(sekDecisionTrace, stpPostAgents);
   event.DecisionTrace.AgentId := Trace.AgentId;
-  event.DecisionTrace.CellIndex := State.Location;
+  event.DecisionTrace.Cell := CellToPoint(State.Location);
   event.DecisionTrace.IsNight := Trace.IsNight;
   event.DecisionTrace.RequestedAction := Trace.RequestedAction;
-  event.DecisionTrace.RequestedTarget := Trace.RequestedTarget;
+  event.DecisionTrace.RequestedTarget := TargetToRef(Trace.RequestedTarget);
   event.DecisionTrace.ResolvedAction := Trace.ResolvedAction;
-  event.DecisionTrace.ResolvedTarget := Trace.ResolvedTarget;
+  event.DecisionTrace.ResolvedTarget := TargetToRef(Trace.ResolvedTarget);
   event.DecisionTrace.ForageConsumed := Trace.ForageConsumed;
   event.DecisionTrace.ForageGain := Trace.ForageGain;
   event.DecisionTrace.ForageEfficiency := Trace.ForageEfficiency;
@@ -405,7 +414,7 @@ begin
   event.Header := BuildEventHeader(sekAgentBorn, stpPostAgents);
   event.AgentBorn.AgentId := OffspringState.AgentId;
   event.AgentBorn.ParentAgentId := ParentAgentId;
-  event.AgentBorn.CellIndex := OffspringState.Location;
+  event.AgentBorn.Cell := CellToPoint(OffspringState.Location);
   event.AgentBorn.InitialReserves := OffspringState.Reserves;
   fDiagnostics.Emit(event);
 end;
@@ -418,7 +427,7 @@ begin
   var event := Default(TSimEvent);
   event.Header := BuildEventHeader(sekAgentDied, stpPostAgents);
   event.AgentDied.AgentId := State.AgentId;
-  event.AgentDied.CellIndex := State.Location;
+  event.AgentDied.Cell := CellToPoint(State.Location);
   event.AgentDied.Age := State.Age;
   event.AgentDied.ReservesBeforeDeath := ReservesBeforeDeath;
   fDiagnostics.Emit(event);
@@ -433,8 +442,8 @@ begin
   var event := Default(TSimEvent);
   event.Header := BuildEventHeader(sekAgentMoved, stpPostAgents);
   event.AgentMoved.AgentId := State.AgentId;
-  event.AgentMoved.FromCell := FromCell;
-  event.AgentMoved.ToCell := ToCell;
+  event.AgentMoved.FromCell := CellToPoint(FromCell);
+  event.AgentMoved.ToCell := CellToPoint(ToCell);
   event.AgentMoved.MoveCost := movecost;
   event.AgentMoved.Reserves := State.Reserves;
   fDiagnostics.Emit(event);
@@ -449,7 +458,7 @@ begin
   var event := Default(TSimEvent);
   event.Header := BuildEventHeader(sekBiomassConsumed, stpPostAgents);
   event.BiomassConsumed.AgentId := State.AgentId;
-  event.BiomassConsumed.CellIndex := State.Location;
+  event.BiomassConsumed.Cell := CellToPoint(State.Location);
   event.BiomassConsumed.Cache := Cache;
   event.BiomassConsumed.ConsumedAmount := ConsumedAmount;
   event.BiomassConsumed.GainAmount := GainAmount;
@@ -464,7 +473,7 @@ begin
 
   var event := Default(TSimEvent);
   event.Header := BuildEventHeader(sekBiomassCreated, Phase);
-  event.BiomassCreated.CellIndex := CellIndex;
+  event.BiomassCreated.Cell := CellToPoint(CellIndex);
   event.BiomassCreated.Amount := Amount;
   event.BiomassCreated.Reason := Reason;
   event.BiomassCreated.SourceAgentId := SourceAgentId;
@@ -870,6 +879,16 @@ begin
   end;
 
   NotifyPhase(stpPostAgents);
+end;
+
+function TSimRuntime.TargetToRef(const aTarget: TTarget): TTargetRef;
+begin
+  Result.TType := aTarget.TType;
+  case Result.TType of
+    ttNone: ;
+    ttCell: Result.Cell := CellToPoint(aTarget.Cell);
+    ttCache: Result.Cache := aTarget.Cache;
+  end;
 end;
 
 function TSimRuntime.TryGetLastDecision(AgentIndex: Integer; out Trace: TDecisionTrace): Boolean;

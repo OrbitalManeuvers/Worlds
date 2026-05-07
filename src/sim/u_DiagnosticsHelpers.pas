@@ -20,6 +20,8 @@ type
 
 implementation
 
+uses System.Types;
+
 function ActionToShortStr(aAction: TAgentAction): string;
 const
   actionStrs: array[TAgentAction] of string = ('Move', 'Forage', 'Shelter', 'Repro', 'Idle');
@@ -37,11 +39,29 @@ begin
   end;
 end;
 
-function TargetToShortStr(const Target: TTarget): string;
+function PointToShortStr(aValue: TPoint): string;
+begin
+  Result := '(' + aValue.X.ToString + ',' + aValue.Y.ToString + ')';
+//  Result := Format('%d:%d', [aValue.X, aValue.Y])
+end;
+
+//function TargetToShortStr(const Target: TTarget): string;
+//begin
+//  case Target.TType of
+//    ttCell:
+//      Result := 'Cell:' + Target.Cell.ToString;
+//    ttCache:
+//      Result := CacheToShortStr(Target.Cache);
+//  else
+//    Result := 'None';
+//  end;
+//end;
+
+function TargetRefToShortStr(const Target: TTargetRef): string;
 begin
   case Target.TType of
     ttCell:
-      Result := 'Cell:' + Target.Cell.ToString;
+      Result := PointToShortStr(Target.Cell);
     ttCache:
       Result := CacheToShortStr(Target.Cache);
   else
@@ -79,11 +99,24 @@ begin
   Result := Format('(%d, %d)', [aCellIndex mod aGridWidth, aCellIndex div aGridWidth]);
 end;
 
-function DecisionTraceToShortStr(const d: TDecisionTraceEvent): string;
+function DecisionTraceToStr(const d: TDecisionTraceEvent): string;
 begin
+    var did := '';
+    if d.RequestedAction = d.ResolvedAction then
+    begin
+      // did a thing
+      case d.ResolvedAction of
+        acMove: did := 'moved to ' + PointToShortStr(d.ResolvedTarget.Cell);
+        acForage: did := 'ate ' + d.ResolvedTarget.Cache.Index.ToString + ' ' + FloatToLogStr(d.ForageGain);
+        acShelter: did := 'zzz';
+        acReproduce: ;
+        acIdle: ;
+      end;
+    end;
+
   Result := Format(
-    'a:%.02d',
-    [d.AgentId]);
+    'A%.02d %s', [d.AgentId, did]);
+
 
 
 //          'a:%.02d cell=%d req=%s(%s) res=%s(%s) night=%s in=%s out=%s eff=%s', [
@@ -104,11 +137,12 @@ end;
 
 function _simEvent.AsDebugLine: string;
 begin
-  Result := Format('%.04d [%.02d:%.03d] %-20s ', [
+//  Result := Format('%.04d [%.02d:%.03d] %-16s ', [
+  Result := Format('%.04d [%.02d:%.03d] ', [
     Header.Sequence,
     Header.DayNumber,
-    Header.DayTick,
-    GetEnumName(TypeInfo(TSimEventKind), Ord(Header.Kind))
+    Header.DayTick // ,
+//    GetEnumName(TypeInfo(TSimEventKind), Ord(Header.Kind))
   ]);
 
   case Header.Kind of
@@ -117,25 +151,24 @@ begin
         'a:%.02d req:%s(%s) res:%s(%s) rsrvs=%s prog=%d note=%d', [
           ActionResolved.AgentId,
           ActionToShortStr(ActionResolved.RequestedAction),
-          TargetToShortStr(ActionResolved.RequestedTarget),
+          TargetRefToShortStr(ActionResolved.RequestedTarget),
           ActionToShortStr(ActionResolved.ResolvedAction),
-          TargetToShortStr(ActionResolved.ResolvedTarget),
+          TargetRefToShortStr(ActionResolved.ResolvedTarget),
           FloatToLogStr(ActionResolved.Reserves),
           ActionResolved.ActionProgress,
           Ord(ActionResolved.Note)
         ]);
     sekDecisionTrace:
       begin
-        Result := Result + DecisionTraceToShortStr(DecisionTrace);
-
+        Result := Result + DecisionTraceToStr(DecisionTrace);
 //        Result := Result + Format(
-//          'a:%.02d cell=%d req=%s(%s) res=%s(%s) night=%s in=%s out=%s eff=%s', [
+//          'a:%.02d %s req=%s%s res=%s%s night=%s in=%s out=%s eff=%s', [
 //            DecisionTrace.AgentId,
-//            DecisionTrace.CellIndex,
+//            PointToShortStr(DecisionTrace.Cell),
 //            ActionToShortStr(DecisionTrace.RequestedAction),
-//            TargetToShortStr(DecisionTrace.RequestedTarget),
+//            TargetRefToShortStr(DecisionTrace.RequestedTarget),
 //            ActionToShortStr(DecisionTrace.ResolvedAction),
-//            TargetToShortStr(DecisionTrace.ResolvedTarget),
+//            TargetRefToShortStr(DecisionTrace.ResolvedTarget),
 //            BoolToLogStr(DecisionTrace.IsNight),
 //            FloatToLogStr(DecisionTrace.ForageConsumed),
 //            FloatToLogStr(DecisionTrace.ForageGain),
@@ -143,39 +176,39 @@ begin
 //          ]);
       end;
     sekAgentBorn:
-      Result := Result + Format('agent=%d parent=%d cell=%d reserves=%s', [
+      Result := Result + Format('agent=%d parent=%d cell=%d:%d reserves=%s', [
         AgentBorn.AgentId,
         AgentBorn.ParentAgentId,
-        AgentBorn.CellIndex,
+        AgentBorn.Cell.X, AgentBorn.Cell.Y,
         FloatToLogStr(AgentBorn.InitialReserves)
       ]);
     sekAgentMoved:
-      Result := Result + Format('agent=%d from=%d to=%d moveCost=%s reserves=%s', [
+      Result := Result + Format('agent=%d from=%d:%d to=%d:%d moveCost=%s reserves=%s', [
         AgentMoved.AgentId,
-        AgentMoved.FromCell,
-        AgentMoved.ToCell,
+        AgentMoved.FromCell.X, AgentMoved.FromCell.Y,
+        AgentMoved.ToCell.X, AgentMoved.ToCell.Y,
         FloatToLogStr(AgentMoved.MoveCost),
         FloatToLogStr(AgentMoved.Reserves)
       ]);
     sekBiomassCreated:
-      Result := Result + Format('cell=%d amount=%s reason=%s sourceAgent=%d', [
-        BiomassCreated.CellIndex,
+      Result := Result + Format('cell=%s amount=%s reason=%s sourceAgent=%d', [
+        PointToShortStr(BiomassCreated.Cell),
         FloatToLogStr(BiomassCreated.Amount),
         BiomassCreateReasonToShortStr(BiomassCreated.Reason),
         BiomassCreated.SourceAgentId
       ]);
     sekBiomassConsumed:
-      Result := Result + Format('agent=%d cell=%d cache=%s consumed=%s gain=%s', [
+      Result := Result + Format('agent=%d cell=%s cache=%s consumed=%s gain=%s', [
         BiomassConsumed.AgentId,
-        BiomassConsumed.CellIndex,
+        PointToShortStr(BiomassConsumed.Cell),
         CacheToShortStr(BiomassConsumed.Cache),
         FloatToLogStr(BiomassConsumed.ConsumedAmount),
         FloatToLogStr(BiomassConsumed.GainAmount)
       ]);
     sekAgentDied:
-      Result := Result + Format('agent=%d cell=%d age=%d reservesBefore=%s', [
+      Result := Result + Format('agent=%d cell=%s age=%d reservesBefore=%s', [
         AgentDied.AgentId,
-        AgentDied.CellIndex,
+        PointToShortStr(AgentDied.Cell),
         AgentDied.Age,
         FloatToLogStr(AgentDied.ReservesBeforeDeath)
       ]);
