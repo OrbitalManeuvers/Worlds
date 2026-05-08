@@ -33,12 +33,8 @@ type
     Label6: TLabel;
     lblScenarioName: TLabel;
     GroupBox1: TGroupBox;
-    Label7: TLabel;
-    edtSessionLogFile: TEdit;
-    edtScratchFolder: TEdit;
     edtSessionName: TEdit;
     Label8: TLabel;
-    Label9: TLabel;
     procedure btnCreateSimClick(Sender: TObject);
     procedure WorldListItemClick(Sender: TObject);
     procedure WorldListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
@@ -127,14 +123,14 @@ begin
 
   if pcPages.ActivePage = tsStandard then
   begin
-
+    valid := False;
   end
   else
   begin
     valid := valid and (ScenarioList.ItemIndex <> -1);
   end;
 
-  btnCreateSim.Enabled := valid;
+  btnCreateSim.Enabled := valid and SessionManager.Configured;
 end;
 
 procedure TSessionFrame.ActivateContent;
@@ -162,9 +158,7 @@ begin
     Result.SessionType := stStandard
   else
     Result.SessionType := stDebug;
-  Result.SessionName := edtSessionName.Text;
-  Result.SessionLogFile := edtSessionLogFile.Text;
-  Result.ScratchFolder := edtScratchFolder.Text;
+  Result.SessionTitle := edtSessionName.Text;
 end;
 
 procedure TSessionFrame.btnCreateSimClick(Sender: TObject);

@@ -10,7 +10,7 @@ uses
 
   u_SessionComposerIntf, u_SimSessions, u_SimEventTypes, u_EventLogViews,
   fr_SimController, fr_LogViewer,
-  u_SessionParameters;
+  u_SessionParameters, Vcl.ComCtrls;
 
 type
   TSimulatorFrame = class(TContentFrame)
@@ -19,6 +19,8 @@ type
     mniExport: TMenuItem;
     phController: TShape;
     phLogViewer: TShape;
+    btnSaveClose: TButton;
+    SaveProgress: TProgressBar;
     procedure btnCloseClick(Sender: TObject);
     procedure mniExportClick(Sender: TObject);
   private
@@ -122,6 +124,18 @@ end;
 procedure TSimulatorFrame.btnCloseClick(Sender: TObject);
 begin
   inherited;
+
+  if (Sender is TComponent) and (TComponent(Sender).Tag <> 0) then
+  begin
+//    SaveProgress.pos
+    // show progress bar
+    // try
+    //   Session.SaveLog(callback);
+    // finally
+    //   HideProgress Bar
+
+  end;
+
   PostMessage(Application.MainForm.Handle, WM_END_SIMULATION, 0, 0);
 end;
 
@@ -139,9 +153,9 @@ begin
   def.StartSequence := -1;
   def.StopSequence := -1;
   def.Kinds := [sekDecisionTrace];
-
-//  EventLogView.Define(AnySimEventViewDef);
   EventLogView.Define(def);
+
+  //  EventLogView.Define(AnySimEventViewDef);
 
 
   LogViewer.Connect(EventLogView);

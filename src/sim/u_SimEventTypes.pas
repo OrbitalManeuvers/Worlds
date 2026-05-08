@@ -36,8 +36,8 @@ type
 
   TSimEventHeader = record
     SessionId: Integer;
-    Sequence: Int64;
-    DayNumber: Cardinal;
+    Sequence: Integer;
+    DayNumber: Integer;
     DayTick: TDayTick;
     Phase: TSimTickPhase;
     Kind: TSimEventKind;
@@ -140,8 +140,8 @@ type
   TSimEventViewDef = record
     Kinds: TSimEventKinds;
     AgentIds: TArray<Integer>;
-    StartSequence: Int64; // < 0 means unbounded start
-    StopSequence: Int64;  // < 0 means unbounded stop
+    StartSequence: Integer; // < 0 means unbounded start
+    StopSequence: Integer;  // < 0 means unbounded stop
   end;
 
   ISimDiagnosticsSink = interface

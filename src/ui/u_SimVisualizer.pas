@@ -74,8 +74,8 @@ const
   SubcellsPerCell = 32;
 
 type
-  TCardinalArray = array[0..(MaxInt div SizeOf(Cardinal)) - 1] of Cardinal;
-  PCardinalArray = ^TCardinalArray;
+  TIntegerArray = array[0..(MaxInt div SizeOf(Integer)) - 1] of Integer;
+  PIntegerArray = ^TIntegerArray;
 
 function ModulateColor(const BaseColor: TColor; const Luma: Byte): TColor;
 begin
@@ -198,13 +198,13 @@ begin
   if fBitmap.PixelFormat <> pf32bit then
     fBitmap.PixelFormat := pf32bit;
 
-  var ColorLUT: array[0..255] of Cardinal;
+  var ColorLUT: array[0..255] of Integer;
   for var i := 0 to 255 do
-    ColorLUT[i] := Cardinal(ColorToRGB(ModulateColor(ABaseColor, Byte(i))));
+    ColorLUT[i] := Integer(ColorToRGB(ModulateColor(ABaseColor, Byte(i))));
 
   for var y := fullRect.Top to fullRect.Bottom - 1 do
   begin
-    var Row := PCardinalArray(fBitmap.ScanLine[y]);
+    var Row := PIntegerArray(fBitmap.ScanLine[y]);
     for var x := fullRect.Left to fullRect.Right - 1 do
     begin
       var cellLuma := fCells[x, y];

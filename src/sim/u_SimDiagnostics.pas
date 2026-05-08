@@ -15,7 +15,7 @@ type
   TSimDiagnosticsHub = class(TInterfacedObject, ISimDiagnosticsSink)
   private
     fSessionId: Integer;
-    fNextSequence: Int64;
+    fNextSequence: Integer;
     fNextSubscriptionId: Integer;
     fSubscriptions: TList<TSimEventSubscription>;
   public
@@ -23,7 +23,7 @@ type
     destructor Destroy; override;
 
     procedure Emit(const Event: TSimEvent);
-    function NextSequence: Int64;
+    function NextSequence: Integer;
 
     function Subscribe(const Consumer: ISimEventConsumer): Integer;
     procedure Unsubscribe(SubscriptionId: Integer);
@@ -60,7 +60,7 @@ begin
   end;
 end;
 
-function TSimDiagnosticsHub.NextSequence: Int64;
+function TSimDiagnosticsHub.NextSequence: Integer;
 begin
   Inc(fNextSequence);
   Result := fNextSequence;

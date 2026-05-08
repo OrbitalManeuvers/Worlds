@@ -51,7 +51,7 @@ type
   private const
     DEFAULT_DEATH_BIOMASS_AMOUNT = 1.0;
   private
-    fCurrentGlobalTick: Cardinal;
+    fCurrentGlobalTick: Integer;
     fCurrentDayTick: TDayTick;
     fBiomassConfig: TBiomassRuntimeConfig;
     fEnvironment: TSimEnvironment;
@@ -97,7 +97,7 @@ type
 
     procedure ConfigureBiomass(const aConfig: TBiomassRuntimeConfig);
 
-    procedure AdvanceClock(const GlobalTick: Cardinal; const DayTick: TDayTick);
+    procedure AdvanceClock(const GlobalTick: Integer; const DayTick: TDayTick);
     function TryGetLastDecision(AgentIndex: Integer; out Trace: TDecisionTrace): Boolean;
 
     property Environment: TSimEnvironment read fEnvironment;
@@ -819,7 +819,7 @@ begin
   fPopulation.ApplyAgentStep(aIndex, resolved);
 end;
 
-procedure TSimRuntime.AdvanceClock(const GlobalTick: Cardinal; const DayTick: TDayTick);
+procedure TSimRuntime.AdvanceClock(const GlobalTick: Integer; const DayTick: TDayTick);
 begin
   fCurrentGlobalTick := GlobalTick;
   SetDayTick(DayTick);

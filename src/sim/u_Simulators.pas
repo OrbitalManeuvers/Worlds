@@ -9,8 +9,8 @@ type
   private
     fClock: TSimClock;
     fRuntime: TSimRuntime;
-    procedure ClockCallback(Sender: TObject; const NextTick: Cardinal; var CanContinue: Boolean);
-    procedure ClockTickHandler(Sender: TObject; GlobalTick: Cardinal; DayTick: TDayTick);
+    procedure ClockCallback(Sender: TObject; const NextTick: Integer; var CanContinue: Boolean);
+    procedure ClockTickHandler(Sender: TObject; GlobalTick: Integer; DayTick: TDayTick);
   public
     constructor Create(const aDiagnostics: ISimDiagnosticsSink = nil);
     destructor Destroy; override;
@@ -40,12 +40,12 @@ begin
   inherited;
 end;
 
-procedure TSimulator.ClockTickHandler(Sender: TObject; GlobalTick: Cardinal; DayTick: TDayTick);
+procedure TSimulator.ClockTickHandler(Sender: TObject; GlobalTick: Integer; DayTick: TDayTick);
 begin
   fRuntime.AdvanceClock(GlobalTick, DayTick);
 end;
 
-procedure TSimulator.ClockCallback(Sender: TObject; const NextTick: Cardinal; var CanContinue: Boolean);
+procedure TSimulator.ClockCallback(Sender: TObject; const NextTick: Integer; var CanContinue: Boolean);
 begin
   //
 end;

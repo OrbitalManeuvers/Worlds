@@ -20,11 +20,14 @@ type
 
   TSessionManager = class
   private
+    fLogFolder: string;
     fSessions: TList<TSessionRecord>;
     procedure NotifySessionSubmitted;
+    function GetConfigured: Boolean;
   public
     constructor Create;
     destructor Destroy; override;
+    property LogFolder: string read fLogFolder write fLogFolder;
 
     // These notify the system via WM_SESSION_SUBMITTED
     function SubmitStandardSession(const CommonParams: TCommonSessionParameters;
@@ -38,6 +41,9 @@ type
 
     // update session status
     procedure SetSessionStatus(aId: TSessionId; aStatus: TSessionStatus; const aNotes: string);
+
+
+    property Configured: Boolean read GetConfigured;
   end;
 
 var
@@ -45,7 +51,7 @@ var
 
 implementation
 
-uses WinApi.Windows, Vcl.Forms;
+uses WinApi.Windows, Vcl.Forms, System.SysUtils;
 
 { TSessionManager }
 
@@ -59,6 +65,11 @@ destructor TSessionManager.Destroy;
 begin
   fSessions.Free;
   inherited;
+end;
+
+function TSessionManager.GetConfigured: Boolean;
+begin
+  Result := not fLogFolder.IsEmpty;
 end;
 
 function TSessionManager.GetSession(const aId: TSessionId): TSessionRecord;

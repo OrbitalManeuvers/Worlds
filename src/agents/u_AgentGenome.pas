@@ -146,7 +146,7 @@ type
   // Smell
   TSmellGene = class(TGene)
   public
-    class function Scan(Location: Cardinal; const Params: TSmellParams; const Query: ISimQuery;
+    class function Scan(Location: Integer; const Params: TSmellParams; const Query: ISimQuery;
       var Scratch: TSmellScanScratch): TSmellReport; virtual; abstract;
   end;
   TSmellGeneClass = class of TSmellGene;
@@ -154,7 +154,7 @@ type
   // Sight
   TSightGene = class(TGene)
   public
-    class function Scan(Location: Cardinal; Range: Single; const Query: ISimQuery;
+    class function Scan(Location: Integer; Range: Single; const Query: ISimQuery;
       var Scratch: TSightScanScratch): TSightReport; virtual; abstract;
   end;
   TSightGeneClass = class of TSightGene;

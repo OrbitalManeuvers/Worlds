@@ -7,13 +7,13 @@ uses u_AgentGenome, u_SimQueriesIntf, u_AgentTypes;
 type
   TBasicVision = class(TSightGene)
   public
-    class function Scan(Location: Cardinal; Range: Single; const Query: ISimQuery;
+    class function Scan(Location: Integer; Range: Single; const Query: ISimQuery;
       var Scratch: TSightScanScratch): TSightReport; override;
   end;
 
   TAdvancedVision = class(TSightGene)
   public
-    class function Scan(Location: Cardinal; Range: Single; const Query: ISimQuery;
+    class function Scan(Location: Integer; Range: Single; const Query: ISimQuery;
       var Scratch: TSightScanScratch): TSightReport; override;
     class function GetGenerationCode: Char; override;
   end;
@@ -24,7 +24,7 @@ uses System.SysUtils;
 
 { TBasicVision }
 
-class function TBasicVision.Scan(Location: Cardinal; Range: Single; const Query: ISimQuery;
+class function TBasicVision.Scan(Location: Integer; Range: Single; const Query: ISimQuery;
   var Scratch: TSightScanScratch): TSightReport;
 begin
   Scratch.Count := 0;
@@ -38,7 +38,7 @@ begin
   Result := 'B';
 end;
 
-class function TAdvancedVision.Scan(Location: Cardinal; Range: Single; const Query: ISimQuery;
+class function TAdvancedVision.Scan(Location: Integer; Range: Single; const Query: ISimQuery;
   var Scratch: TSightScanScratch): TSightReport;
 begin
   Scratch.Count := 0;

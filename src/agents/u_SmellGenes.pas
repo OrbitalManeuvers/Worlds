@@ -7,7 +7,7 @@ uses u_AgentTypes, u_AgentGenome, u_SimQueriesIntf;
 type
   TBasicSmell = class(TSmellGene)
   public
-    class function Scan(Location: Cardinal; const Params: TSmellParams; const Query: ISimQuery;
+    class function Scan(Location: Integer; const Params: TSmellParams; const Query: ISimQuery;
       var Scratch: TSmellScanScratch): TSmellReport; override;
   end;
 
@@ -179,7 +179,7 @@ end;
 
 { TBasicSmell }
 
-class function TBasicSmell.Scan(Location: Cardinal; const Params: TSmellParams; const Query: ISimQuery;
+class function TBasicSmell.Scan(Location: Integer; const Params: TSmellParams; const Query: ISimQuery;
   var Scratch: TSmellScanScratch): TSmellReport;
 begin
   Result.Count := 0;

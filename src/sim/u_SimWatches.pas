@@ -19,14 +19,14 @@ type
     fPhases: TSimTickPhases;
     fOnChange: TWatchChangedEvent;
   protected
-    function EvaluateChange(const Sim: TSimulator; const Tick: Cardinal): Boolean; virtual; abstract;
+    function EvaluateChange(const Sim: TSimulator; const Tick: Integer): Boolean; virtual; abstract;
 
   public
     constructor Create; virtual;
-    function Evaluate(const Sim: TSimulator; const Tick: Cardinal; const Phase: TSimTickPhase): Boolean;
+    function Evaluate(const Sim: TSimulator; const Tick: Integer; const Phase: TSimTickPhase): Boolean;
     procedure Reset; virtual;
     function NeedsPrime: Boolean; virtual;
-    procedure Prime(const Sim: TSimulator; const Tick: Cardinal); virtual;
+    procedure Prime(const Sim: TSimulator; const Tick: Integer); virtual;
     procedure AfterStep(const Sim: TSimulator); virtual;
     procedure Notify(Sender: TObject);
     function ActionToStr(aAction: TAgentAction): string;
@@ -42,7 +42,7 @@ type
   TAgentWatchFields = set of TAgentWatchField;
 
   TAgentWatchChange = record
-    Tick: Cardinal;
+    Tick: Integer;
     ChangedFields: TAgentWatchFields;
     PreviousState: TAgentState;
     CurrentState: TAgentState;
@@ -58,7 +58,7 @@ type
     function BuildChangeSet(const PreviousState, CurrentState: TAgentState): TAgentWatchFields;
     function SameTarget(const A, B: TTarget): Boolean;
   protected
-    function EvaluateChange(const Sim: TSimulator; const Tick: Cardinal): Boolean; override;
+    function EvaluateChange(const Sim: TSimulator; const Tick: Integer): Boolean; override;
   public
     constructor Create(aAgentIndex: Integer); reintroduce;
     procedure Reset; override;
@@ -68,7 +68,7 @@ type
   end;
 
   TCellWatchChange = record
-    Tick: Cardinal;
+    Tick: Integer;
     PreviousAmount: Single;
     CurrentAmount: Single;
     PreviousDebt: Single;
@@ -90,7 +90,7 @@ type
     procedure SetCellIndex(Value: Integer);
     procedure InvalidateBaseline;
   protected
-    function EvaluateChange(const Sim: TSimulator; const Tick: Cardinal): Boolean; override;
+    function EvaluateChange(const Sim: TSimulator; const Tick: Integer): Boolean; override;
   public
     constructor Create(aCellIndex: Integer; aSubstanceIndex: Integer = -1); reintroduce;
     procedure Reset; override;
@@ -110,7 +110,7 @@ type
   public
     constructor Create(aAgentIndex: Integer; aSubstanceIndex: Integer = -1); reintroduce;
     function NeedsPrime: Boolean; override;
-    procedure Prime(const Sim: TSimulator; const Tick: Cardinal); override;
+    procedure Prime(const Sim: TSimulator; const Tick: Integer); override;
     procedure AfterStep(const Sim: TSimulator); override;
 
     property AgentIndex: Integer read fAgentIndex;
@@ -129,7 +129,7 @@ begin
   fPhases := [stpPostAgents];
 end;
 
-function TSimWatch.Evaluate(const Sim: TSimulator; const Tick: Cardinal;
+function TSimWatch.Evaluate(const Sim: TSimulator; const Tick: Integer;
   const Phase: TSimTickPhase): Boolean;
 begin
   Result := fEnabled and (Phase in fPhases) and Assigned(Sim) and EvaluateChange(Sim, Tick);
@@ -160,7 +160,7 @@ begin
   Result := False;
 end;
 
-procedure TSimWatch.Prime(const Sim: TSimulator; const Tick: Cardinal);
+procedure TSimWatch.Prime(const Sim: TSimulator; const Tick: Integer);
 begin
   if not Assigned(Sim) then
     Exit;
@@ -204,7 +204,7 @@ begin
     Include(Result, awfAlive);
 end;
 
-function TAgentWatch.EvaluateChange(const Sim: TSimulator; const Tick: Cardinal): Boolean;
+function TAgentWatch.EvaluateChange(const Sim: TSimulator; const Tick: Integer): Boolean;
 begin
   Result := False;
 
@@ -283,7 +283,7 @@ begin
   fBaselineDebt := 0.0;
 end;
 
-function TCellWatch.EvaluateChange(const Sim: TSimulator; const Tick: Cardinal): Boolean;
+function TCellWatch.EvaluateChange(const Sim: TSimulator; const Tick: Integer): Boolean;
 begin
   Result := False;
 
@@ -373,7 +373,7 @@ begin
   Result := fNeedsPrime;
 end;
 
-procedure TFollowingCellWatch.Prime(const Sim: TSimulator; const Tick: Cardinal);
+procedure TFollowingCellWatch.Prime(const Sim: TSimulator; const Tick: Integer);
 begin
   inherited Prime(Sim, Tick);
   fNeedsPrime := False;

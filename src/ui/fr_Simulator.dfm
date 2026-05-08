@@ -23,14 +23,33 @@ inherited SimulatorFrame: TSimulatorFrame
     Visible = False
   end
   object btnClose: TButton
-    Left = 802
-    Top = 527
-    Width = 75
+    Left = 592
+    Top = 519
+    Width = 125
     Height = 25
     Anchors = [akRight, akBottom]
-    Caption = 'Close'
+    Caption = 'DISCARD + Close'
     TabOrder = 0
     OnClick = btnCloseClick
+  end
+  object btnSaveClose: TButton
+    Tag = 1
+    Left = 736
+    Top = 519
+    Width = 117
+    Height = 25
+    Anchors = [akRight, akBottom]
+    Caption = 'SAVE + Close'
+    TabOrder = 1
+    OnClick = btnCloseClick
+  end
+  object SaveProgress: TProgressBar
+    Left = 15
+    Top = 519
+    Width = 562
+    Height = 25
+    TabOrder = 2
+    Visible = False
   end
   object ViewPopup: TPopupMenu
     Left = 592

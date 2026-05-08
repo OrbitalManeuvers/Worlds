@@ -6,9 +6,9 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.Buttons, Vcl.ComCtrls, Vcl.AppEvnts, Vcl.ExtCtrls, PngSpeedButton,
+  System.ImageList, Vcl.ImgList, PngImageList,
 
-  fr_ContentFrames, u_WorldsMessages, System.ImageList, Vcl.ImgList,
-  PngImageList;
+  fr_ContentFrames, u_WorldsMessages, u_ProgramSettings;
 
 
 type
@@ -25,7 +25,7 @@ type
     btnRegions: TPngSpeedButton;
     btnSave: TPngSpeedButton;
     btnBiology: TPngSpeedButton;
-    btnTest: TPngSpeedButton;
+    btnSettings: TPngSpeedButton;
     MainToolImages: TPngImageList;
     procedure FormCreate(Sender: TObject);
     procedure AppEventsHint(Sender: TObject);
@@ -33,17 +33,19 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure ContentSelectorClick(Sender: TObject);
     procedure btnSaveClick(Sender: TObject);
-    procedure btnTestClick(Sender: TObject);
 
     procedure WMSessionSubmitted(var Msg: TWMSessionSubmitted); message WM_SESSION_SUBMITTED;
     procedure WMEndSimulation(var Msg: TMessage); message WM_END_SIMULATION;
+    procedure btnSettingsClick(Sender: TObject);
 
   private
     ActiveFrameType: TContentFrameType;
     ContentFrames: array[TContentFrameType] of TContentFrame;
+    Settings: TProgramSettings;
     procedure ActivateContent(FrameType: TContentFrameType);
     procedure WorldLibraryModified(Sender: TObject);
     procedure UpdateControls;
+    procedure TryLoadSettings;
   public
 
   end;
@@ -100,11 +102,18 @@ begin
   Result := RuntimeFilePath('WorldsDebugLibrary.json');
 end;
 
+function SettingsFileName: string;
+begin
+  Result := RuntimeFilePath('ProgramSettings.json');
+end;
+
 
 { TMainForm }
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
+  Settings := Default(TProgramSettings);
+
   // initialize global library
   WorldLibrary := TEnvironmentLibrary.Create;
   TSerializer.LoadLibrary(WorldLibrary, LibraryFileName());
@@ -116,6 +125,7 @@ begin
 
   // global session manager
   SessionManager := TSessionManager.Create;
+  TryLoadSettings;
 
   pnlTaskbar.StyleElements := pnlTaskbar.StyleElements - [seClient];
   pnlTaskbar.Color := GetHighlightColor(StyleServices.GetSystemColor(clBtnFace), 8);
@@ -146,6 +156,18 @@ end;
 procedure TMainForm.UpdateControls;
 begin
   btnSave.Enabled := WorldLibrary.Modified;
+end;
+
+procedure TMainForm.TryLoadSettings;
+begin
+  SessionManager.LogFolder := '';
+  if Settings.LoadFromFile(SettingsFileName) then
+  begin
+    btnSettings.ImageIndex := -1;
+    SessionManager.LogFolder := Settings.LogFolder;
+  end
+  else
+    btnSettings.ImageIndex := 6; // !! blahh
 end;
 
 procedure TMainForm.WMSessionSubmitted(var Msg: TWMSessionSubmitted);
@@ -189,6 +211,11 @@ begin
   end;
 
   UpdateControls;
+end;
+
+procedure TMainForm.btnSettingsClick(Sender: TObject);
+begin
+  TryLoadSettings;
 end;
 
 procedure TMainForm.ContentSelectorClick(Sender: TObject);
@@ -260,11 +287,5 @@ procedure TMainForm.AppEventsHint(Sender: TObject);
 begin
   StatusBar.SimpleText := Application.Hint;
 end;
-
-procedure TMainForm.btnTestClick(Sender: TObject);
-begin
-end;
-
-
 
 end.

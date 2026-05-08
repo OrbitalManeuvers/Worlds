@@ -11,12 +11,12 @@ uses System.Classes, System.Generics.Collections,
 
 type
   TSimDate = record
-    DayNumber: Cardinal;
+    DayNumber: Integer;
     DayTick: TDayTick;
 
     function NextSunrise: TSimDate;
     function NextSunset: TSimDate;
-    function AddTicks(aCount: Cardinal): TSimDate;
+    function AddTicks(aCount: Integer): TSimDate;
   end;
 
   TSimStopPredicate = reference to procedure (const Date: TSimDate; var CanContinue: Boolean);
@@ -191,12 +191,12 @@ end;
 
 { TSimDate }
 
-function TSimDate.AddTicks(aCount: Cardinal): TSimDate;
+function TSimDate.AddTicks(aCount: Integer): TSimDate;
 var
-  totalTick: UInt64;
+  totalTick: Integer;
 begin
-  totalTick := UInt64(DayNumber) * CLOCK_TICKS_PER_DAY + DayTick + aCount;
-  Result.DayNumber := Cardinal(totalTick div CLOCK_TICKS_PER_DAY);
+  totalTick := DayNumber * CLOCK_TICKS_PER_DAY + DayTick + aCount;
+  Result.DayNumber := Integer(totalTick div CLOCK_TICKS_PER_DAY);
   Result.DayTick   := TDayTick(totalTick mod CLOCK_TICKS_PER_DAY);
 end;
 

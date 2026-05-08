@@ -138,7 +138,7 @@ end;
 class procedure TWorldPopulator.Populate(aPopulation: TSimPopulation; aEnvironment: TSimEnvironment; aParams: TSimParams);
 var
   state: TAgentState;
-  nextId: Cardinal;
+  nextId: Integer;
   sequence: TGeneSequence;
   location: Integer;
 begin

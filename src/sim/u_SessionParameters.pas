@@ -9,9 +9,9 @@ type
 
   TCommonSessionParameters = record
     SessionType: TSessionType;
-    SessionName: string;
+    SessionTitle: string;
     SessionLogFile: string;
-    ScratchFolder: string;
+    ScratchFolder: string;  // i feel iffy about passing this here
   end;
 
   { TUpscalerParameters - parameters for a normal (upscaled) session }

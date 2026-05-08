@@ -19,26 +19,26 @@ type
   TDaylightTicks = 0 .. (DAYLIGHT_TICKS_PER_DAY - 1);
 
   TClockInfo = record
-    GlobalTick: Cardinal;
-    DayNumber: Cardinal;
+    GlobalTick: Integer;
+    DayNumber: Integer;
     DayTick: TDayTick;
     IsNight: Boolean;
   end;
 
-  TClockTickEvent = procedure (Sender: TObject; GlobalTick: Cardinal; DayTick: TDayTick) of object;
+  TClockTickEvent = procedure (Sender: TObject; GlobalTick: Integer; DayTick: TDayTick) of object;
 
   TSimClock = class
   public type
-    TClockControlEvent = procedure (Sender: TObject; const NextTick: Cardinal; var CanContinue: Boolean) of object;
+    TClockControlEvent = procedure (Sender: TObject; const NextTick: Integer; var CanContinue: Boolean) of object;
   private
-    fTick: Cardinal;
+    fTick: Integer;
     fStopped: Boolean;
     fOnControl: TClockControlEvent;
     fTickEvent: TMulticastEvent<TClockTickEvent>;
     procedure Callback;
     procedure NotifyTick;
     function GetDayTick: TDayTick;
-    function GetDayNumber: Cardinal;
+    function GetDayNumber: Integer;
   public
     constructor Create(aController: TClockControlEvent);
     destructor Destroy; override;
@@ -50,9 +50,9 @@ type
     procedure Step;
     procedure Stop;
 
-    property Tick: Cardinal read fTick;
+    property Tick: Integer read fTick;
     property DayTick: TDayTick read GetDayTick;
-    property DayNumber: Cardinal read GetDayNumber;
+    property DayNumber: Integer read GetDayNumber;
   end;
 
 implementation
@@ -88,7 +88,7 @@ begin
   fTickEvent.Clear;
 end;
 
-function TSimClock.GetDayNumber: Cardinal;
+function TSimClock.GetDayNumber: Integer;
 begin
   Result := fTick div CLOCK_TICKS_PER_DAY;
 end;

@@ -9,14 +9,14 @@ inherited SessionFrame: TSessionFrame
   ExplicitHeight = 673
   object Label2: TLabel
     Left = 16
-    Top = 153
+    Top = 105
     Width = 216
     Height = 17
     Caption = 'Select what type of session to create:'
   end
   object btnCreateSim: TButton
-    Left = 16
-    Top = 621
+    Left = 596
+    Top = 557
     Width = 93
     Height = 36
     Caption = 'Create Sim'
@@ -25,7 +25,7 @@ inherited SessionFrame: TSessionFrame
   end
   object pcPages: TPageControl
     Left = 16
-    Top = 184
+    Top = 136
     Width = 673
     Height = 415
     ActivePage = tsStandard
@@ -160,52 +160,22 @@ inherited SessionFrame: TSessionFrame
     Left = 16
     Top = 16
     Width = 673
-    Height = 122
+    Height = 73
     Caption = ' Session Parameters '
     TabOrder = 2
-    object Label7: TLabel
-      Left = 19
-      Top = 57
-      Width = 91
-      Height = 17
-      Caption = 'Session log file:'
-    end
     object Label8: TLabel
       Left = 19
       Top = 28
-      Width = 83
+      Width = 72
       Height = 17
-      Caption = 'Session name:'
-    end
-    object Label9: TLabel
-      Left = 19
-      Top = 86
-      Width = 84
-      Height = 17
-      Caption = 'Scratch folder:'
-    end
-    object edtSessionLogFile: TEdit
-      Left = 131
-      Top = 54
-      Width = 329
-      Height = 25
-      TabOrder = 0
-      Text = '.\test-session.simlog'
-    end
-    object edtScratchFolder: TEdit
-      Left = 131
-      Top = 83
-      Width = 329
-      Height = 25
-      TabOrder = 1
-      Text = 'c:\DelphiProjects\Worlds\bin'
+      Caption = 'Session title:'
     end
     object edtSessionName: TEdit
       Left = 131
       Top = 25
       Width = 194
       Height = 25
-      TabOrder = 2
+      TabOrder = 0
       Text = 'session-01'
     end
   end

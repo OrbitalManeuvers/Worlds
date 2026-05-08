@@ -34,7 +34,7 @@ type
   TSimLogHeader = record
     Magic:      Cardinal;  // file identity guard: $534C4F47 ('SLOG')
     Version:    Word;      // file format version, currently 1
-    EventCount: Int64;     // writer updates this after every Consume call
+    EventCount: Integer;    // writer updates this after every Consume call
   end;
 
   PSimLogHeader = ^TSimLogHeader;
@@ -58,8 +58,8 @@ type
     fMappingHandle:  THandle;      // CreateFileMapping result
     fMapView:        Pointer;      // MapViewOfFile result — current chunk
     fHeaderView:     Pointer;      // mapped base pointer used for header writes (same mapping as fMapView)
-    fNextIndex:      Int64;        // next write slot (absolute, across all chunks)
-    fChunkBase:      Int64;        // absolute index of first event in current chunk
+    fNextIndex:      Integer;      // next write slot (absolute, across all chunks)
+    fChunkStartIndex: Integer;     // absolute event index of the first slot in the current chunk
     fChunkCapacity:  Integer;      // actual events per chunk (rounded up for alignment)
     fChunkBytes:     Int64;        // actual bytes per chunk (multiple of allocation granularity)
     fHeaderBytes:    Integer;      // SizeOf(TSimLogHeader) — base offset for all event writes
@@ -74,7 +74,7 @@ type
     procedure Consume(const Event: TSimEvent);
 
     { Diagnostics / inspection }
-    function EventCount: Int64;
+    function EventCount: Integer;
     function FilePath: string;
   end;
 
@@ -152,8 +152,8 @@ begin
 
   // Initialize fields.
   fFilePath      := AFilePath;
-  fNextIndex     := 0;
-  fChunkBase     := 0;
+  fNextIndex        := 0;
+  fChunkStartIndex  := 0;
   fFileHandle    := INVALID_HANDLE_VALUE;
   fMappingHandle := 0;
   fMapView       := nil;
@@ -264,7 +264,7 @@ var
   absoluteOffset: NativeInt;
 begin
   // Grow when the current chunk is full.
-  if (fNextIndex - fChunkBase) >= fChunkCapacity then
+  if (fNextIndex - fChunkStartIndex) >= fChunkCapacity then
     ExtendAndRemap;
 
   // fMapView is mapped from offset 0; event N lives at header + N*recordSize.
@@ -299,10 +299,10 @@ begin
   end;
 
   // Advance chunk base to the first index of the next chunk.
-  Inc(fChunkBase, fChunkCapacity);
+  Inc(fChunkStartIndex, fChunkCapacity);
 
   // Reserve one additional chunk beyond the existing logical span.
-  newFileSize := fHeaderBytes + (fChunkBase * SizeOf(TSimEvent)) + fChunkBytes;
+  newFileSize := fHeaderBytes + (Int64(fChunkStartIndex) * SizeOf(TSimEvent)) + fChunkBytes;
 
   // Extend file to the requested size.
   SeekFileBegin64(fFileHandle, newFileSize);
@@ -322,7 +322,7 @@ begin
   fHeaderView := fMapView;
 end;
 
-function TMappedFileSink.EventCount: Int64;
+function TMappedFileSink.EventCount: Integer;
 begin
   Result := fNextIndex;
 end;
@@ -419,7 +419,7 @@ end;
 
 function TMappedFileLog.GetCount: Integer;
 var
-  eventCount: Int64;
+  eventCount: Integer;
   requiredSize: Int64;
 begin
   // Read live EventCount from header at offset 0.
