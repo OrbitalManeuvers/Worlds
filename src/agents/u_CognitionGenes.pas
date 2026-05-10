@@ -10,6 +10,10 @@ type
     class function Decide(const Input: TCognitionInput; var Scratch: TCognitionScratch): TCognitionOutput; override;
   end;
 
+  // consider for mutations
+  TLearningCognition = class(TCognitionGene);  // knows how to incorporate decision weights
+  TExploringCognition = class(TCognitionGene); // knows how to wander in good times
+
 
 implementation
 

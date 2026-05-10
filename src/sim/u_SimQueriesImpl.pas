@@ -6,7 +6,9 @@ uses System.SysUtils,
   u_AgentTypes, u_EnvironmentTypes, u_SimPopulations, u_SimEnvironments, u_SimQueriesIntf;
 
 type
-  TSimQuery = class(TInterfacedObject, ISimQuery, IEnvironmentSmellQuery, IPopulationSightQuery, IPopulationCrowdingQuery)
+  TSimQuery = class(TInterfacedObject, ISimQuery,
+    IEnvironmentSmellQuery, IEnvironmentWanderQuery,
+    IPopulationSightQuery, IPopulationCrowdingQuery)
   private
     fEnvironment: TSimEnvironment;
     fPopulation: TSimPopulation;
@@ -14,6 +16,10 @@ type
     { IEnvironmentSmellQuery }
     procedure GetGridSize(out Width, Height: Integer);
     procedure FillLocalFoodCaches(Location: Integer; Range: Single; var Buffer: TSmellCacheInfos; out Count: Integer);
+
+    { IEnvironmentWanderQuery }
+    function FindDistantFoodHint(Location: Integer; Preference: TWanderFoodHintPreference;
+      out CellIndex: Integer): Boolean;
 
     { IPopulationSightQuery }
     procedure FillLocalAgents(Location: Integer; Range: Single; var Buffer: TSightInfos; out Count: Integer);
@@ -33,6 +39,8 @@ uses u_AgentState;
 const
   // Ignore trace residue so smell only reports caches with meaningful mass.
   MIN_SMELL_DETECTABLE_AMOUNT = 0.02;
+  MIN_FOOD_HINT_DISTANCE = 5;
+  MIN_BIOMASS_HINT_DISTANCE = MIN_FOOD_HINT_DISTANCE;
 
 { TSimQuery }
 
@@ -168,6 +176,159 @@ begin
 
     Inc(Count);
   end;
+end;
+
+function TSimQuery.FindDistantFoodHint(Location: Integer; Preference: TWanderFoodHintPreference;
+  out CellIndex: Integer): Boolean;
+var
+  width: Integer;
+  height: Integer;
+  originX: Integer;
+  originY: Integer;
+
+  function IsFarEnough(const CandidateCell, MinDistance: Integer): Boolean;
+  begin
+    var targetX := CandidateCell mod width;
+    var targetY := CandidateCell div width;
+
+    var distance := Abs(targetX - originX);
+    if Abs(targetY - originY) > distance then
+      distance := Abs(targetY - originY);
+
+    Result := distance >= MinDistance;
+  end;
+
+  function TryResourceHint: Boolean;
+  begin
+    Result := False;
+
+    var resourceCount := Length(fEnvironment.Resources);
+    if resourceCount <= 0 then
+      Exit;
+
+    var direction := 1;
+    if Random(2) = 0 then
+      direction := -1;
+
+    var startIndex := Random(resourceCount);
+    for var offset := 0 to resourceCount - 1 do
+    begin
+      var index := (startIndex + (direction * offset)) mod resourceCount;
+      if index < 0 then
+        index := index + resourceCount;
+
+      var cache := fEnvironment.Resources[index];
+      if cache.Amount <= MIN_SMELL_DETECTABLE_AMOUNT then
+        Continue;
+
+      if not IsFarEnough(cache.CellIndex, MIN_FOOD_HINT_DISTANCE) then
+        Continue;
+
+      CellIndex := cache.CellIndex;
+      Exit(True);
+    end;
+  end;
+
+  function TryBiomassHint: Boolean;
+  begin
+    Result := False;
+
+    var biomassCount := Length(fEnvironment.BiomassCaches);
+    if biomassCount <= 0 then
+      Exit;
+
+    var direction := 1;
+    if Random(2) = 0 then
+      direction := -1;
+
+    var startIndex := Random(biomassCount);
+    for var offset := 0 to biomassCount - 1 do
+    begin
+      var index := (startIndex + (direction * offset)) mod biomassCount;
+      if index < 0 then
+        index := index + biomassCount;
+
+      var cache := fEnvironment.BiomassCaches[index];
+      if cache.Amount <= MIN_SMELL_DETECTABLE_AMOUNT then
+        Continue;
+
+      if not IsFarEnough(cache.CellIndex, MIN_BIOMASS_HINT_DISTANCE) then
+        Continue;
+
+      CellIndex := cache.CellIndex;
+      Exit(True);
+    end;
+  end;
+
+begin
+  Result := False;
+  CellIndex := -1;
+
+  if not Assigned(fEnvironment) then
+    Exit;
+
+  width := fEnvironment.Dimensions.cx;
+  height := fEnvironment.Dimensions.cy;
+  if (width <= 0) or (height <= 0) then
+    Exit;
+
+  if (Location < 0) or (Location > High(fEnvironment.Cells)) then
+    Exit;
+
+  originX := Location mod width;
+  originY := Location div width;
+
+  case Preference of
+    wfpBiomassOnly:
+    begin
+      if TryBiomassHint then
+        Exit(True);
+    end;
+
+    wfpPreferBiomass:
+    begin
+      if TryBiomassHint then
+        Exit(True);
+      if TryResourceHint then
+        Exit(True);
+    end;
+
+    wfpAny:
+    begin
+      if TryResourceHint then
+        Exit(True);
+      if TryBiomassHint then
+        Exit(True);
+    end;
+  end;
+
+  // Fallback to the farthest corner so move resolution always gets a valid cell.
+  var corners: array[0..3] of Integer;
+  corners[0] := 0;
+  corners[1] := width - 1;
+  corners[2] := (height - 1) * width;
+  corners[3] := (height * width) - 1;
+
+  var bestCell := corners[0];
+  var bestDistance := -1;
+  for var i := Low(corners) to High(corners) do
+  begin
+    var cornerX := corners[i] mod width;
+    var cornerY := corners[i] div width;
+
+    var distance := Abs(cornerX - originX);
+    if Abs(cornerY - originY) > distance then
+      distance := Abs(cornerY - originY);
+
+    if distance > bestDistance then
+    begin
+      bestDistance := distance;
+      bestCell := corners[i];
+    end;
+  end;
+
+  CellIndex := bestCell;
+  Result := True;
 end;
 
 function TSimQuery.CountAgentsWithinRadius(CellIndex, Radius: Integer): Integer;

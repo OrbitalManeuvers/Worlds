@@ -30,6 +30,7 @@ inherited SessionFrame: TSessionFrame
     Height = 415
     ActivePage = tsStandard
     TabOrder = 1
+    OnChange = pcPagesChange
     object tsStandard: TTabSheet
       Caption = 'Standard'
       object Label3: TLabel
@@ -170,7 +171,7 @@ inherited SessionFrame: TSessionFrame
       Height = 17
       Caption = 'Session title:'
     end
-    object edtSessionName: TEdit
+    object edtSessionTitle: TEdit
       Left = 131
       Top = 25
       Width = 194

@@ -124,12 +124,22 @@ begin
   Result.Smell := Context.Smell;
 end;
 
-function BuildMoveEvalInput(const Context: TDecisionContext): TMoveEvalInput;
+function BuildMoveEvalInput(const State: TAgentState; const Context: TDecisionContext): TMoveEvalInput;
 begin
   Result.IsNight := Context.IsNight;
   Result.EnergyLevel := Context.EnergyLevel;
+  Result.ReserveDelta := State.ReserveDelta;
   Result.CurrentAction := Context.CurrentAction;
   Result.Smell := Context.Smell;
+end;
+
+function BuildWanderEvalInput(const State: TAgentState; const Context: TDecisionContext): TWanderEvalInput;
+begin
+  Result.EnergyLevel := Context.EnergyLevel;
+  Result.ReserveDelta := State.ReserveDelta;
+  Result.TicksSinceForage := State.TicksSinceForage;
+  Result.HasSmellSignal := Context.Smell.Count > 0;
+  Result.CurrentAction := Context.CurrentAction;
 end;
 
 function BuildShelterEvalInput(const Context: TDecisionContext): TShelterEvalInput;
@@ -203,6 +213,7 @@ begin
   Assert(Assigned(State.Genome.GeneMap.Smell));
   Assert(Assigned(State.Genome.GeneMap.ForageEval));
   Assert(Assigned(State.Genome.GeneMap.MoveEval));
+  Assert(Assigned(State.Genome.GeneMap.WanderEval));
   Assert(Assigned(State.Genome.GeneMap.Cognition));
   Assert(Assigned(State.Genome.GeneMap.ReproduceEval));
 
@@ -255,17 +266,32 @@ begin
   // 1. Movement
   if not shelterHoldMode then
   begin
+    var bestMove := Default(TActionEvalResult);
+    bestMove.Score := 0.0;
+    bestMove.Target.TType := ttNone;
+{.define no_movement}
+{$ifdef no_movement}
+    Scratch.ActionEvaluations[acMove].Score := 0.0;
+{$else}
     var moveEval := State.Genome.GeneMap.MoveEval;
     if Assigned(moveEval) then
     begin
-      var moveInput := BuildMoveEvalInput(Scratch.DecisionContext);
-{.define no_movement}
-{$ifdef no_movement}
-      Scratch.ActionEvaluations[acMove].Score := 0.0;
-{$else}
-      Scratch.ActionEvaluations[acMove] := moveEval.Evaluate(moveInput, Scratch.EvaluatorScratch.Movement);
-{$endif}
+      var moveInput := BuildMoveEvalInput(State, Scratch.DecisionContext);
+      bestMove := moveEval.Evaluate(moveInput, Scratch.EvaluatorScratch.Movement);
     end;
+
+    var wanderEval := State.Genome.GeneMap.WanderEval;
+    if Assigned(wanderEval) then
+    begin
+      var wanderInput := BuildWanderEvalInput(State, Scratch.DecisionContext);
+      var wanderMove := wanderEval.Evaluate(wanderInput, Scratch.EvaluatorScratch.Wander);
+
+      if wanderMove.Score > bestMove.Score then
+        bestMove := wanderMove;
+    end;
+
+    Scratch.ActionEvaluations[acMove] := bestMove;
+{$endif}
   end;
 
   // 2. Foraging
@@ -320,6 +346,29 @@ begin
   begin
     Result.RequestedAction := State.Action;
     Result.RequestedTarget := State.ActionTarget;
+  end;
+
+  // Resolve wander intents into concrete cell targets before leaving the brain.
+  if (Result.RequestedAction = acMove) and (Result.RequestedTarget.TType = ttWander) then
+  begin
+    var targetCell := -1;
+
+    if State.WanderTarget >= 0 then
+      targetCell := State.WanderTarget
+    else
+    begin
+      var wanderQuery := Input.Query as IEnvironmentWanderQuery;
+      var hintPreference := wfpAny;
+      if State.Genome.ConverterRatings[Biomass] > 0.0 then
+        hintPreference := wfpPreferBiomass;
+
+      // Keep move output valid even when no distant hint is available.
+      if not wanderQuery.FindDistantFoodHint(State.Location, hintPreference, targetCell) then
+        targetCell := State.Location;
+    end;
+
+    Result.RequestedTarget.TType := ttCell;
+    Result.RequestedTarget.Cell := targetCell;
   end;
 
   Result.Evaluations := Scratch.ActionEvaluations;

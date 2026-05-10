@@ -49,6 +49,7 @@ object ControllerFrame: TControllerFrame
     Images = ilController
     Layout = blGlyphTop
     SelectedImageIndex = 5
+    OnClick = btnRecordClick
   end
   object btnStep: TPngSpeedButton
     Left = 112

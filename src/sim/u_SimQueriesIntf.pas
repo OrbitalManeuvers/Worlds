@@ -5,6 +5,8 @@ interface
 uses u_AgentTypes, u_SimEnvironments;
 
 type
+  TWanderFoodHintPreference = (wfpAny, wfpPreferBiomass, wfpBiomassOnly);
+
   ISimQuery = interface
     ['{8C77A41D-4AD7-4232-8E5A-6469F16F1D90}']
   end;
@@ -41,6 +43,11 @@ type
     procedure FillLocalFoodCaches(Location: Integer; Range: Single; var Buffer: TSmellCacheInfos; out Count: Integer);
   end;
 
+  IEnvironmentWanderQuery = interface(IEnvironmentQuery)
+    ['{242981BE-1224-40D9-847A-CFCA0A00F2F4}']
+    function FindDistantFoodHint(Location: Integer; Preference: TWanderFoodHintPreference;
+      out CellIndex: Integer): Boolean;
+  end;
 
   TSightInfo = record
     AgentId: Integer;

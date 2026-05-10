@@ -33,6 +33,8 @@ type
     procedure DestroySession;
     procedure HandleBeforeRun(Sender: TObject);
     procedure HandleAfterRun(Sender: TObject);
+    procedure HandleSaveProgress(Sender: TObject; Progress: Integer);
+    procedure HandleRecordingChanged(Sender: TObject);
 
   public
     procedure Init; override;
@@ -49,7 +51,7 @@ implementation
 
 {$R *.dfm}
 
-uses u_WorldsMessages, {u_LogExport,} System.IOUtils;
+uses u_WorldsMessages, {u_LogExport,} System.IOUtils, u_SessionManager;
 
 { TSimulatorFrame }
 
@@ -71,6 +73,7 @@ begin
   InitFrame(Controller, phController);
   Controller.OnBeforeRun := HandleBeforeRun;
   Controller.OnAfterRun := HandleAfterRun;
+  Controller.OnRecordingChange := HandleRecordingChanged;
 
   { UI for displaying scratch log events }
   LogViewer := TLogViewer.Create(Self);
@@ -94,6 +97,16 @@ end;
 procedure TSimulatorFrame.HandleBeforeRun(Sender: TObject);
 begin
   LogViewer.Tree.BeginUpdate;
+end;
+
+procedure TSimulatorFrame.HandleRecordingChanged(Sender: TObject);
+begin
+  Session.Recording := Controller.Recording;
+end;
+
+procedure TSimulatorFrame.HandleSaveProgress(Sender: TObject; Progress: Integer);
+begin
+  SaveProgress.Position := Progress + 1; // accomodate for 0-based event index
 end;
 
 procedure TSimulatorFrame.HandleAfterRun(Sender: TObject);
@@ -125,16 +138,31 @@ procedure TSimulatorFrame.btnCloseClick(Sender: TObject);
 begin
   inherited;
 
-  if (Sender is TComponent) and (TComponent(Sender).Tag <> 0) then
-  begin
-//    SaveProgress.pos
-    // show progress bar
-    // try
-    //   Session.SaveLog(callback);
-    // finally
-    //   HideProgress Bar
+  Assert(Assigned(Session));
 
+  // non-zero Tag on closing control signals Save
+  var savedRecording := (Sender is TComponent) and (TComponent(Sender).Tag <> 0);
+  var savedEventCount := 0;
+
+  if savedRecording then
+  begin
+    Session.AssertScratchLogReadable;
+
+    SaveProgress.Max := EventLog.Count;
+    SaveProgress.Min := 0;
+    SaveProgress.Position := 0;
+    SaveProgress.Visible := True;
+    try
+      savedEventCount := Session.SaveEventLog(HandleSaveProgress);
+    finally
+      SaveProgress.Visible := False;
+    end;
   end;
+
+  if savedRecording then
+    SessionManager.UpdateSessionStatus(ssCompleted, True, savedEventCount, 'Save and close')
+  else
+    SessionManager.UpdateSessionStatus(ssCompleted, False, 0, 'Discard and close');
 
   PostMessage(Application.MainForm.Handle, WM_END_SIMULATION, 0, 0);
 end;
@@ -147,15 +175,6 @@ begin
   Session := TSimSession.Create(aCommonParams);
   EventLog := Session.EventLog;
   EventLogView := TEventLogView.Create(EventLog);
-
-  // view definition
-  var def := Default(TSimEventViewDef);
-  def.StartSequence := -1;
-  def.StopSequence := -1;
-  def.Kinds := [sekDecisionTrace];
-  EventLogView.Define(def);
-
-  //  EventLogView.Define(AnySimEventViewDef);
 
 
   LogViewer.Connect(EventLogView);

@@ -17,10 +17,10 @@ type
     Index: Integer;
   end;
 
-  TTargetType = (ttNone, ttCell, ttCache);
+  TTargetType = (ttNone, ttCell, ttCache, ttWander);
   TTarget = record
     case TType: TTargetType of
-      ttNone: ();
+      ttNone, ttWander: ();
       ttCell: (Cell: Integer);
       ttCache: (Cache: TCacheRef);
   end;

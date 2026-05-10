@@ -81,7 +81,12 @@ uses
   u_SessionManager in 'sim\u_SessionManager.pas',
   u_DiagnosticsHelpers in 'sim\u_DiagnosticsHelpers.pas',
   fr_LogViewer in 'ui\fr_LogViewer.pas' {LogViewer: TFrame},
-  u_EventLogViews in 'sim\u_EventLogViews.pas';
+  u_EventLogViews in 'sim\u_EventLogViews.pas',
+  u_SimWatchManager in 'sim\u_SimWatchManager.pas',
+  u_ProgramSettings in 'ui\u_ProgramSettings.pas',
+  u_SessionManifest in 'common\u_SessionManifest.pas',
+  u_SessionTOC in 'common\u_SessionTOC.pas',
+  u_WanderGenes in 'agents\u_WanderGenes.pas';
 
 {$R *.res}
 

@@ -2,87 +2,138 @@ unit u_DiagnosticsHelpers;
 
 interface
 
-uses System.SysUtils, System.TypInfo,
-  u_SimEventTypes, u_AgentTypes;
+uses System.Types, System.SysUtils, System.TypInfo,
+  u_SimEventTypes, u_AgentTypes, u_AgentBrain,
+  u_AgentGenome;
+
 
 type
-  _simEvent = record helper for TSimEvent
-    function AsDebugLine: string;
+
+  // .AsText helpers for rendering a field value
+  // --------------------------------------------
+
+  // TPoint = X,Y
+  _point = record helper for TPoint
+    function AsText: string;
   end;
 
+  // TAgentAction = abbrev
+  _agentAction = record helper for TAgentAction
+    function AsText: string;
+  end;
+
+  _biomassCreateReason = record helper for TBiomassCreateReason
+    function AsText: string;
+  end;
+
+  _energyLevel = record helper for TEnergyLevel
+    function AsText: string;
+  end;
+
+  // .AsField helpers if the type renders label(s) + value(s)
+  // --------------------------------------------------------
+
+  _targetRef = record helper for TTargetRef
+    function AsText: string;
+  end;
+
+  _cacheRef =  record helper for TCacheRef
+    function AsText: string;
+  end;
+
+  // .AsLogLine helpers for types that produce a complete line
+  // ---------------------------------------------------------
+
+
+  // TDecisionTraceEvent
   _decisionTraceEvent = record helper for TDecisionTraceEvent
-    function AsFields: string;
+    function AsMove: string;
+    function AsForage: string;
+
+    function AsLogLine: string;
   end;
 
-//  _agentMovedEvent = record helper for TAgentMovedEvent
-//    function AsFields: string;
-//  end;
+  // TSimEvent
+  _simEvent = record helper for TSimEvent
+    function AsLogLine: string;
+    function AsDetails: string;
+//    procedure WriteDetails(Strings: TStrings);
+  end;
+
+
+  // .AsDetails helpers for types that produce detail reports
+  // ---------------------------------------------------------
+
+  // TBrainTraceSummary
+  _brainTraceSummary = record helper for TBrainTraceSummary
+    function AsDetails: string;
+  end;
+
+  _ActionEvalResult = record helper for TActionEvalResult
+    function AsDetails: string;
+  end;
+
+
 
 implementation
 
-uses System.Types;
 
-function ActionToShortStr(aAction: TAgentAction): string;
 const
-  actionStrs: array[TAgentAction] of string = ('Move', 'Forage', 'Shelter', 'Repro', 'Idle');
+  CRLF = #13#10;
+
+type
+  _single = record helper for Single
+    function AsText: string;
+  end;
+
+{ _single }
+function _single.AsText: string;
 begin
-  Result := actionStrs[aAction];
+  Result := FloatToStrF(Self, ffFixed, 18, 3);
 end;
 
-function CacheToShortStr(const Cache: TCacheRef): string;
+{ _cacheRef }
+function _cacheRef.AsText: string;
 begin
-  case Cache.Kind of
+  case Self.Kind of
     ckResource:
-      Result := 'Resource:' + Cache.Index.ToString;
+      Result := 'r:' + Self.Index.ToString;
     ckBiomass:
-      Result := 'Biomass:' + Cache.Index.ToString;
+      Result := 'b:' + Self.Index.ToString;
   end;
 end;
 
-function PointToShortStr(aValue: TPoint): string;
+{ _targetRef }
+function _targetRef.AsText: string;
 begin
-  Result := '(' + aValue.X.ToString + ',' + aValue.Y.ToString + ')';
-//  Result := Format('%d:%d', [aValue.X, aValue.Y])
-end;
-
-//function TargetToShortStr(const Target: TTarget): string;
-//begin
-//  case Target.TType of
-//    ttCell:
-//      Result := 'Cell:' + Target.Cell.ToString;
-//    ttCache:
-//      Result := CacheToShortStr(Target.Cache);
-//  else
-//    Result := 'None';
-//  end;
-//end;
-
-function TargetRefToShortStr(const Target: TTargetRef): string;
-begin
-  case Target.TType of
+  case Self.TType of
     ttCell:
-      Result := PointToShortStr(Target.Cell);
+      Result := Self.Cell.AsText;
     ttCache:
-      Result := CacheToShortStr(Target.Cache);
+      Result := Self.Cache.AsText;
   else
-    Result := 'None';
+    Result := '?';
   end;
 end;
 
-function BoolToLogStr(const Value: Boolean): string;
+{ _agentAction }
+
+function _agentAction.AsText: string;
+const
+  actionStrs: array[TAgentAction] of string = ('mov', 'for', 'she', 'rep', 'idl');
 begin
-  if Value then
-    Result := 'T'
-  else
-    Result := 'F';
+  Result := actionStrs[Self];
 end;
 
-function FloatToLogStr(const Value: Single): string;
+{ _point }
+function _point.AsText: string;
 begin
-  Result := FloatToStrF(Value, ffFixed, 18, 3);
+  Result := X.ToString + ',' + Y.ToString;
 end;
 
-function BiomassCreateReasonToShortStr(const Reason: TBiomassCreateReason): string;
+{ _biomassCreateReason }
+
+function _biomassCreateReason.AsText: string;
 const
   reasonStrs: array[TBiomassCreateReason] of string = (
     'Unknown',
@@ -91,58 +142,142 @@ const
     'AgentDeath'
   );
 begin
-  Result := reasonStrs[Reason];
+  Result := reasonStrs[Self];
 end;
 
-function CellIndexToStr(aCellIndex, aGridWidth: Integer): string;
+{ _energyLevel }
+function _energyLevel.AsText: string;
+const
+  energyLevelStrs: array[TEnergyLevel] of string = ('e', 'l', 'm', 'h', 'f');
 begin
-  Result := Format('(%d, %d)', [aCellIndex mod aGridWidth, aCellIndex div aGridWidth]);
+  Result := energyLevelStrs[Self];
 end;
 
-function DecisionTraceToStr(const d: TDecisionTraceEvent): string;
+
+{ _decisionTraceEvent }
+
+function _decisionTraceEvent.AsMove: string;
 begin
-    var did := '';
-    if d.RequestedAction = d.ResolvedAction then
-    begin
-      // did a thing
-      case d.ResolvedAction of
-        acMove: did := 'moved to ' + PointToShortStr(d.ResolvedTarget.Cell);
-        acForage: did := 'ate ' + d.ResolvedTarget.Cache.Index.ToString + ' ' + FloatToLogStr(d.ForageGain);
-        acShelter: did := 'zzz';
-        acReproduce: ;
-        acIdle: ;
-      end;
+  // assume resolved = requested and it's a move
+  Result := Format('%s', [ResolvedTarget.AsText]);
+end;
+
+function _decisionTraceEvent.AsForage: string;
+begin
+  Result := Format('%s con:%s gain:%s eff:%s',
+    [ResolvedTarget.AsText,
+     self.ForageConsumed.AsText,
+     self.ForageGain.AsText,
+     self.ForageEfficiency.AsText
+    ]);
+end;
+
+function _decisionTraceEvent.AsLogLine: string;
+begin
+  var agentInfo := Format(
+    'a:%.02d %s %s ',
+    [ AgentId,
+      Cell.AsText,
+      Summary.EnergyLevel.AsText
+    ]);
+
+  var actionInfo := '';
+  if ResolvedAction <> RequestedAction then
+  begin
+    // output line that shows request
+  end
+  else
+  begin
+    actionInfo := ResolvedAction.AsText + ' ';
+
+    // otherwise they did what they wanted, so no need to report some stuff
+    case ResolvedAction of
+      acMove: actionInfo := actionInfo + Self.AsMove;
+      acForage: actionInfo := actioninfo + Self.AsForage;
+      acShelter: ;
+      acReproduce: ;
+      acIdle: ;
     end;
 
-  Result := Format(
-    'A%.02d %s', [d.AgentId, did]);
 
+  end;
 
+  Result := agentInfo + actioninfo;
 
-//          'a:%.02d cell=%d req=%s(%s) res=%s(%s) night=%s in=%s out=%s eff=%s', [
-//            DecisionTrace.AgentId,
-//            DecisionTrace.CellIndex,
-//            ActionToShortStr(DecisionTrace.RequestedAction),
-//            TargetToShortStr(DecisionTrace.RequestedTarget),
-//            ActionToShortStr(DecisionTrace.ResolvedAction),
-//            TargetToShortStr(DecisionTrace.ResolvedTarget),
-//            BoolToLogStr(DecisionTrace.IsNight),
+//,
+//     'a:%.02d %s (%s) rq:%s(%s) rs:%s(%s)',
+
+//      RequestedAction.AsLogLine,
+//      RequestedTarget.AsLogLine,
+//      ResolvedAction.AsLogLine,
+//      ResolvedTarget.AsLogLine
+//          ' in=%s out=%s eff=%s', [
 //            FloatToLogStr(DecisionTrace.ForageConsumed),
 //            FloatToLogStr(DecisionTrace.ForageGain),
 //            FloatToLogStr(DecisionTrace.ForageEfficiency)
 
 end;
 
+{ _brainTraceSummary }
+function _brainTraceSummary.AsDetails: string;
+begin
+  Result := Format(
+   'e-delta=%s|hadsmell=%s|smell-sig=%s',
+   [
+     self.ReserveDelta.AsText,
+     self.HadSmellTarget.ToString(TUseBoolStrs.True),
+     self.StrongestSmellSignal.AsText
+
+   ]);
+
+end;
+
+(*
+  TActionEvalResult = record
+    Score: Single;
+    Target: TTarget;
+  end;
+  TActionEvaluations = array[TAgentAction] of TActionEvalResult;
+
+*)
+
+{ _ActionEvalResult }
+function _ActionEvalResult.AsDetails: string;
+begin
+//  Result := Format(
+//    'sc:%s-tg:%s',
+//    [
+//      self.Score.AsText,
+//      self.Target.Cell.ToString // !!! should be tpoint
+//    ]);
+  Result := Self.Score.AsText;
+end;
+
+
 { _simEvent }
 
-function _simEvent.AsDebugLine: string;
+function _simEvent.AsDetails: string;
 begin
-//  Result := Format('%.04d [%.02d:%.03d] %-16s ', [
+  Result := '';
+  if Header.Kind = sekDecisionTrace then
+  begin
+    Result := Self.DecisionTrace.Summary.AsDetails + '|';
+
+    for var act := Low(TAgentAction) to High(TAgentAction) do
+    begin
+      Result := Result + act.AsText + '=' + Self.DecisionTrace.Evaluations[act].AsDetails + '|';
+    end;
+
+
+  end;
+end;
+
+function _simEvent.AsLogLine: string;
+begin
   Result := Format('%.04d [%.02d:%.03d] ', [
     Header.Sequence,
     Header.DayNumber,
-    Header.DayTick // ,
-//    GetEnumName(TypeInfo(TSimEventKind), Ord(Header.Kind))
+    Header.DayTick
   ]);
 
   case Header.Kind of
@@ -150,17 +285,19 @@ begin
       Result := Result + Format(
         'a:%.02d req:%s(%s) res:%s(%s) rsrvs=%s prog=%d note=%d', [
           ActionResolved.AgentId,
-          ActionToShortStr(ActionResolved.RequestedAction),
-          TargetRefToShortStr(ActionResolved.RequestedTarget),
-          ActionToShortStr(ActionResolved.ResolvedAction),
-          TargetRefToShortStr(ActionResolved.ResolvedTarget),
-          FloatToLogStr(ActionResolved.Reserves),
+          ActionResolved.RequestedAction.AsText,
+          ActionResolved.RequestedTarget.AsText,
+          ActionResolved.ResolvedAction.AsText,
+          ActionResolved.ResolvedTarget.AsText,
+          ActionResolved.Reserves.AsText,
           ActionResolved.ActionProgress,
           Ord(ActionResolved.Note)
         ]);
     sekDecisionTrace:
       begin
-        Result := Result + DecisionTraceToStr(DecisionTrace);
+        Result := Result + DecisionTrace.AsLogLine;
+//        decisionTrace.Summary.
+//        Result := Result + DecisionTraceToStr(DecisionTrace);
 //        Result := Result + Format(
 //          'a:%.02d %s req=%s%s res=%s%s night=%s in=%s out=%s eff=%s', [
 //            DecisionTrace.AgentId,
@@ -176,47 +313,47 @@ begin
 //          ]);
       end;
     sekAgentBorn:
-      Result := Result + Format('agent=%d parent=%d cell=%d:%d reserves=%s', [
+      Result := Result + Format('agent=%d parent=%d cell=%s reserves=%s', [
         AgentBorn.AgentId,
         AgentBorn.ParentAgentId,
-        AgentBorn.Cell.X, AgentBorn.Cell.Y,
-        FloatToLogStr(AgentBorn.InitialReserves)
+        AgentBorn.Cell.AsText,
+        AgentBorn.InitialReserves.AsText
       ]);
     sekAgentMoved:
       Result := Result + Format('agent=%d from=%d:%d to=%d:%d moveCost=%s reserves=%s', [
         AgentMoved.AgentId,
         AgentMoved.FromCell.X, AgentMoved.FromCell.Y,
         AgentMoved.ToCell.X, AgentMoved.ToCell.Y,
-        FloatToLogStr(AgentMoved.MoveCost),
-        FloatToLogStr(AgentMoved.Reserves)
+        AgentMoved.MoveCost.AsText,
+        AgentMoved.Reserves.AsText
       ]);
     sekBiomassCreated:
       Result := Result + Format('cell=%s amount=%s reason=%s sourceAgent=%d', [
-        PointToShortStr(BiomassCreated.Cell),
-        FloatToLogStr(BiomassCreated.Amount),
-        BiomassCreateReasonToShortStr(BiomassCreated.Reason),
+        BiomassCreated.Cell.AsText,
+        BiomassCreated.Amount.AsText,
+        BiomassCreated.Reason.AsText,
         BiomassCreated.SourceAgentId
       ]);
     sekBiomassConsumed:
       Result := Result + Format('agent=%d cell=%s cache=%s consumed=%s gain=%s', [
         BiomassConsumed.AgentId,
-        PointToShortStr(BiomassConsumed.Cell),
-        CacheToShortStr(BiomassConsumed.Cache),
-        FloatToLogStr(BiomassConsumed.ConsumedAmount),
-        FloatToLogStr(BiomassConsumed.GainAmount)
+        BiomassConsumed.Cell.AsText,
+        BiomassConsumed.Cache.AsText,
+        BiomassConsumed.ConsumedAmount.AsText,
+        BiomassConsumed.GainAmount.AsText
       ]);
     sekAgentDied:
       Result := Result + Format('agent=%d cell=%s age=%d reservesBefore=%s', [
         AgentDied.AgentId,
-        PointToShortStr(AgentDied.Cell),
+        AgentDied.Cell.AsText,
         AgentDied.Age,
-        FloatToLogStr(AgentDied.ReservesBeforeDeath)
+        AgentDied.ReservesBeforeDeath.AsText
       ]);
     sekResourceSampled:
       Result := Result + Format('cache=%d amount=%s regenDebt=%s', [
         ResourceSampled.CacheIndex,
-        FloatToLogStr(ResourceSampled.Amount),
-        FloatToLogStr(ResourceSampled.RegenDebt)
+        ResourceSampled.Amount.AsText,
+        ResourceSampled.RegenDebt.AsText
       ]);
   end;
 end;
@@ -247,11 +384,7 @@ end;
 
 *)
 
-{ _decisionTraceEvent }
 
-function _decisionTraceEvent.AsFields: string;
-begin
-  Result := '';
-end;
+
 
 end.

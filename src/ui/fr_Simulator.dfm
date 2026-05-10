@@ -23,7 +23,7 @@ inherited SimulatorFrame: TSimulatorFrame
     Visible = False
   end
   object btnClose: TButton
-    Left = 592
+    Left = 732
     Top = 519
     Width = 125
     Height = 25
@@ -34,7 +34,7 @@ inherited SimulatorFrame: TSimulatorFrame
   end
   object btnSaveClose: TButton
     Tag = 1
-    Left = 736
+    Left = 592
     Top = 519
     Width = 117
     Height = 25
@@ -48,6 +48,7 @@ inherited SimulatorFrame: TSimulatorFrame
     Top = 519
     Width = 562
     Height = 25
+    Anchors = [akRight, akBottom]
     TabOrder = 2
     Visible = False
   end

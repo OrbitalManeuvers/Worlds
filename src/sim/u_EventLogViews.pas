@@ -37,6 +37,11 @@ begin
   fLogView := aLog;
 end;
 
+destructor TEventLogView.Destroy;
+begin
+  inherited;
+end;
+
 procedure TEventLogView.Define(const aViewDef: TSimEventViewDef);
 begin
   fViewDef := aViewDef;
@@ -100,6 +105,7 @@ begin
 end;
 
 function TEventLogView.EventMatchesFilter(const aEvent: TSimEvent): Boolean;
+
   function EventAgentIds(const aEvent: TSimEvent): TArray<Integer>;
   begin
     case aEvent.Header.Kind of
@@ -139,12 +145,6 @@ function TEventLogView.EventMatchesFilter(const aEvent: TSimEvent): Boolean;
 
 begin
   Result := (aEvent.Header.Kind in fViewDef.Kinds) and MatchSequence and MatchAgent;
-end;
-
-destructor TEventLogView.Destroy;
-begin
-
-  inherited;
 end;
 
 function TEventLogView.GetCount: Integer;

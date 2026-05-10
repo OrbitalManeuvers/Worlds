@@ -28,19 +28,25 @@ type
     procedure btnRun10Click(Sender: TObject);
     procedure btnSunsetClick(Sender: TObject);
     procedure btnSunriseClick(Sender: TObject);
+    procedure btnRecordClick(Sender: TObject);
   private
     fOnBeforeRun: TNotifyEvent;
     fOnAfterRun: TNotifyEvent;
+    fOnRecordingChange: TNotifyEvent;
   private
     fController: TSimController;
     procedure SetController(const Value: TSimController);
     procedure UpdateClockDisplay;
     procedure RunToDate(aDate: TSimDate);
     procedure OnAfterAdvance(Sender: TObject);
+    function GetRecording: Boolean;
   public
     property Controller: TSimController read fController write SetController;
+    property Recording: Boolean read GetRecording;
+
     property OnBeforeRun: TNotifyEvent read fOnBeforeRun write fOnBeforeRun;
     property OnAfterRun: TNotifyEvent read fOnAfterRun write fOnAfterRun;
+    property OnRecordingChange: TNotifyEvent read fOnRecordingChange write fOnRecordingChange;
   end;
 
 implementation
@@ -50,6 +56,12 @@ implementation
 uses u_SimClocks;
 
 { TControllerFrame }
+
+procedure TControllerFrame.btnRecordClick(Sender: TObject);
+begin
+  if Assigned(fOnRecordingChange) then
+    fOnRecordingChange(Self);
+end;
 
 procedure TControllerFrame.btnRun10Click(Sender: TObject);
 begin
@@ -74,6 +86,11 @@ end;
 procedure TControllerFrame.btnSunsetClick(Sender: TObject);
 begin
   RunToDate(fController.CurrentDate.NextSunset);
+end;
+
+function TControllerFrame.GetRecording: Boolean;
+begin
+  Result := btnRecord.Down;
 end;
 
 procedure TControllerFrame.RunToDate(aDate: TSimDate);

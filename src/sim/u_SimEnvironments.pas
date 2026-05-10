@@ -12,6 +12,7 @@ type
 
   // how natural resources are tracked and managed. upscaler sets this up
   TResourceCache = record
+    CellIndex: Integer;      // which cell this belongs to
     SubstanceIndex: Word;    // index into Substances array
     Amount: Single;          // mutable simulation state
     RegenDebt: Single;       // stacked recoil cooldown (in ticks) before regrowth resumes

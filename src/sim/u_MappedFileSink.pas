@@ -22,19 +22,21 @@ uses
   System.SysUtils,
   u_SimEventTypes;
 
+const
+  EVENT_LOG_FILE_VERSION = 1;
+  EVENT_LOG_FILE_SIGNATURE = $534C4F47; // ('SLOG')
+
 type
-  /// <summary>
-  ///   File header written at offset 0 of every .simlog backing file.
-  ///   Magic lets any reader cheaply verify it has the right file type.
-  ///   Version allows future readers to detect and handle older formats.
-  ///   EventCount is the live write cursor — updated after every Consume call
-  ///   so a concurrent read-only mapping can determine how many complete event
-  ///   records are present without relying on file size (which includes padding).
-  /// </summary>
+  // File header written at offset 0 of every .simlog backing file.
+  // Signature lets any reader cheaply verify it has the right file type.
+  // Version allows future readers to detect and handle older formats.
+  // EventCount is the live write cursor — updated after every Consume call
+  // so a concurrent read-only mapping can determine how many complete event
+  // records are present without relying on file size (which includes padding).
   TSimLogHeader = record
-    Magic:      Cardinal;  // file identity guard: $534C4F47 ('SLOG')
-    Version:    Word;      // file format version, currently 1
-    EventCount: Integer;    // writer updates this after every Consume call
+    Signature: Cardinal;  // file identity
+    Version: Word;        // file format version, currently 1
+    EventCount: Integer;  // writer updates this after every Consume call
   end;
 
   PSimLogHeader = ^TSimLogHeader;
@@ -45,12 +47,10 @@ type
   // TMappedFileSink
   // -------------------------------------------------------------------------
 
-  /// <summary>
-  ///   Implements ISimEventConsumer and subscribes to TSimDiagnosticsHub to
-  ///   record the full TSimEvent stream into a memory-mapped file using chunked
-  ///   pre-allocation. The caller passes a complete file path; the sink is
-  ///   agnostic about naming conventions, directory structure, and file extension.
-  /// </summary>
+  // Implements ISimEventConsumer and subscribes to TSimDiagnosticsHub to
+  // record the full TSimEvent stream into a memory-mapped file using chunked
+  // pre-allocation. The caller passes a complete file path; the sink is
+  // agnostic about naming conventions, directory structure, and file extension.
   TMappedFileSink = class(TInterfacedObject, ISimEventConsumer)
   private
     fFilePath:       string;
@@ -82,16 +82,14 @@ type
   // TMappedFileLog
   // -------------------------------------------------------------------------
 
-  /// <summary>
-  ///   Implements IEventLog against a .simlog backing file, providing indexed
-  ///   read-only access to TSimEvent records for debug views and tooling.
-  ///   Can be used concurrently with a live TMappedFileSink writing to the
-  ///   same file.
-  ///
-  ///   KEY CONSTRAINT: Always use Count (sourced from header.EventCount) as the
-  ///   upper bound for reads. Reading beyond Count into the pre-allocated region
-  ///   returns zero-filled memory, not valid events.
-  /// </summary>
+  // Implements IEventLog against a .simlog backing file, providing indexed
+  // read-only access to TSimEvent records for debug views and tooling.
+  // Can be used concurrently with a live TMappedFileSink writing to the
+  // same file.
+
+  // KEY CONSTRAINT: Always use Count (sourced from header.EventCount) as the
+  // upper bound for reads. Reading beyond Count into the pre-allocated region
+  // returns zero-filled memory, not valid events.
   TMappedFileLog = class(TInterfacedObject, IEventLog)
   private
     fFilePath:      string;
@@ -115,7 +113,16 @@ type
     property Events[aIndex: Integer]: TSimEvent read GetEvent;
   end;
 
+function StandardEventLogHeader: TSimLogHeader;
+
 implementation
+
+function StandardEventLogHeader: TSimLogHeader;
+begin
+  Result := Default(TSimLogHeader);
+  Result.Version := EVENT_LOG_FILE_VERSION;
+  Result.Signature := EVENT_LOG_FILE_SIGNATURE;
+end;
 
 function GetFileSize64(AFileHandle: THandle): Int64;
 var
@@ -199,9 +206,7 @@ begin
       RaiseLastOSError;
 
     // Initialize file header at offset 0.
-    fFileHeader.Magic      := $534C4F47;  // 'SLOG'
-    fFileHeader.Version    := 1;
-    fFileHeader.EventCount := 0;
+    fFileHeader := StandardEventLogHeader;
     PSimLogHeader(fMapView)^ := fFileHeader;
     fHeaderView := fMapView;  // header lives at offset 0 of the current mapping
 
@@ -271,7 +276,7 @@ begin
   absoluteOffset := fHeaderBytes + fNextIndex * SizeOf(TSimEvent);
   dest := PSimEvent(PByte(fMapView) + absoluteOffset);
 
-  // Preserve SessionId/Sequence stamped by the diagnostics hub.
+  // Preserve the event header stamped by the diagnostics hub.
   dest^ := Event;
 
   Inc(fNextIndex);

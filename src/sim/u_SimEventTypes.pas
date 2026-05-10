@@ -35,7 +35,6 @@ type
   );
 
   TSimEventHeader = record
-    SessionId: Integer;
     Sequence: Integer;
     DayNumber: Integer;
     DayTick: TDayTick;
@@ -64,7 +63,6 @@ type
   TDecisionTraceEvent = record
     AgentId: Integer;
     Cell: TPoint;
-    IsNight: Boolean;
     RequestedAction: TAgentAction;
     RequestedTarget: TTargetRef;
     ResolvedAction: TAgentAction;

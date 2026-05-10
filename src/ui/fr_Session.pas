@@ -33,7 +33,7 @@ type
     Label6: TLabel;
     lblScenarioName: TLabel;
     GroupBox1: TGroupBox;
-    edtSessionName: TEdit;
+    edtSessionTitle: TEdit;
     Label8: TLabel;
     procedure btnCreateSimClick(Sender: TObject);
     procedure WorldListItemClick(Sender: TObject);
@@ -43,6 +43,7 @@ type
       ARect: TRect; AState: TOwnerDrawState);
     procedure ScenarioListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
+    procedure pcPagesChange(Sender: TObject);
   private
     fCommonParameters: TCommonSessionParameters;
     fUpscalerParameters: TUpscalerParameters;
@@ -78,6 +79,12 @@ begin
 
   pcPages.ActivePage := tsStandard;
 
+  UpdateControls;
+end;
+
+procedure TSessionFrame.pcPagesChange(Sender: TObject);
+begin
+  inherited;
   UpdateControls;
 end;
 
@@ -154,11 +161,13 @@ end;
 
 function TSessionFrame.BuildCommonParameters: TCommonSessionParameters;
 begin
+  Result := Default(TCommonSessionParameters);
+
   if pcPages.ActivePage = tsStandard then
     Result.SessionType := stStandard
   else
     Result.SessionType := stDebug;
-  Result.SessionTitle := edtSessionName.Text;
+  Result.SessionTitle := edtSessionTitle.Text;
 end;
 
 procedure TSessionFrame.btnCreateSimClick(Sender: TObject);

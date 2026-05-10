@@ -215,6 +215,7 @@ begin
         var resIndex := resourceWriteIndex;
         var foodIndex := biomeFoods[i];
 
+        Environment.Resources[resIndex].CellIndex := cellIndex;
         Environment.Resources[resIndex].SubstanceIndex := foodIndex;
         Environment.Resources[resIndex].Amount := 0.0;
         Environment.Resources[resIndex].RegenDebt := 0.0;
@@ -294,6 +295,7 @@ begin
   var index := Environment.Cells[cellIndex].ResourceStart + aResourceIndex;
   Assert((index >= 0) and (index < Environment.ResourceCount));
 
+  Environment.Resources[index].CellIndex := cellIndex;
   Environment.Resources[index].SubstanceIndex := aSubstanceIndex;
   Environment.Resources[index].GrowthRate := GROWTH_FACTOR[aGrowthRate];
 end;

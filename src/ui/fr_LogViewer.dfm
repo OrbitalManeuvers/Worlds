@@ -7,18 +7,46 @@ object LogViewer: TLogViewer
   DesignSize = (
     699
     351)
-  object Panel1: TPanel
+  object pnlViewTools: TPanel
     Left = 24
     Top = 16
-    Width = 297
+    Width = 657
     Height = 41
-    Caption = 'Panel1'
+    Anchors = [akLeft, akTop, akRight]
     TabOrder = 0
+    object btnIncDT: TSpeedButton
+      Left = 8
+      Top = 8
+      Width = 25
+      Height = 25
+      AllowAllUp = True
+      GroupIndex = 1
+      Caption = 'DT'
+      OnClick = FilterChanged
+    end
+    object btnExport: TSpeedButton
+      Left = 416
+      Top = 8
+      Width = 65
+      Height = 25
+      Caption = 'Export'
+      OnClick = btnExportClick
+    end
+    object btnIncAR: TSpeedButton
+      Left = 40
+      Top = 8
+      Width = 25
+      Height = 25
+      AllowAllUp = True
+      GroupIndex = 2
+      Caption = 'AR'
+      OnClick = FilterChanged
+    end
   end
   object Tree: TVirtualStringTree
     Left = 16
     Top = 72
-    Width = 660
+    Width = 457
     Height = 265
     AccessibleName = 'Loc'
     Anchors = [akLeft, akTop, akRight, akBottom]
@@ -55,11 +83,26 @@ object LogViewer: TLogViewer
     TreeOptions.MiscOptions = [toAcceptOLEDrop, toFullRepaintOnResize, toInitOnSave, toToggleOnDblClick, toWheelPanning]
     TreeOptions.PaintOptions = [toShowDropmark, toShowRoot, toThemeAware, toUseBlendedImages]
     TreeOptions.SelectionOptions = [toFullRowSelect, toMultiSelect]
+    OnAddToSelection = TreeSelectionChanged
     OnGetText = TreeGetText
     OnInitNode = TreeInitNode
+    OnRemoveFromSelection = TreeSelectionChanged
     Touch.InteractiveGestures = [igPan, igPressAndTap]
     Touch.InteractiveGestureOptions = [igoPanSingleFingerHorizontal, igoPanSingleFingerVertical, igoPanInertia, igoPanGutter, igoParentPassthrough]
-    ExplicitWidth = 601
     Columns = <>
+  end
+  object vlDetails: TValueListEditor
+    Left = 488
+    Top = 72
+    Width = 193
+    Height = 265
+    Anchors = [akTop, akRight, akBottom]
+    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goColSizing, goTabs, goRowSelect, goThumbTracking]
+    Strings.Strings = (
+      '=')
+    TabOrder = 2
+    ColWidths = (
+      83
+      104)
   end
 end

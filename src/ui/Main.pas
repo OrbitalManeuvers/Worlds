@@ -34,7 +34,7 @@ type
     procedure ContentSelectorClick(Sender: TObject);
     procedure btnSaveClick(Sender: TObject);
 
-    procedure WMSessionSubmitted(var Msg: TWMSessionSubmitted); message WM_SESSION_SUBMITTED;
+    procedure WMSessionSubmitted(var Msg: TMessage); message WM_SESSION_SUBMITTED;
     procedure WMEndSimulation(var Msg: TMessage); message WM_END_SIMULATION;
     procedure btnSettingsClick(Sender: TObject);
 
@@ -161,18 +161,20 @@ end;
 procedure TMainForm.TryLoadSettings;
 begin
   SessionManager.LogFolder := '';
+  SessionManager.ScratchFolder := '';
   if Settings.LoadFromFile(SettingsFileName) then
   begin
     btnSettings.ImageIndex := -1;
     SessionManager.LogFolder := Settings.LogFolder;
+    SessionManager.ScratchFolder := Settings.ScratchFolder;
   end
   else
     btnSettings.ImageIndex := 6; // !! blahh
 end;
 
-procedure TMainForm.WMSessionSubmitted(var Msg: TWMSessionSubmitted);
+procedure TMainForm.WMSessionSubmitted(var Msg: TMessage);
 begin
-  var rec := SessionManager.GetSession(Msg.SessionId);
+  var rec := SessionManager.GetSession;
 
   var composer: ISessionComposer;
   case rec.SessionType of

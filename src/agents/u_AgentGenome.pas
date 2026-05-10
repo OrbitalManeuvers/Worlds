@@ -11,6 +11,8 @@ const
   // but evaluators should not ask for reproduction below this legal minimum.
   REPRODUCTION_MIN_ATTEMPT_RESERVES = 6.0;
 
+  GENE_SEQUENCE_LENGTH = 10; // at least for today!
+
 // In this simulated universe, a "gene" is just an upgradable bit of agent that makes them tick. Every tick.
 
 type
@@ -54,6 +56,7 @@ type
   TMoveEvalInput = record
     IsNight: Boolean;
     EnergyLevel: TEnergyLevel;
+    ReserveDelta: Single;
     CurrentAction: TAgentAction;
     Smell: TSmellReport;
   end;
@@ -75,6 +78,14 @@ type
     TicksSinceReproduction: Integer;
     CurrentAction: TAgentAction;
     LocalAgentCount: Integer;
+  end;
+
+  TWanderEvalInput = record
+    EnergyLevel: TEnergyLevel;
+    ReserveDelta: Single;
+    TicksSinceForage: Integer;
+    HasSmellSignal: Boolean;
+    CurrentAction: TAgentAction;
   end;
 
   TConverterInput = record
@@ -113,6 +124,9 @@ type
   TReproduceEvalScratch = record
   end;
 
+  TWanderEvalScratch = record
+  end;
+
   TConverterScratch = record
   end;
 
@@ -125,6 +139,7 @@ type
     Movement: TMoveEvalScratch;
     Reproduce: TReproduceEvalScratch;
     Cognition: TCognitionScratch;
+    Wander: TWanderEvalScratch;
   end;
 
   TGene = class
@@ -188,6 +203,12 @@ type
   end;
   TReproduceEvalGeneClass = class of TReproduceEvalGene;
 
+  // Wander evaluation
+  TWanderEvalGene = class(TGene)
+    class function Evaluate(const Input: TWanderEvalInput; var Scratch: TWanderEvalScratch): TActionEvalResult; virtual; abstract;
+  end;
+  TWanderEvalGeneClass = class of TWanderEvalGene;
+
   // ===================
   // Cognition Gene
   // ===================
@@ -217,6 +238,7 @@ type
     ReproduceEval: TReproduceEvalGeneClass;
     Cognition: TCognitionGeneClass;
     Converter: TConverterGeneClass;
+    WanderEval: TWanderEvalGeneClass;
   end;
 
   // record of an agent's gene sequence
@@ -231,9 +253,11 @@ type
     Reproduce: Char;
     Cognition: Char;
     Convert: Char;
+    Wander: Char;
     function GetAsText: string;
     procedure SetAsText(const aValue: string);
   public
+    procedure Init;
     property AsText: string read GetAsText write SetAsText;
   end;
 
@@ -272,7 +296,7 @@ function GlobalGeneRegistry: TGeneRegistry;
 
 implementation
 
-uses System.SysUtils;
+uses System.SysUtils, System.StrUtils;
 
 var
   _globalRegistry: TGeneRegistry = nil;
@@ -362,23 +386,29 @@ end;
 function TGeneSequence.getAsText: string;
 begin
   Result := Energy + Smell + Sight + Movement + Forage + Shelter + Reproduce +
-    Cognition + Convert;
+    Cognition + Convert + Wander;
+  Assert(Result.Length = GENE_SEQUENCE_LENGTH);
+end;
+
+procedure TGeneSequence.Init;
+begin
+  setAsText(System.StrUtils.DupeString('A', GENE_SEQUENCE_LENGTH));
 end;
 
 procedure TGeneSequence.setAsText(const aValue: string);
 begin
-  if aValue.Length = 9 then
-  begin
-    Energy := aValue[1];
-    Smell := aValue[2];
-    Sight := aValue[3];
-    Movement := aValue[4];
-    Forage := aValue[5];
-    Shelter := aValue[6];
-    Reproduce := aValue[7];
-    Cognition := aValue[8];
-    Convert := aValue[9];
-  end;
+  Assert(aValue.Length = GENE_SEQUENCE_LENGTH);
+
+  Energy := aValue[1];
+  Smell := aValue[2];
+  Sight := aValue[3];
+  Movement := aValue[4];
+  Forage := aValue[5];
+  Shelter := aValue[6];
+  Reproduce := aValue[7];
+  Cognition := aValue[8];
+  Convert := aValue[9];
+  Wander := aValue[10];
 end;
 
 { TGeneSequencer }
@@ -394,6 +424,7 @@ begin
   Result.Reproduce := aMap.ReproduceEval.GetGenerationCode;
   Result.Cognition := aMap.Cognition.GetGenerationCode;
   Result.Convert := aMap.Converter.GetGenerationCode;
+  Result.Wander := aMap.WanderEval.GetGenerationCode;
 end;
 
 class procedure TGeneSequencer.Populate(var aMap: TGeneMap; const aSequence: TGeneSequence);
@@ -435,6 +466,9 @@ begin
   geneClass := GlobalGeneRegistry.FindGeneration(TConverterGene, aSequence.Convert);
   aMap.Converter := TConverterGeneClass(geneClass);
 
+  // wander
+  geneClass := GlobalGeneRegistry.FindGeneration(TWanderEvalGene, aSequence.Wander);
+  aMap.WanderEval := TWanderEvalGeneClass(geneClass);
 
 
 end;

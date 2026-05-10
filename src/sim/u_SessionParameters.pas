@@ -11,7 +11,8 @@ type
     SessionType: TSessionType;
     SessionTitle: string;
     SessionLogFile: string;
-    ScratchFolder: string;  // i feel iffy about passing this here
+    SessionTOCFile: string;
+    ScratchFolder: string;
   end;
 
   { TUpscalerParameters - parameters for a normal (upscaled) session }

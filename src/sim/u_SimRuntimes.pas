@@ -392,7 +392,6 @@ begin
   event.Header := BuildEventHeader(sekDecisionTrace, stpPostAgents);
   event.DecisionTrace.AgentId := Trace.AgentId;
   event.DecisionTrace.Cell := CellToPoint(State.Location);
-  event.DecisionTrace.IsNight := Trace.IsNight;
   event.DecisionTrace.RequestedAction := Trace.RequestedAction;
   event.DecisionTrace.RequestedTarget := TargetToRef(Trace.RequestedTarget);
   event.DecisionTrace.ResolvedAction := Trace.ResolvedAction;
@@ -525,6 +524,7 @@ begin
   Result.ActionProgress := 0;
   Result.ActionTarget.TType := ttCell;
   Result.ActionTarget.Cell := ParentState.Location;
+  Result.WanderTarget := -1;
   Result.Genome := ParentState.Genome;
 end;
 
@@ -627,6 +627,7 @@ begin
     var moveCommand: IMoveAgentCommand;
     if Supports(fSimCommand, IMoveAgentCommand, moveCommand) then
     begin
+      var isWanderMove := Requested.Evaluations[acMove].Target.TType = ttWander;
       var moveDestination := Requested.RequestedTarget.Cell;
 
       // Decompose remote intent into a legal one-step move while preserving the
@@ -676,6 +677,13 @@ begin
           State.Reserves := 0.0;
 
         State.Location := moveReply.NewCell;
+
+        if isWanderMove then
+          State.WanderTarget := Requested.RequestedTarget.Cell;
+
+        if (State.WanderTarget >= 0) and (State.Location = State.WanderTarget) then
+          State.WanderTarget := -1;
+
         Result.RequestedAction := acMove;
         Result.RequestedTarget := Requested.RequestedTarget;
         EmitAgentMoved(State, moveReply.PreviousCell, moveReply.NewCell, moveCost);

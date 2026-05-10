@@ -16,10 +16,7 @@ type
   TDebugPopulator = class
   public
     class procedure PopulateAgent(aPopulation: TSimPopulation; aAgentIndex, aAgentId, aLocation: Integer;
-      aConverterRatings, aSmellRatings: TMoleculeRatings; const aGeneSequence: string = 'AAAAAAAAA');
-//    class procedure Populate(aPopulation
-//    TDebugPopulator.PopulateAgent(population, agentIndex, agentId, cellIndex,
-//      agent.ConverterRatings, agent.SmellRatings);
+      aConverterRatings, aSmellRatings: TMoleculeRatings; const aGeneSequence: string);
   end;
 
 implementation
@@ -150,10 +147,7 @@ begin
   aPopulation.AgentCount := aParams.Population.AgentCount;
   nextId := 1;
 
-
-// Energy, Smell, Sight, Movement, Forage, Shelter, Reproduce, Cognition, Convert
-//  sequence.AsText := 'AABAAAAAA';
-  sequence.AsText := 'AAAAAAAAA';
+  sequence.Init;
 
   // for now, all agents go to the same location
   case aParams.Population.Scheme of
@@ -174,6 +168,7 @@ begin
       Inc(nextId);
 
       state.Location := location;
+      state.WanderTarget := -1;
 
       state.Reserves := 5.0;
       state.TicksSinceReproduction := INITIAL_TICKS_SINCE_REPRODUCTION;
@@ -234,7 +229,7 @@ end;
 
 class procedure TDebugPopulator.PopulateAgent(aPopulation: TSimPopulation;
   aAgentIndex, aAgentId, aLocation: Integer;
-  aConverterRatings, aSmellRatings: TMoleculeRatings; const aGeneSequence: string = 'AAAAAAAAA');
+  aConverterRatings, aSmellRatings: TMoleculeRatings; const aGeneSequence: string);
 var
   sequence: TGeneSequence;
 begin
@@ -243,16 +238,12 @@ begin
 
   state.AgentId := aAgentId;
   state.Location := aLocation;
+  state.WanderTarget := -1;
   state.Reserves := 5.0;
   state.TicksSinceReproduction := INITIAL_TICKS_SINCE_REPRODUCTION;
 
   state.Genome.SmellEdgeRetention := 0.25;
-
-  if Length(aGeneSequence) = 9 then
-    sequence.AsText := aGeneSequence
-  else
-    sequence.AsText := 'AAAAAAAAA';
-
+  sequence.AsText := aGeneSequence;
   TGeneSequencer.Populate(state.Genome.GeneMap, sequence);
 
   // converter

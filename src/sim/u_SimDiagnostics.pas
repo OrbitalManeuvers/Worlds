@@ -14,12 +14,11 @@ type
 
   TSimDiagnosticsHub = class(TInterfacedObject, ISimDiagnosticsSink)
   private
-    fSessionId: Integer;
     fNextSequence: Integer;
     fNextSubscriptionId: Integer;
     fSubscriptions: TList<TSimEventSubscription>;
   public
-    constructor Create(aSessionId: Integer = 0);
+    constructor Create;
     destructor Destroy; override;
 
     procedure Emit(const Event: TSimEvent);
@@ -34,10 +33,9 @@ implementation
 
 { TSimDiagnosticsHub }
 
-constructor TSimDiagnosticsHub.Create(aSessionId: Integer);
+constructor TSimDiagnosticsHub.Create;
 begin
   inherited Create;
-  fSessionId := aSessionId;
   fSubscriptions := TList<TSimEventSubscription>.Create;
 end;
 
@@ -50,7 +48,6 @@ end;
 procedure TSimDiagnosticsHub.Emit(const Event: TSimEvent);
 begin
   var stampedEvent := Event;
-  stampedEvent.Header.SessionId := fSessionId;
   stampedEvent.Header.Sequence := NextSequence;
 
   for var subscription in fSubscriptions do

@@ -23,11 +23,9 @@ begin
   Result := '';
   if not aPath.IsEmpty then
   begin
-
     var fullPath := TPath.GetFullPath(aPath);
     if TDirectory.Exists(fullPath) then
       Exit(fullPath);
-
   end;
 
   if aPath.IsEmpty and TDirectory.Exists(aPath) then Result := aPath
