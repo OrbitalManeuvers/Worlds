@@ -19,7 +19,7 @@ type
 
     { IEnvironmentWanderQuery }
     function FindDistantFoodHint(Location: Integer; Preference: TWanderFoodHintPreference;
-      out CellIndex: Integer): Boolean;
+      out CellIndex: Integer; out UsedFallback: Boolean): Boolean;
 
     { IPopulationSightQuery }
     procedure FillLocalAgents(Location: Integer; Range: Single; var Buffer: TSightInfos; out Count: Integer);
@@ -39,6 +39,7 @@ uses u_AgentState;
 const
   // Ignore trace residue so smell only reports caches with meaningful mass.
   MIN_SMELL_DETECTABLE_AMOUNT = 0.02;
+  MAX_LOCAL_QUERY_RADIUS_CELLS = 2;
   MIN_FOOD_HINT_DISTANCE = 5;
   MIN_BIOMASS_HINT_DISTANCE = MIN_FOOD_HINT_DISTANCE;
 
@@ -85,12 +86,12 @@ begin
   if (Location < 0) or (Location > High(fEnvironment.Cells)) then
     Exit;
 
-  // Clamp and quantize range into bounded neighborhood tiers: 0, 1, 2.
+  // Clamp and quantize range into bounded neighborhood tiers: 0..MAX_LOCAL_QUERY_RADIUS_CELLS.
   var clampedRange := Range;
   if clampedRange < 0.0 then
     clampedRange := 0.0
-  else if clampedRange > 2.0 then
-    clampedRange := 2.0;
+  else if clampedRange > MAX_LOCAL_QUERY_RADIUS_CELLS then
+    clampedRange := MAX_LOCAL_QUERY_RADIUS_CELLS;
 
   // Tie-at-half rounds up because range is non-negative after clamping.
   var effectiveRadius := Trunc(clampedRange + 0.5);
@@ -179,7 +180,7 @@ begin
 end;
 
 function TSimQuery.FindDistantFoodHint(Location: Integer; Preference: TWanderFoodHintPreference;
-  out CellIndex: Integer): Boolean;
+  out CellIndex: Integer; out UsedFallback: Boolean): Boolean;
 var
   width: Integer;
   height: Integer;
@@ -263,6 +264,7 @@ var
 begin
   Result := False;
   CellIndex := -1;
+  UsedFallback := False;
 
   if not Assigned(fEnvironment) then
     Exit;
@@ -328,6 +330,7 @@ begin
   end;
 
   CellIndex := bestCell;
+  UsedFallback := True;
   Result := True;
 end;
 
@@ -349,8 +352,8 @@ begin
   var effectiveRadius := Radius;
   if effectiveRadius < 0 then
     effectiveRadius := 0
-  else if effectiveRadius > 2 then
-    effectiveRadius := 2;
+  else if effectiveRadius > MAX_LOCAL_QUERY_RADIUS_CELLS then
+    effectiveRadius := MAX_LOCAL_QUERY_RADIUS_CELLS;
 
   var originX := CellIndex mod width;
   var originY := CellIndex div width;
@@ -409,8 +412,8 @@ begin
   var clampedRange := Range;
   if clampedRange < 0.0 then
     clampedRange := 0.0
-  else if clampedRange > 2.0 then
-    clampedRange := 2.0;
+  else if clampedRange > MAX_LOCAL_QUERY_RADIUS_CELLS then
+    clampedRange := MAX_LOCAL_QUERY_RADIUS_CELLS;
 
   var effectiveRadius := Trunc(clampedRange + 0.5);
 

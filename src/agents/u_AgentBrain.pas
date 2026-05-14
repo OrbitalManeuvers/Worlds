@@ -206,6 +206,7 @@ end;
 class function TAgentBrain.Think(const State: TAgentState; const Input: TBrainTickInput; var Scratch: TAgentScratch): TBrainTickOutput;
 begin
   Scratch.BeginTick(State, Input);
+  var usesTemporaryWanderTarget := False;
 
   // remove this eventually, but for now make sure what we expect is here.
   // There should not be any unassigned genes (eventually), all should have a Basic implementation.
@@ -361,10 +362,15 @@ begin
       var hintPreference := wfpAny;
       if State.Genome.ConverterRatings[Biomass] > 0.0 then
         hintPreference := wfpPreferBiomass;
+      var hintWasFallback := False;
 
       // Keep move output valid even when no distant hint is available.
-      if not wanderQuery.FindDistantFoodHint(State.Location, hintPreference, targetCell) then
+      if not wanderQuery.FindDistantFoodHint(State.Location, hintPreference, targetCell, hintWasFallback)
+        and (not hintWasFallback) then
         targetCell := State.Location;
+
+      if hintWasFallback then
+        usesTemporaryWanderTarget := True;
     end;
 
     Result.RequestedTarget.TType := ttCell;
@@ -372,6 +378,9 @@ begin
   end;
 
   Result.Evaluations := Scratch.ActionEvaluations;
+  if usesTemporaryWanderTarget then
+    Result.Evaluations[acMove].Target.TType := ttCell;
+
   Result.Trace := BuildTraceSummary(State, Scratch.DecisionContext, localAgentCount);
 end;
 

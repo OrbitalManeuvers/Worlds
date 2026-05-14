@@ -4,7 +4,7 @@ interface
 
 uses System.Types, System.SysUtils, System.TypInfo,
   u_SimEventTypes, u_AgentTypes, u_AgentBrain,
-  u_AgentGenome;
+  u_AgentGenome, u_LogTypes;
 
 
 type
@@ -51,6 +51,7 @@ type
     function AsForage: string;
 
     function AsLogLine: string;
+    function AsLogRow: TLogRow;
   end;
 
   // TSimEvent
@@ -86,20 +87,37 @@ type
     function AsText: string;
   end;
 
+  _integer = record helper for Integer
+    function AsText: string; overload;
+    function AsText(Padding: Integer): string; overload;
+  end;
+
 { _single }
 function _single.AsText: string;
 begin
   Result := FloatToStrF(Self, ffFixed, 18, 3);
 end;
 
+{ _integer }
+function _integer.AsText: string;
+begin
+  Result := IntToStr(Self);
+end;
+
+function _integer.AsText(Padding: Integer): string;
+begin
+  Result := Format('%.0' + Padding.AsText + 'd', [Self]);
+end;
+
+
 { _cacheRef }
 function _cacheRef.AsText: string;
 begin
   case Self.Kind of
     ckResource:
-      Result := 'r:' + Self.Index.ToString;
+      Result := 'r:' + Self.Index.AsText;
     ckBiomass:
-      Result := 'b:' + Self.Index.ToString;
+      Result := 'b:' + Self.Index.AsText;
   end;
 end;
 
@@ -128,7 +146,7 @@ end;
 { _point }
 function _point.AsText: string;
 begin
-  Result := X.ToString + ',' + Y.ToString;
+  Result := X.AsText + ',' + Y.AsText;
 end;
 
 { _biomassCreateReason }
@@ -295,7 +313,7 @@ begin
         ]);
     sekDecisionTrace:
       begin
-        Result := Result + DecisionTrace.AsLogLine;
+        Result := Result + DecisionTrace.AsLogRow.Summary;
 //        decisionTrace.Summary.
 //        Result := Result + DecisionTraceToStr(DecisionTrace);
 //        Result := Result + Format(
@@ -382,8 +400,41 @@ end;
     Summary: TBrainTraceSummary;
   end;
 
+function ProjectDecisionTrace(const E: TDecisionTraceEvent): TLogRow;
+begin
 *)
 
+function _decisionTraceEvent.AsLogRow: TLogRow;
+begin
+  Result.Add('AgentId', 'a', 'Agent', AgentId.AsText(2), lfkNumber);
+  Result.Add('Cell', 'cell', 'Cell', Cell.AsText, lfkReference);
+  Result.Add('EnergyLevel', 'e', 'Energy level', Summary.EnergyLevel.AsText, lfkEnum);
+  Result.Add('ResolvedAction', 'act', 'Resolved action', ResolvedAction.AsText, lfkEnum);
+
+  case ResolvedAction of
+    acMove:
+      Result.Add('Target', 'tg', 'Resolved target', ResolvedTarget.AsText, lfkReference);
+
+    acForage:
+      begin
+        Result.Add('Target', 'tg', 'Resolved target', ResolvedTarget.AsText, lfkReference);
+        Result.Add('ForageConsumed', 'con', 'Consumed', ForageConsumed.AsText, lfkNumber);
+        Result.Add('ForageGain', 'gain', 'Gain', ForageGain.AsText, lfkNumber);
+        Result.Add('ForageEfficiency', 'eff', 'Efficiency', ForageEfficiency.AsText, lfkNumber);
+      end;
+  end;
+
+//  Result.Summary := Format(
+//    'a:%s %s %s',
+//    [
+//      E.AgentId.AsText(2),
+//      E.Cell.AsText,
+//      E.ResolvedAction.AsText
+//    ]);
+
+  Result.Summary := Result.GetFieldText;
+
+end;
 
 
 

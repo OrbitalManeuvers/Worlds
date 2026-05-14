@@ -37,7 +37,7 @@ type
 
 implementation
 
-uses System.IOUtils;
+uses System.IOUtils, u_LogTypes;
 
 {$R *.dfm}
 

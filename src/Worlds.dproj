@@ -258,6 +258,12 @@
             <DesignClass>TFrame</DesignClass>
         </DCCReference>
         <DCCReference Include="sim\u_EventLogViews.pas"/>
+        <DCCReference Include="sim\u_SimWatchManager.pas"/>
+        <DCCReference Include="ui\u_ProgramSettings.pas"/>
+        <DCCReference Include="common\u_SessionManifest.pas"/>
+        <DCCReference Include="common\u_SessionTOC.pas"/>
+        <DCCReference Include="agents\u_WanderGenes.pas"/>
+        <DCCReference Include="common\u_LogTypes.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -353,7 +359,7 @@
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="4">
-                <DeployFile LocalName="bin\Worlds.exe" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="..\bin\Worlds.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>Worlds.exe</RemoteName>
                         <Overwrite>true</Overwrite>

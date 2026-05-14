@@ -46,7 +46,7 @@ type
   IEnvironmentWanderQuery = interface(IEnvironmentQuery)
     ['{242981BE-1224-40D9-847A-CFCA0A00F2F4}']
     function FindDistantFoodHint(Location: Integer; Preference: TWanderFoodHintPreference;
-      out CellIndex: Integer): Boolean;
+      out CellIndex: Integer; out UsedFallback: Boolean): Boolean;
   end;
 
   TSightInfo = record

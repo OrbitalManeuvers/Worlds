@@ -86,7 +86,8 @@ uses
   u_ProgramSettings in 'ui\u_ProgramSettings.pas',
   u_SessionManifest in 'common\u_SessionManifest.pas',
   u_SessionTOC in 'common\u_SessionTOC.pas',
-  u_WanderGenes in 'agents\u_WanderGenes.pas';
+  u_WanderGenes in 'agents\u_WanderGenes.pas',
+  u_LogTypes in 'common\u_LogTypes.pas';
 
 {$R *.res}
 
