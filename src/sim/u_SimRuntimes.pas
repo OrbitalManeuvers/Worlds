@@ -244,9 +244,7 @@ var
 
     for var agentIndex := 0 to fPopulation.AgentCount - 1 do
     begin
-      var state: TAgentState;
-      if not fPopulation.TryGetAgentState(agentIndex, state) then
-        Continue;
+      var state := fPopulation.GetAgentState(agentIndex);
 
       if state.Reserves <= 0.0 then
         Continue;
@@ -526,6 +524,7 @@ begin
   Result.ActionTarget.Cell := ParentState.Location;
   Result.WanderTarget := -1;
   Result.Genome := ParentState.Genome;
+  FillChar(Result.DecisionWeights, SizeOf(Result.DecisionWeights), 0);
 end;
 
 function TSimRuntime.NextAgentId: Integer;
@@ -534,10 +533,7 @@ begin
 
   for var agentIndex := 0 to fPopulation.AgentCount - 1 do
   begin
-    var state: TAgentState;
-    if not fPopulation.TryGetAgentState(agentIndex, state) then
-      Continue;
-
+    var state := fPopulation.GetAgentState(agentIndex);
     if state.AgentId >= Result then
       Result := state.AgentId + 1;
   end;
@@ -676,7 +672,9 @@ begin
         if State.Reserves < 0.0 then
           State.Reserves := 0.0;
 
+        var oldCell := State.Location;
         State.Location := moveReply.NewCell;
+        fPopulation.NotifyLocationChanged(AgentIndex, oldCell, State.Location);
 
         if isWanderMove then
           State.WanderTarget := Requested.RequestedTarget.Cell;
@@ -777,13 +775,10 @@ begin
   if (aIndex >= 0) and (aIndex < Length(fHasDecisionTrace)) then
     fHasDecisionTrace[aIndex] := False;
 
-  var state: TAgentState;
-  if not fPopulation.TryGetAgentState(aIndex, state) then
-    Exit;
+  var state := fPopulation.GetAgentState(aIndex);
 
   // Dead agents remain in population data but do not age or think.
-  var wasAlive := state.Reserves > 0.0;
-  if not wasAlive then
+  if state.Reserves <= 0.0 then
     Exit;
 
   // Age tracks ticks survived; this includes the tick where upkeep may cause death.
@@ -793,13 +788,12 @@ begin
   var reservesAtTickStart := state.Reserves;
   var reservesBeforeUpkeep := state.Reserves;
 
-  if not ApplyAgentUpkeep(state) then
+  if not ApplyAgentUpkeep(state^) then
   begin
     // Dead agents do not think or request actions.
     state.ReserveDelta := state.Reserves - reservesAtTickStart;
     state.Action := acIdle;
-    fPopulation.UpdateAgentState(aIndex, state);
-    EmitAgentDied(state, reservesBeforeUpkeep);
+    EmitAgentDied(state^, reservesBeforeUpkeep);
 
     // Notify environment once at transition-to-death.
     if fBiomassConfig.InjectOnDeath then
@@ -810,21 +804,17 @@ begin
     Exit;
   end;
 
-  // Commit upkeep effects before the brain reads state.
-  fPopulation.UpdateAgentState(aIndex, state);
-
-  var requested := fPopulation.RequestAgentStep(aIndex, Input);
+  var requested := fPopulation.Think(aIndex, Input);
   var forageConsumed: Single := 0.0;
   var forageGain: Single := 0.0;
-  var stateBeforeResolution := state;
-  var resolved := ResolveRequestedStep(aIndex, state, requested, forageConsumed, forageGain);
+  var stateBeforeResolution := state^;
+  var resolved := ResolveRequestedStep(aIndex, state^, requested, forageConsumed, forageGain);
   state.ReserveDelta := state.Reserves - reservesAtTickStart;
-  CaptureDecisionTrace(aIndex, state, Input, requested, resolved, forageConsumed, forageGain);
-  EmitActionResolved(stateBeforeResolution, state, requested, resolved);
+  CaptureDecisionTrace(aIndex, state^, Input, requested, resolved, forageConsumed, forageGain);
+  EmitActionResolved(stateBeforeResolution, state^, requested, resolved);
   if (aIndex >= 0) and (aIndex < Length(fLastDecisionTraces)) and fHasDecisionTrace[aIndex] then
-    EmitDecisionTrace(state, fLastDecisionTraces[aIndex]);
-  fPopulation.UpdateAgentState(aIndex, state);
-  fPopulation.ApplyAgentStep(aIndex, resolved);
+    EmitDecisionTrace(state^, fLastDecisionTraces[aIndex]);
+  fPopulation.ApplyStep(aIndex, resolved);
 end;
 
 procedure TSimRuntime.AdvanceClock(const GlobalTick: Integer; const DayTick: TDayTick);

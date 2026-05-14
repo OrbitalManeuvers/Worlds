@@ -39,6 +39,7 @@ type
     RequestedTarget: TTarget;
     Evaluations: TActionEvaluations;
     Trace: TBrainTraceSummary;
+    ContextIndex: Integer;
   end;
 
   // Caller-owned per-agent scratch state reused across ticks.

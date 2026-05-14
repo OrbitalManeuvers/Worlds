@@ -17,7 +17,6 @@ type
 
     procedure SetAgentCount(aCount: Integer);
     function GetAgentCount: Integer;
-    function IsValidAgentIndex(aAgentIndex: Integer): Boolean;
     function IsValidCellIndex(aCellIndex: Integer): Boolean;
     procedure InitializeAgentIndexEntry(aAgentIndex: Integer);
     procedure ResizeIndexedAgents(aAgentCount: Integer);
@@ -33,11 +32,11 @@ type
     function TryGetCellAgents(aCellIndex: Integer; out Agents: TArray<Integer>): Boolean;
 
     function AppendAgent(const State: TAgentState): Integer;
-    function TryGetAgentState(aIndex: Integer; out State: TAgentState): Boolean;
-    procedure UpdateAgentState(aIndex: Integer; const State: TAgentState);
+    function GetAgentState(aIndex: Integer): PAgentState;
+    procedure NotifyLocationChanged(aIndex: Integer; aOldCell, aNewCell: Integer);
 
-    function RequestAgentStep(aIndex: Integer; const Input: TBrainTickInput): TBrainTickOutput;
-    procedure ApplyAgentStep(aIndex: Integer; const Output: TBrainTickOutput);
+    function Think(aIndex: Integer; const Input: TBrainTickInput): TBrainTickOutput;
+    procedure ApplyStep(aIndex: Integer; const Output: TBrainTickOutput);
     procedure StepAgent(aIndex: Integer; const Input: TBrainTickInput);
 
     procedure Tick(const Input: TBrainTickInput);
@@ -56,11 +55,6 @@ begin
   inherited;
 end;
 
-function TSimPopulation.IsValidAgentIndex(aAgentIndex: Integer): Boolean;
-begin
-  Result := (aAgentIndex >= 0) and (aAgentIndex <= High(fIndexedAgentCell));
-end;
-
 function TSimPopulation.IsValidCellIndex(aCellIndex: Integer): Boolean;
 begin
   Result := (aCellIndex >= 0) and (aCellIndex <= High(fCellAgents));
@@ -68,9 +62,6 @@ end;
 
 procedure TSimPopulation.InitializeAgentIndexEntry(aAgentIndex: Integer);
 begin
-  if (aAgentIndex < 0) or (aAgentIndex > High(fIndexedAgentCell)) then
-    Exit;
-
   fIndexedAgentCell[aAgentIndex] := INVALID_INDEX;
   fIndexedAgentSlot[aAgentIndex] := INVALID_INDEX;
 end;
@@ -135,15 +126,25 @@ begin
   Result := Length(fAgents);
   SetLength(fAgents, Result + 1);
   ResizeIndexedAgents(Result + 1);
-  fAgents[Result] := Default(TAgentState);
-  UpdateAgentState(Result, State);
+  fAgents[Result] := State;
+  UpdateAgentLocation(Result, INVALID_INDEX, State.Location);
+end;
+
+function TSimPopulation.GetAgentState(aIndex: Integer): PAgentState;
+begin
+  if (aIndex >= 0) and (aIndex <= High(fAgents)) then
+    Result := @fAgents[aIndex]
+  else
+    Result := nil;
+end;
+
+procedure TSimPopulation.NotifyLocationChanged(aIndex: Integer; aOldCell, aNewCell: Integer);
+begin
+  UpdateAgentLocation(aIndex, aOldCell, aNewCell);
 end;
 
 procedure TSimPopulation.AddAgentToCell(aAgentIndex, aCellIndex: Integer);
 begin
-  if not IsValidAgentIndex(aAgentIndex) then
-    Exit;
-
   if not IsValidCellIndex(aCellIndex) then
   begin
     InitializeAgentIndexEntry(aAgentIndex);
@@ -162,9 +163,6 @@ end;
 
 procedure TSimPopulation.RemoveAgentFromCell(aAgentIndex: Integer);
 begin
-  if not IsValidAgentIndex(aAgentIndex) then
-    Exit;
-
   var cellIndex := fIndexedAgentCell[aAgentIndex];
   var slotIndex := fIndexedAgentSlot[aAgentIndex];
 
@@ -175,23 +173,13 @@ begin
   end;
 
   var cellAgents := fCellAgents[cellIndex];
-  if (slotIndex < 0) or (slotIndex > High(cellAgents)) then
-  begin
-    InitializeAgentIndexEntry(aAgentIndex);
-    Exit;
-  end;
-
   var lastSlot := High(cellAgents);
   if slotIndex <> lastSlot then
   begin
     var swappedAgent := cellAgents[lastSlot];
     cellAgents[slotIndex] := swappedAgent;
-
-    if IsValidAgentIndex(swappedAgent) then
-    begin
-      fIndexedAgentCell[swappedAgent] := cellIndex;
-      fIndexedAgentSlot[swappedAgent] := slotIndex;
-    end;
+    fIndexedAgentCell[swappedAgent] := cellIndex;
+    fIndexedAgentSlot[swappedAgent] := slotIndex;
   end;
 
   SetLength(cellAgents, lastSlot);
@@ -201,9 +189,6 @@ end;
 
 procedure TSimPopulation.UpdateAgentLocation(aAgentIndex, aOldCell, aNewCell: Integer);
 begin
-  if not IsValidAgentIndex(aAgentIndex) then
-    Exit;
-
   if (aOldCell = aNewCell) and (fIndexedAgentCell[aAgentIndex] = aNewCell) then
     Exit;
 
@@ -234,49 +219,20 @@ begin
   ResizeIndexedAgents(aCount);
 end;
 
-function TSimPopulation.TryGetAgentState(aIndex: Integer; out State: TAgentState): Boolean;
+function TSimPopulation.Think(aIndex: Integer; const Input: TBrainTickInput): TBrainTickOutput;
 begin
-  Result := (aIndex >= 0) and (aIndex <= High(fAgents));
-  if Result then
-    State := fAgents[aIndex]
-  else
-    State := Default(TAgentState);
-end;
-
-procedure TSimPopulation.UpdateAgentState(aIndex: Integer; const State: TAgentState);
-begin
-  if (aIndex < 0) or (aIndex > High(fAgents)) then
-    Exit;
-
-  var oldCell := fAgents[aIndex].Location;
-  var newCell := State.Location;
-  UpdateAgentLocation(aIndex, oldCell, newCell);
-
-  fAgents[aIndex] := State;
-end;
-
-function TSimPopulation.RequestAgentStep(aIndex: Integer; const Input: TBrainTickInput): TBrainTickOutput;
-begin
-  if (aIndex < 0) or (aIndex > High(fAgents)) then
-    Exit(Default(TBrainTickOutput));
-
   Result := TAgentBrain.Think(fAgents[aIndex], Input, fScratch);
 end;
 
-procedure TSimPopulation.ApplyAgentStep(aIndex: Integer; const Output: TBrainTickOutput);
+procedure TSimPopulation.ApplyStep(aIndex: Integer; const Output: TBrainTickOutput);
 begin
-  if (aIndex < 0) or (aIndex > High(fAgents)) then
-    Exit;
-
-  // Population applies a resolved action. Runtime/sim can adjust Output before this call.
   fAgents[aIndex].Action := Output.RequestedAction;
   fAgents[aIndex].ActionTarget := Output.RequestedTarget;
 end;
 
 procedure TSimPopulation.StepAgent(aIndex: Integer; const Input: TBrainTickInput);
 begin
-  var output := RequestAgentStep(aIndex, Input);
-  ApplyAgentStep(aIndex, output);
+  ApplyStep(aIndex, Think(aIndex, Input));
 end;
 
 procedure TSimPopulation.Tick(const Input: TBrainTickInput);

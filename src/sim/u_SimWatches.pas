@@ -257,7 +257,12 @@ end;
 
 function TAgentWatch.TryReadState(const Sim: TSimulator; out State: TAgentState): Boolean;
 begin
-  Result := Sim.Runtime.Population.TryGetAgentState(fAgentIndex, State);
+  var p := Sim.Runtime.Population.GetAgentState(fAgentIndex);
+  Result := p <> nil;
+  if Result then
+    State := p^
+  else
+    State := Default(TAgentState);
 end;
 
 { TCellWatch }
@@ -386,8 +391,8 @@ begin
   if not Assigned(Sim) then
     Exit;
 
-  var state: TAgentState;
-  if not Sim.Runtime.Population.TryGetAgentState(fAgentIndex, state) then
+  var state := Sim.Runtime.Population.GetAgentState(fAgentIndex);
+  if state = nil then
     Exit;
 
   var env := Sim.Runtime.Environment;

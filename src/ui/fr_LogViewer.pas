@@ -5,29 +5,31 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, VirtualTrees, Vcl.ExtCtrls,
-  VirtualTrees.Export,
+  VirtualTrees.Export, Vcl.Buttons, Vcl.Grids, Vcl.ValEdit,
+  Vcl.ControlList,
 
-  u_SimEventTypes, u_DiagnosticsHelpers, Vcl.Buttons, Vcl.Grids, Vcl.ValEdit;
+  u_SimEventTypes, u_DiagnosticsHelpers, u_LogTypes, Vcl.StdCtrls;
 
 type
   TLogViewer = class(TFrame)
     pnlViewTools: TPanel;
-    Tree: TVirtualStringTree;
     btnIncDT: TSpeedButton;
-    vlDetails: TValueListEditor;
     btnExport: TSpeedButton;
     btnIncAR: TSpeedButton;
-    procedure TreeGetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
-      Column: TColumnIndex; TextType: TVSTTextType; var CellText: string);
-    procedure TreeInitNode(Sender: TBaseVirtualTree; ParentNode,
-      Node: PVirtualNode; var InitialStates: TVirtualNodeInitStates);
+    DetailsView: TControlList;
+    Label1: TLabel;
+    EventList: TControlList;
+    lblEventTime: TLabel;
+    lblEventContent: TLabel;
     procedure FilterChanged(Sender: TObject);
     procedure btnExportClick(Sender: TObject);
-    procedure TreeSelectionChanged(Sender: TBaseVirtualTree;
-      Node: PVirtualNode);
+    procedure EventListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
+      ARect: TRect; AState: TOwnerDrawState);
+    procedure EventListItemClick(Sender: TObject);
   private
     ViewDef: TSimEventViewDef;
     EventView: IEventLogView;
+    DetailFields: TLogFields;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -37,7 +39,7 @@ type
 
 implementation
 
-uses System.IOUtils, u_LogTypes;
+uses System.IOUtils, Vcl.Themes;
 
 {$R *.dfm}
 
@@ -63,18 +65,61 @@ begin
   btnIncAR.Tag := Ord(sekActionResolved);
 end;
 
-
 destructor TLogViewer.Destroy;
 begin
 
   inherited;
 end;
 
+procedure TLogViewer.EventListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
+  ARect: TRect; AState: TOwnerDrawState);
+begin
+  if aIndex < EventView.Count then
+  begin
+    var eventFields := EventView.Events[AIndex].AsFields;
+    var count := Length(eventFields.Fields);
+    if count > 0 then
+    begin
+      lblEventTime.Caption := eventFields.Fields[0].Value;
+      lblEventTime.Font.Color := StyleServices.GetStyleFontColor(sfButtonTextDisabled);
+    end;
+    if count > 1 then
+    begin
+      lblEventContent.Caption := eventFields.Fields[1].Value;
+      if Odd(EventView.Events[AIndex].DecisionTrace.AgentId) then
+        lblEventContent.Font.Color := StyleServices.GetSystemColor(clSkyBlue)
+      else
+        lblEventContent.Font.Color := StyleServices.GetSystemColor(clMoneyGreen);
+
+    end;
+
+  end;
+end;
+
+procedure TLogViewer.EventListItemClick(Sender: TObject);
+begin
+  //
+
+(*
+      var event := EventView.Events[sel.Index];
+      DetailFields := event.AsFields;
+    end;
+  end
+  else
+  begin
+    DetailFields := Default(TLogFields);
+  end;
+
+  DetailsView.ItemCount := Length(DetailFields.Fields);
+
+*)
+end;
+
 procedure TLogViewer.btnExportClick(Sender: TObject);
 begin
-  var exportText := ContentToUnicodeString(Tree, tstSelected, '');
-  var exportPath := TPath.Combine(ExtractFilePath(Application.ExeName), 'log_export.txt');
-  TFile.WriteAllText(exportPath, exportText, TEncoding.UTF8);
+//  var exportText := ContentToUnicodeString(Tree, tstSelected, '');
+//  var exportPath := TPath.Combine(ExtractFilePath(Application.ExeName), 'log_export.txt');
+//  TFile.WriteAllText(exportPath, exportText, TEncoding.UTF8);
 end;
 
 procedure TLogViewer.Connect(const aLogEventView: IEventLogView);
@@ -83,10 +128,10 @@ begin
 
   if Assigned(EventView) then
   begin
-    Tree.RootNodeCount := EventView.Count;
+    EventList.ItemCount := EventView.Count;
   end
   else
-    Tree.RootNodeCount := 0;
+    EventList.ItemCount := 0;
 end;
 
 procedure TLogViewer.FilterChanged(Sender: TObject);
@@ -117,53 +162,15 @@ begin
   if not Assigned(EventView) then
     Exit;
   EventView.Extend;
-  Tree.RootNodeCount := EventView.Count;
-end;
+  EventList.ItemCount := EventView.Count;
+  EventList.ItemIndex := EventList.ItemCount - 1;
 
-procedure TLogViewer.TreeGetText(Sender: TBaseVirtualTree; Node: PVirtualNode;
-  Column: TColumnIndex; TextType: TVSTTextType; var CellText: string);
-begin
-  if (Node = nil) or (EventView = nil) then
-    Exit;
-
-  if Node.Index >= Cardinal(EventView.Count) then
-    Exit;
-
-  var simEvent := EventView.Events[Node.Index];
-  CellText := simEvent.AsLogLine;
-end;
-
-procedure TLogViewer.TreeInitNode(Sender: TBaseVirtualTree; ParentNode,
-  Node: PVirtualNode; var InitialStates: TVirtualNodeInitStates);
-begin
-  InitialStates := [ivsHasChildren];
-
-  if ParentNode = nil then
-  begin
- //    nodeData.Kind        := nkResult;
-  end
-
-end;
-
-procedure TLogViewer.TreeSelectionChanged(Sender: TBaseVirtualTree; Node: PVirtualNode);
-begin
-  if Tree.SelectedCount = 1 then
-  begin
-    var sel := Tree.GetFirstSelected();
-    if Assigned(sel) then
-    begin
-      var event := EventView.Events[sel.Index];
-      var s := event.AsDetails;
-      vlDetails.Strings.Delimiter := '|';
-      vlDetails.Strings.DelimitedText := s;
-    end;
-  end
-  else
-  begin
-    vlDetails.Strings.Clear;
-  end;
-
-
+//  if EventView.Count > 0 then
+//  begin
+//    var lastNode := Tree.GetLast;
+//    if Assigned(lastNode) then
+//      Tree.ScrollIntoView(lastNode, False);
+//  end;
 end;
 
 end.

@@ -2,11 +2,11 @@ object LogViewer: TLogViewer
   Left = 0
   Top = 0
   Width = 699
-  Height = 351
+  Height = 401
   TabOrder = 0
   DesignSize = (
     699
-    351)
+    401)
   object pnlViewTools: TPanel
     Left = 24
     Top = 16
@@ -43,66 +43,87 @@ object LogViewer: TLogViewer
       OnClick = FilterChanged
     end
   end
-  object Tree: TVirtualStringTree
+  object DetailsView: TControlList
+    Left = 16
+    Top = 288
+    Width = 665
+    Height = 97
+    Anchors = [akLeft, akRight, akBottom]
+    ItemHeight = 27
+    ItemMargins.Left = 0
+    ItemMargins.Top = 0
+    ItemMargins.Right = 0
+    ItemMargins.Bottom = 0
+    ParentColor = False
+    TabOrder = 1
+    object Label1: TLabel
+      Left = 40
+      Top = 0
+      Width = 34
+      Height = 15
+      Caption = 'Label1'
+    end
+  end
+  object EventList: TControlList
     Left = 16
     Top = 72
-    Width = 457
-    Height = 265
-    AccessibleName = 'Loc'
+    Width = 665
+    Height = 201
     Anchors = [akLeft, akTop, akRight, akBottom]
-    Colors.BorderColor = 2697513
-    Colors.DisabledColor = clGray
-    Colors.DropMarkColor = 14581296
-    Colors.DropTargetColor = 14581296
-    Colors.DropTargetBorderColor = 14581296
-    Colors.FocusedSelectionColor = 14581296
-    Colors.FocusedSelectionBorderColor = 14581296
-    Colors.GridLineColor = 2697513
-    Colors.HeaderHotColor = clWhite
-    Colors.HotColor = clWhite
-    Colors.SelectionRectangleBlendColor = 14581296
-    Colors.SelectionRectangleBorderColor = 14581296
-    Colors.SelectionTextColor = clWhite
-    Colors.TreeLineColor = 9471874
-    Colors.UnfocusedColor = clGray
-    Colors.UnfocusedSelectionColor = 2368548
-    Colors.UnfocusedSelectionBorderColor = 2368548
     Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
     Font.Height = -12
     Font.Name = 'Consolas'
     Font.Style = []
-    Header.AutoSizeIndex = -1
-    Header.DefaultHeight = 24
-    Header.Height = 24
-    Header.MainColumn = -1
-    Header.MinHeight = 24
-    Indent = 4
+    ItemHeight = 20
+    ItemMargins.Left = 0
+    ItemMargins.Top = 0
+    ItemMargins.Right = 0
+    ItemMargins.Bottom = 0
+    ParentColor = False
     ParentFont = False
-    TabOrder = 1
-    TreeOptions.MiscOptions = [toAcceptOLEDrop, toFullRepaintOnResize, toInitOnSave, toToggleOnDblClick, toWheelPanning]
-    TreeOptions.PaintOptions = [toShowDropmark, toShowRoot, toThemeAware, toUseBlendedImages]
-    TreeOptions.SelectionOptions = [toFullRowSelect, toMultiSelect]
-    OnAddToSelection = TreeSelectionChanged
-    OnGetText = TreeGetText
-    OnInitNode = TreeInitNode
-    OnRemoveFromSelection = TreeSelectionChanged
-    Touch.InteractiveGestures = [igPan, igPressAndTap]
-    Touch.InteractiveGestureOptions = [igoPanSingleFingerHorizontal, igoPanSingleFingerVertical, igoPanInertia, igoPanGutter, igoParentPassthrough]
-    Columns = <>
-  end
-  object vlDetails: TValueListEditor
-    Left = 488
-    Top = 72
-    Width = 193
-    Height = 265
-    Anchors = [akTop, akRight, akBottom]
-    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goColSizing, goTabs, goRowSelect, goThumbTracking]
-    Strings.Strings = (
-      '=')
     TabOrder = 2
-    ColWidths = (
-      83
-      104)
+    OnBeforeDrawItem = EventListBeforeDrawItem
+    OnItemClick = EventListItemClick
+    object lblEventTime: TLabel
+      AlignWithMargins = True
+      Left = 3
+      Top = 3
+      Width = 84
+      Height = 14
+      Align = alLeft
+      Caption = 'lblEventTime'
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clSilver
+      Font.Height = -12
+      Font.Name = 'Consolas'
+      Font.Style = []
+      ParentFont = False
+      Layout = tlCenter
+      StyleElements = [seClient, seBorder]
+      ExplicitLeft = 14
+      ExplicitTop = 8
+    end
+    object lblEventContent: TLabel
+      AlignWithMargins = True
+      Left = 96
+      Top = 3
+      Width = 562
+      Height = 14
+      Margins.Left = 6
+      Align = alClient
+      Caption = 'lblEventContent'
+      Color = clWindow
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clWindow
+      Font.Height = -12
+      Font.Name = 'Consolas'
+      Font.Style = []
+      ParentColor = False
+      ParentFont = False
+      Layout = tlCenter
+      StyleElements = [seClient, seBorder]
+      ExplicitWidth = 105
+    end
   end
 end

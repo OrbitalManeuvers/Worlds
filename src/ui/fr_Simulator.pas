@@ -96,7 +96,7 @@ end;
 
 procedure TSimulatorFrame.HandleBeforeRun(Sender: TObject);
 begin
-  LogViewer.Tree.BeginUpdate;
+  //
 end;
 
 procedure TSimulatorFrame.HandleRecordingChanged(Sender: TObject);
@@ -113,9 +113,7 @@ procedure TSimulatorFrame.HandleAfterRun(Sender: TObject);
 begin
   if Assigned(Session) then
     Session.AssertScratchLogReadable;
-
   LogViewer.Refresh;
-  LogViewer.Tree.EndUpdate;
 end;
 
 procedure TSimulatorFrame.DestroySession;

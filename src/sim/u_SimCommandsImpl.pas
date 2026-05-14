@@ -103,21 +103,10 @@ begin
   Reply := Default(TMoveAgentReply);
   Result := False;
 
-  var state: TAgentState;
-  if not Assigned(fPopulation) or not fPopulation.TryGetAgentState(Request.AgentIndex, state) then
-  begin
-    Reply.RejectReason := mrrAgentNotFound;
-    Exit;
-  end;
+  var state := fPopulation.GetAgentState(Request.AgentIndex);
 
   Reply.PreviousCell := state.Location;
   Reply.NewCell := state.Location;
-
-  if not Assigned(fEnvironment) then
-  begin
-    Reply.RejectReason := mrrOutOfBounds;
-    Exit;
-  end;
 
   if (Request.DestinationCell < 0) or (Request.DestinationCell > High(fEnvironment.Cells)) then
   begin
@@ -152,9 +141,7 @@ begin
     Exit;
   end;
 
-  state.Location := Request.DestinationCell;
-  fPopulation.UpdateAgentState(Request.AgentIndex, state);
-
+  // Location mutation and index update are handled by the runtime caller.
   Reply.Moved := True;
   Reply.NewCell := Request.DestinationCell;
   Reply.RejectReason := mrrNone;

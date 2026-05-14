@@ -51,14 +51,13 @@ type
     function AsForage: string;
 
     function AsLogLine: string;
-    function AsLogRow: TLogRow;
+    function AsFields: TLogFields;
   end;
 
   // TSimEvent
   _simEvent = record helper for TSimEvent
     function AsLogLine: string;
-    function AsDetails: string;
-//    procedure WriteDetails(Strings: TStrings);
+    function AsFields: TLogFields;
   end;
 
 
@@ -67,11 +66,11 @@ type
 
   // TBrainTraceSummary
   _brainTraceSummary = record helper for TBrainTraceSummary
-    function AsDetails: string;
+    function AsDetails: TArray<TLogField>;
   end;
 
   _ActionEvalResult = record helper for TActionEvalResult
-    function AsDetails: string;
+    function AsDetails: TArray<TLogField>;
   end;
 
 
@@ -237,8 +236,12 @@ begin
 end;
 
 { _brainTraceSummary }
-function _brainTraceSummary.AsDetails: string;
+function _brainTraceSummary.AsDetails: TArray<TLogField>;
 begin
+  SetLength(Result, 0);
+
+
+(*
   Result := Format(
    'e-delta=%s|hadsmell=%s|smell-sig=%s',
    [
@@ -248,6 +251,7 @@ begin
 
    ]);
 
+*)
 end;
 
 (*
@@ -260,35 +264,33 @@ end;
 *)
 
 { _ActionEvalResult }
-function _ActionEvalResult.AsDetails: string;
+function _ActionEvalResult.AsDetails: TArray<TLogField>;
 begin
-//  Result := Format(
-//    'sc:%s-tg:%s',
-//    [
-//      self.Score.AsText,
-//      self.Target.Cell.ToString // !!! should be tpoint
-//    ]);
-  Result := Self.Score.AsText;
+  SetLength(Result, 0);
+//    Result := Self.Score.AsText;
 end;
 
 
 { _simEvent }
-
-function _simEvent.AsDetails: string;
+function _simEvent.AsFields: TLogFields;
 begin
-  Result := '';
-  if Header.Kind = sekDecisionTrace then
-  begin
-    Result := Self.DecisionTrace.Summary.AsDetails + '|';
+  Result.Add('', Format('%.04d [%.02d:%.03d] ',
+    [Header.Sequence, Header.DayNumber, Header.DayTick]));
 
-    for var act := Low(TAgentAction) to High(TAgentAction) do
-    begin
-      Result := Result + act.AsText + '=' + Self.DecisionTrace.Evaluations[act].AsDetails + '|';
-    end;
-
-
+  case Header.Kind of
+    sekActionResolved: ;
+    sekDecisionTrace:
+      Result.Add('c', DecisionTrace.AsFields.ShortFieldText);
+    sekAgentBorn: ;
+    sekAgentMoved: ;
+    sekBiomassCreated: ;
+    sekBiomassConsumed: ;
+    sekAgentDied: ;
+    sekResourceSampled: ;
   end;
+
 end;
+
 
 function _simEvent.AsLogLine: string;
 begin
@@ -313,7 +315,7 @@ begin
         ]);
     sekDecisionTrace:
       begin
-        Result := Result + DecisionTrace.AsLogRow.Summary;
+        Result := Result + DecisionTrace.AsFields.ShortFieldText();
 //        decisionTrace.Summary.
 //        Result := Result + DecisionTraceToStr(DecisionTrace);
 //        Result := Result + Format(
@@ -404,23 +406,23 @@ function ProjectDecisionTrace(const E: TDecisionTraceEvent): TLogRow;
 begin
 *)
 
-function _decisionTraceEvent.AsLogRow: TLogRow;
+function _decisionTraceEvent.AsFields: TLogFields;
 begin
-  Result.Add('AgentId', 'a', 'Agent', AgentId.AsText(2), lfkNumber);
-  Result.Add('Cell', 'cell', 'Cell', Cell.AsText, lfkReference);
-  Result.Add('EnergyLevel', 'e', 'Energy level', Summary.EnergyLevel.AsText, lfkEnum);
-  Result.Add('ResolvedAction', 'act', 'Resolved action', ResolvedAction.AsText, lfkEnum);
+  Result.Add('a', AgentId.AsText(2));
+  Result.Add('cell', Cell.AsText);
+  Result.Add('e',  Summary.EnergyLevel.AsText);
+  Result.Add('act', ResolvedAction.AsText);
 
   case ResolvedAction of
     acMove:
-      Result.Add('Target', 'tg', 'Resolved target', ResolvedTarget.AsText, lfkReference);
+      Result.Add('tg', ResolvedTarget.AsText);
 
     acForage:
       begin
-        Result.Add('Target', 'tg', 'Resolved target', ResolvedTarget.AsText, lfkReference);
-        Result.Add('ForageConsumed', 'con', 'Consumed', ForageConsumed.AsText, lfkNumber);
-        Result.Add('ForageGain', 'gain', 'Gain', ForageGain.AsText, lfkNumber);
-        Result.Add('ForageEfficiency', 'eff', 'Efficiency', ForageEfficiency.AsText, lfkNumber);
+        Result.Add('tg', ResolvedTarget.AsText);
+        Result.Add('con', ForageConsumed.AsText);
+        Result.Add('gain', ForageGain.AsText);
+        Result.Add('eff', ForageEfficiency.AsText);
       end;
   end;
 
@@ -432,7 +434,7 @@ begin
 //      E.ResolvedAction.AsText
 //    ]);
 
-  Result.Summary := Result.GetFieldText;
+//  Result.Summary := Result.GetFieldText;
 
 end;
 

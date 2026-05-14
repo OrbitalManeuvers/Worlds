@@ -133,8 +133,9 @@ begin
 end;
 
 class procedure TWorldPopulator.Populate(aPopulation: TSimPopulation; aEnvironment: TSimEnvironment; aParams: TSimParams);
+const
+  INVALID_CELL = -1;
 var
-  state: TAgentState;
   nextId: Integer;
   sequence: TGeneSequence;
   location: Integer;
@@ -162,65 +163,63 @@ begin
 
   for var i := 0 to aPopulation.AgentCount - 1 do
   begin
-    if aPopulation.TryGetAgentState(i, state) then
+    var state := aPopulation.GetAgentState(i);
+    state.AgentId := nextId;
+    Inc(nextId);
+
+    state.Location := location;
+    state.WanderTarget := -1;
+
+    state.Reserves := 5.0;
+    state.TicksSinceReproduction := INITIAL_TICKS_SINCE_REPRODUCTION;
+    TGeneSequencer.Populate(state.Genome.GeneMap, sequence);
+
+    state.Genome.SmellEdgeRetention := 0.25;
+
+    // assign default smell and digestion profiles
+    for var molecule := Low(TMolecule) to High(TMolecule) do
+      state.Genome.SmellRatings[molecule] := 1.0;
+    for var molecule := Low(TMolecule) to High(TMolecule) do
+      state.Genome.ConverterRatings[molecule] := 1.0;
+
+    var targetsApplied: TRuleTargets := [];
+    for var rule in aParams.Population.Rules do
     begin
-      state.AgentId := nextId;
-      Inc(nextId);
-
-      state.Location := location;
-      state.WanderTarget := -1;
-
-      state.Reserves := 5.0;
-      state.TicksSinceReproduction := INITIAL_TICKS_SINCE_REPRODUCTION;
-      TGeneSequencer.Populate(state.Genome.GeneMap, sequence);
-
-      state.Genome.SmellEdgeRetention := 0.25;
-
-      // assign default smell and digestion profiles
-      for var molecule := Low(TMolecule) to High(TMolecule) do
-        state.Genome.SmellRatings[molecule] := 1.0;
-      for var molecule := Low(TMolecule) to High(TMolecule) do
-        state.Genome.ConverterRatings[molecule] := 1.0;
-
-      var targetsApplied: TRuleTargets := [];
-      for var rule in aParams.Population.Rules do
+      if (not (rule.Target in targetsApplied)) and (rule.Chance > 0) then
       begin
-        if (not (rule.Target in targetsApplied)) and (rule.Chance > 0) then
+        var dice := Random(100);
+        if dice < rule.Chance then
         begin
-          var dice := Random(100);
-          if dice < rule.Chance then
-          begin
-            case rule.Target of
-              rtSmell:
+          case rule.Target of
+            rtSmell:
+              begin
+                if Assigned(rule.Ratings) then
                 begin
-                  if Assigned(rule.Ratings) then
-                  begin
-                    for var molecule := Low(TMolecule) to High(TMolecule) do
-                      state.Genome.SmellRatings[molecule] := SMELL_RATING_FACTOR[rule.Ratings[molecule]];
+                  for var molecule := Low(TMolecule) to High(TMolecule) do
+                    state.Genome.SmellRatings[molecule] := SMELL_RATING_FACTOR[rule.Ratings[molecule]];
 
-                    Include(targetsApplied, rtSmell);
-                  end;
+                  Include(targetsApplied, rtSmell);
                 end;
-              rtConverter:
+              end;
+            rtConverter:
+              begin
+                if Assigned(rule.Ratings) then
                 begin
-                  if Assigned(rule.Ratings) then
-                  begin
-                    for var molecule := Low(TMolecule) to High(TMolecule) do
-                      state.Genome.ConverterRatings[molecule] := CONVERTER_RATING_FACTOR[rule.Ratings[molecule]];
+                  for var molecule := Low(TMolecule) to High(TMolecule) do
+                    state.Genome.ConverterRatings[molecule] := CONVERTER_RATING_FACTOR[rule.Ratings[molecule]];
 
-                    Include(targetsApplied, rtConverter);
-                  end;
+                  Include(targetsApplied, rtConverter);
                 end;
-            end;
-
+              end;
           end;
+
         end;
       end;
-
-      ApplyBiomassGeneGates(state);
-
-      aPopulation.UpdateAgentState(i, state);
     end;
+
+    ApplyBiomassGeneGates(state^);
+
+    aPopulation.NotifyLocationChanged(i, INVALID_CELL, state.Location);
   end;
 
 end;
@@ -233,8 +232,7 @@ class procedure TDebugPopulator.PopulateAgent(aPopulation: TSimPopulation;
 var
   sequence: TGeneSequence;
 begin
-  var state: TAgentState;
-  Assert(aPopulation.TryGetAgentState(aAgentIndex, state));
+  var state := aPopulation.GetAgentState(aAgentIndex);
 
   state.AgentId := aAgentId;
   state.Location := aLocation;
@@ -264,9 +262,7 @@ begin
     state.Genome.SmellRatings[molecule] := value;
   end;
 
-  ApplyBiomassGeneGates(state);
-
-  aPopulation.UpdateAgentState(aAgentIndex, state);
+  ApplyBiomassGeneGates(state^);
 end;
 
 end.

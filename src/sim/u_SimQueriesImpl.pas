@@ -380,9 +380,7 @@ begin
 
       for var i := 0 to High(cellAgents) do
       begin
-        var state: TAgentState;
-        if not fPopulation.TryGetAgentState(cellAgents[i], state) then
-          Continue;
+        var state := fPopulation.GetAgentState(cellAgents[i]);
 
         if state.Reserves <= 0.0 then
           Continue;
@@ -448,9 +446,7 @@ begin
       for var i := 0 to High(cellAgents) do
       begin
         var agentIndex := cellAgents[i];
-        var state: TAgentState;
-        if not fPopulation.TryGetAgentState(agentIndex, state) then
-          Continue;
+        var state := fPopulation.GetAgentState(agentIndex);
 
         // Dead agents remain in population storage but do not participate in local-agent sensing.
         if state.Reserves <= 0.0 then
