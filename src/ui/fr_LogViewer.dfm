@@ -49,19 +49,31 @@ object LogViewer: TLogViewer
     Width = 665
     Height = 97
     Anchors = [akLeft, akRight, akBottom]
-    ItemHeight = 27
+    ItemHeight = 20
     ItemMargins.Left = 0
     ItemMargins.Top = 0
     ItemMargins.Right = 0
     ItemMargins.Bottom = 0
     ParentColor = False
     TabOrder = 1
-    object Label1: TLabel
-      Left = 40
-      Top = 0
-      Width = 34
-      Height = 15
-      Caption = 'Label1'
+    OnBeforeDrawItem = DetailsViewBeforeDrawItem
+    object lblDetails: TLabel
+      AlignWithMargins = True
+      Left = 4
+      Top = 3
+      Width = 654
+      Height = 14
+      Margins.Left = 4
+      Align = alClient
+      Caption = 'lblDetails'
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clWindow
+      Font.Height = -12
+      Font.Name = 'Consolas'
+      Font.Style = []
+      ParentFont = False
+      StyleElements = [seClient, seBorder]
+      ExplicitWidth = 70
     end
   end
   object EventList: TControlList
@@ -82,6 +94,7 @@ object LogViewer: TLogViewer
     ItemMargins.Bottom = 0
     ParentColor = False
     ParentFont = False
+    MultiSelect = True
     TabOrder = 2
     OnBeforeDrawItem = EventListBeforeDrawItem
     OnItemClick = EventListItemClick

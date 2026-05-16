@@ -11,7 +11,12 @@ type
   end;
 
   // consider for mutations
-  TLearningCognition = class(TCognitionGene);  // knows how to incorporate decision weights
+  TLearningCognition = class(TBasicCognition)
+  public
+    class function GetGenerationCode: Char; override;
+    class function Reflect(const Input: TCognitionReflectionInput;
+      var Scratch: TReflectionScratch): TCognitionReflectionOutput; override;
+  end;  // knows how to incorporate decision weights
   TExploringCognition = class(TCognitionGene); // knows how to wander in good times
 
 
@@ -28,6 +33,10 @@ const
   // Try .04 or .05 if still feels twitchy at times
   MOVE_ACTION_SELECTION_MARGIN = 0.03;
 
+  MOVE_REFLECT_PROGRESS_OUTCOME = 0.06;
+  MOVE_REFLECT_NO_PROGRESS_OUTCOME = -0.03;
+  MOVE_REFLECT_BLOCKED_OUTCOME = -0.06;
+
 function SmellSignalForCell(const Smell: TSmellReport; const CellIndex: Integer): Single;
 begin
   Result := 0.0;
@@ -42,6 +51,21 @@ begin
 
     Exit;
   end;
+end;
+
+function CellDistance(const FromCell, ToCell, GridWidth: Integer): Integer;
+begin
+  if (GridWidth <= 0) or (FromCell < 0) or (ToCell < 0) then
+    Exit(-1);
+
+  var fromX := FromCell mod GridWidth;
+  var fromY := FromCell div GridWidth;
+  var toX := ToCell mod GridWidth;
+  var toY := ToCell div GridWidth;
+
+  Result := Abs(toX - fromX);
+  if Abs(toY - fromY) > Result then
+    Result := Abs(toY - fromY);
 end;
 
 { TBasicCognition }
@@ -164,8 +188,54 @@ begin
   end;
 end;
 
+{ TLearningCognition }
+
+class function TLearningCognition.GetGenerationCode: Char;
+begin
+  Result := 'B';
+end;
+
+class function TLearningCognition.Reflect(const Input: TCognitionReflectionInput;
+  var Scratch: TReflectionScratch): TCognitionReflectionOutput;
+begin
+  Scratch := Default(TReflectionScratch);
+  Result := Default(TCognitionReflectionOutput);
+
+  if Input.RequestedAction <> acMove then
+    Exit;
+
+  Result.LearnedAction := acMove;
+  Result.HasWeightUpdate := True;
+
+  if Input.ResolvedAction <> acMove then
+  begin
+    Result.Outcome := MOVE_REFLECT_BLOCKED_OUTCOME;
+    Exit;
+  end;
+
+  if Input.RequestedTarget.TType <> ttCell then
+  begin
+    Result.HasWeightUpdate := False;
+    Exit;
+  end;
+
+  var beforeDistance := CellDistance(Input.PreviousLocation, Input.RequestedTarget.Cell, Input.GridWidth);
+  var afterDistance := CellDistance(Input.CurrentLocation, Input.RequestedTarget.Cell, Input.GridWidth);
+  if (beforeDistance <= 0) or (afterDistance < 0) then
+  begin
+    Result.HasWeightUpdate := False;
+    Exit;
+  end;
+
+  if afterDistance < beforeDistance then
+    Result.Outcome := MOVE_REFLECT_PROGRESS_OUTCOME
+  else
+    Result.Outcome := MOVE_REFLECT_NO_PROGRESS_OUTCOME;
+end;
+
 
 initialization
   GlobalGeneRegistry.RegisterGene(TBasicCognition);
+  GlobalGeneRegistry.RegisterGene(TLearningCognition);
 
 end.

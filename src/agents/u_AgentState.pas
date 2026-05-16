@@ -5,18 +5,15 @@ interface
 uses u_AgentTypes, u_AgentGenome;
 
 type
-  TContextIndex = 0..23;
-
-(*
-Reserves:     4 buckets (0-25%, 25-50%, 50-75%, 75-100%)
-FoodSignal:   3 buckets (none, weak, strong)
-DayPhase:     2 buckets (day, night)
-              --------------------------
-              4 × 3 × 2 = 24 contexts
-              × 4 actions = 96 weights total
-
-*)
-  TDecisionWeights = array[TAgentAction, TContextIndex] of Single;
+  (*
+  Energy:     4 buckets (low, medium, high, full)
+  FoodSignal: 3 buckets (none, weak, strong)
+  DayPhase:   2 buckets (day, night)
+              -------------------------------
+              4 x 3 x 2 = 24 contexts
+              x 4 actions = 96 weights total
+  *)
+  TDecisionWeights = array[TDecisionAction, TDecisionEnergy, TDecisionFoodSignal, TDecisionDayPhase] of Single;
 
   PAgentState = ^TAgentState;
   TAgentState = record
@@ -44,19 +41,9 @@ DayPhase:     2 buckets (day, night)
 
     // Heritable traits (for reproduction + mutation)
     Genome: TAgentGenome;  // sensor ranges, metabolic params, etc.
-
-    function GetContextIndex: TContextIndex;
   end;
 
 
 implementation
-
-{ TAgentState }
-function TAgentState.GetContextIndex: TContextIndex;
-begin
-  // to-do
-  Result := Low(TContextIndex);
-end;
-
 
 end.

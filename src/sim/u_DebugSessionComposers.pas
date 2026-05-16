@@ -111,6 +111,7 @@ begin
   begin
     var agent := scenario.Agents[i];
     var profile := DebugLibrary.FindProfile(agent.ProfileName);
+    var geneSequence := DebugLibrary.ResolveGeneSequence(profile);
 
     var converterRatings: TMoleculeRatings := nil;
     if profile.ConverterRatingsName <> '' then
@@ -124,7 +125,7 @@ begin
     for var count := 1 to agent.Count do
     begin
       TDebugPopulator.PopulateAgent(population, agentIndex, nextId, cellIndex,
-        converterRatings, smellRatings, profile.GeneSequence);
+        converterRatings, smellRatings, geneSequence);
       Inc(agentIndex);
       Inc(nextId);
     end;

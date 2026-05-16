@@ -18,6 +18,7 @@ uses System.Math;
 const
   SHELTER_FLUX_DELTA_PRESSURE = 2.0;
   SHELTER_WAKE_FLUX_THRESHOLD = 0.08;
+  SHELTER_ENTRY_SCORE_PENALTY = 0.04;
 
 { TBasicShelter }
 
@@ -49,6 +50,9 @@ begin
     elFull:
       Result.Score := Result.Score + 0.06;
   end;
+
+  if Input.CurrentAction <> acShelter then
+    Result.Score := Result.Score - SHELTER_ENTRY_SCORE_PENALTY;
 
   if Input.CurrentAction = acShelter then
   begin

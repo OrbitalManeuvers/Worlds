@@ -67,6 +67,7 @@ type
   // TBrainTraceSummary
   _brainTraceSummary = record helper for TBrainTraceSummary
     function AsDetails: TArray<TLogField>;
+    function AsFields: TLogFields;
   end;
 
   _ActionEvalResult = record helper for TActionEvalResult
@@ -91,6 +92,11 @@ type
     function AsText(Padding: Integer): string; overload;
   end;
 
+  _boolean = record helper for Boolean
+    function AsText: string;
+  end;
+
+
 { _single }
 function _single.AsText: string;
 begin
@@ -106,6 +112,13 @@ end;
 function _integer.AsText(Padding: Integer): string;
 begin
   Result := Format('%.0' + Padding.AsText + 'd', [Self]);
+end;
+
+{ _boolean }
+function _boolean.AsText: string;
+begin
+  if Self then Result := 'T'
+  else Result := 'F';
 end;
 
 
@@ -263,6 +276,14 @@ end;
 
 *)
 
+function _brainTraceSummary.AsFields: TLogFields;
+begin
+  Result.Clear;
+  Result.Add('ed', Self.ReserveDelta.AsText);
+  Result.Add('sm', Self.HadSmellTarget.AsText);
+  Result.Add('sig', Self.StrongestSmellSignal.AsText);
+end;
+
 { _ActionEvalResult }
 function _ActionEvalResult.AsDetails: TArray<TLogField>;
 begin
@@ -274,13 +295,16 @@ end;
 { _simEvent }
 function _simEvent.AsFields: TLogFields;
 begin
-  Result.Add('', Format('%.04d [%.02d:%.03d] ',
+  Result.Add('tick', Format('%.04d [%.02d:%.03d] ',
     [Header.Sequence, Header.DayNumber, Header.DayTick]));
 
   case Header.Kind of
     sekActionResolved: ;
     sekDecisionTrace:
-      Result.Add('c', DecisionTrace.AsFields.ShortFieldText);
+      begin
+        Result.Add('text', DecisionTrace.AsFields.ShortFieldText);
+
+      end;
     sekAgentBorn: ;
     sekAgentMoved: ;
     sekBiomassCreated: ;

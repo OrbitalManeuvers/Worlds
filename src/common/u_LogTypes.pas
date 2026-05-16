@@ -13,6 +13,8 @@ type
     Fields: TArray<TLogField>;    // structured data for details, export, columns
     procedure Add(const aName, aValue: string);
     function ShortFieldText: string;
+    function Count: Integer;
+    procedure Clear;
   end;
 
 implementation
@@ -25,6 +27,16 @@ begin
   SetLength(Fields, i + 1);
   Fields[i].Name := aName;
   Fields[i].Value := aValue;
+end;
+
+procedure TLogFields.Clear;
+begin
+  SetLength(Fields, 0);
+end;
+
+function TLogFields.Count: Integer;
+begin
+  Result := Length(Fields);
 end;
 
 function TLogFields.ShortFieldText: string;

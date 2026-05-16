@@ -8,8 +8,19 @@ uses System.Types,
 
 type
   TAgentAction = (acMove, acForage, acShelter, acReproduce, acIdle);
+  TDecisionAction = acMove..acReproduce;
 
   TEnergyLevel = (elEmpty, elLow, elMedium, elHigh, elFull);
+  TDecisionEnergy = elLow..elFull;
+
+  TDecisionFoodSignal = (dfsNone, dfsWeak, dfsStrong);
+  TDecisionDayPhase = (ddDay, ddNight);
+
+  TDecisionBuckets = record
+    Energy: TDecisionEnergy;
+    FoodSignal: TDecisionFoodSignal;
+    DayPhase: TDecisionDayPhase;
+  end;
 
   TCacheKind = (ckResource, ckBiomass);
   TCacheRef = record

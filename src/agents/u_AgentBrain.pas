@@ -39,7 +39,18 @@ type
     RequestedTarget: TTarget;
     Evaluations: TActionEvaluations;
     Trace: TBrainTraceSummary;
-    ContextIndex: Integer;
+    DecisionBuckets: TDecisionBuckets;
+  end;
+
+  // Runtime-owned inputs for one post-resolution reflection pass.
+  TBrainReflectInput = record
+    ResolvedAction: TAgentAction;
+    ResolvedTarget: TTarget;
+    ForageConsumed: Single;
+    ForageGain: Single;
+    GridWidth: Integer;
+    PreviousLocation: Integer;
+    CurrentLocation: Integer;
   end;
 
   // Caller-owned per-agent scratch state reused across ticks.
@@ -56,6 +67,8 @@ type
   public
     class function Think(const State: TAgentState; const Input: TBrainTickInput;
       var Scratch: TAgentScratch): TBrainTickOutput; static;
+    class procedure Reflect(var State: TAgentState; const Decision: TBrainTickOutput;
+      const Input: TBrainReflectInput; var Scratch: TAgentScratch); static;
   end;
 
 implementation
@@ -65,6 +78,8 @@ uses System.SysUtils, u_EnvironmentTypes;
 const
   // Keep hold mode for deeply dark conditions; rising light should wake sensing/evals.
   SHELTER_HOLD_MAX_SOLAR_FLUX = 0.02;
+  FOOD_SIGNAL_STRONG_THRESHOLD = 1.0;
+  DECISION_WEIGHT_LEARNING_RATE = 0.20;
 
 function CalculateStrongestSmellSignal(const Report: TSmellReport): Single;
 begin
@@ -86,6 +101,50 @@ begin
   Result := 0.0;
   for var molecule := Low(TMolecule) to High(TMolecule) do
     Result := Result + Detail.MoleculeStrength[molecule];
+end;
+
+function BucketDecisionEnergy(const EnergyLevel: TEnergyLevel): TDecisionEnergy;
+begin
+  case EnergyLevel of
+    elLow:
+      Result := elLow;
+    elMedium:
+      Result := elMedium;
+    elHigh:
+      Result := elHigh;
+    elFull:
+      Result := elFull;
+  else
+    Assert(False, 'Decision buckets require a live agent energy level');
+    Result := Low(TDecisionEnergy);
+  end;
+end;
+
+function BucketDecisionFoodSignal(const Context: TDecisionContext): TDecisionFoodSignal;
+begin
+  if Context.Smell.Count <= 0 then
+    Exit(dfsNone);
+
+  var strongestSignal := CalculateStrongestSmellSignal(Context.Smell);
+  if strongestSignal >= FOOD_SIGNAL_STRONG_THRESHOLD then
+    Exit(dfsStrong);
+
+  Result := dfsWeak;
+end;
+
+function BucketDecisionDayPhase(const Context: TDecisionContext): TDecisionDayPhase;
+begin
+  if Context.IsNight then
+    Exit(ddNight);
+
+  Result := ddDay;
+end;
+
+function BuildDecisionBuckets(const Context: TDecisionContext): TDecisionBuckets;
+begin
+  Result.Energy := BucketDecisionEnergy(Context.EnergyLevel);
+  Result.FoodSignal := BucketDecisionFoodSignal(Context);
+  Result.DayPhase := BucketDecisionDayPhase(Context);
 end;
 
 function BuildTraceSummary(const State: TAgentState; const Context: TDecisionContext;
@@ -179,6 +238,44 @@ begin
   Result.CurrentTarget := CurrentTarget;
 end;
 
+function BuildCognitionReflectionInput(const State: TAgentState; const Decision: TBrainTickOutput;
+  const Input: TBrainReflectInput): TCognitionReflectionInput;
+begin
+  Result.DecisionBuckets := Decision.DecisionBuckets;
+  Result.RequestedAction := Decision.RequestedAction;
+  Result.RequestedTarget := Decision.RequestedTarget;
+  Result.ResolvedAction := Input.ResolvedAction;
+  Result.ResolvedTarget := Input.ResolvedTarget;
+  Result.Evaluations := Decision.Evaluations;
+  Result.ReserveDelta := State.ReserveDelta;
+  Result.ForageConsumed := Input.ForageConsumed;
+  Result.ForageGain := Input.ForageGain;
+  Result.GridWidth := Input.GridWidth;
+  Result.PreviousLocation := Input.PreviousLocation;
+  Result.CurrentLocation := Input.CurrentLocation;
+  Result.CurrentReserves := State.Reserves;
+  Result.ActionProgress := State.ActionProgress;
+end;
+
+procedure ApplyDecisionWeightUpdate(var State: TAgentState; const Buckets: TDecisionBuckets;
+  const Reflection: TCognitionReflectionOutput);
+begin
+  var expectedOutcome := State.DecisionWeights[
+    Reflection.LearnedAction,
+    Buckets.Energy,
+    Buckets.FoodSignal,
+    Buckets.DayPhase
+  ];
+
+  var predictionError := Reflection.Outcome - expectedOutcome;
+  State.DecisionWeights[
+    Reflection.LearnedAction,
+    Buckets.Energy,
+    Buckets.FoodSignal,
+    Buckets.DayPhase
+  ] := expectedOutcome + (DECISION_WEIGHT_LEARNING_RATE * predictionError);
+end;
+
 { TAgentScratch }
 
 procedure TAgentScratch.BeginTick(const State: TAgentState; const Input: TBrainTickInput);
@@ -262,6 +359,8 @@ begin
 
     Scratch.DecisionContext.Sight := sightReport;
   end;
+
+  Result.DecisionBuckets := BuildDecisionBuckets(Scratch.DecisionContext);
 
   // Evaluation stage: score available actions.
 
@@ -383,6 +482,20 @@ begin
     Result.Evaluations[acMove].Target.TType := ttCell;
 
   Result.Trace := BuildTraceSummary(State, Scratch.DecisionContext, localAgentCount);
+end;
+
+class procedure TAgentBrain.Reflect(var State: TAgentState; const Decision: TBrainTickOutput;
+  const Input: TBrainReflectInput; var Scratch: TAgentScratch);
+begin
+  var cognitionGene := State.Genome.GeneMap.Cognition;
+  if not Assigned(cognitionGene) then
+    Exit;
+
+  var reflectionInput := BuildCognitionReflectionInput(State, Decision, Input);
+  var reflectionOutput := cognitionGene.Reflect(reflectionInput, Scratch.EvaluatorScratch.Reflection);
+
+  if reflectionOutput.HasWeightUpdate then
+    ApplyDecisionWeightUpdate(State, Decision.DecisionBuckets, reflectionOutput);
 end;
 
 end.

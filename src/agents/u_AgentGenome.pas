@@ -111,6 +111,31 @@ type
     RequestedTarget: TTarget;
   end;
 
+  TCognitionReflectionInput = record
+    DecisionBuckets: TDecisionBuckets;
+    RequestedAction: TAgentAction;
+    RequestedTarget: TTarget;
+    ResolvedAction: TAgentAction;
+    ResolvedTarget: TTarget;
+    Evaluations: TActionEvaluations;
+    ReserveDelta: Single;
+    ForageConsumed: Single;
+    ForageGain: Single;
+    GridWidth: Integer;
+    PreviousLocation: Integer;
+    CurrentLocation: Integer;
+    CurrentReserves: Single;
+    ActionProgress: Integer;
+  end;
+
+  TCognitionReflectionOutput = record
+    LearnedAction: TDecisionAction;
+    Outcome: Single;
+    ExpectedOutcome: Single;
+    PredictionError: Single;
+    HasWeightUpdate: Boolean;
+  end;
+
   // Evaluators own their own workspace contract, even when empty for now.
   TForageEvalScratch = record
   end;
@@ -133,12 +158,16 @@ type
   TCognitionScratch = record
   end;
 
+  TReflectionScratch = record
+  end;
+
   TEvaluatorScratch = record
     Forage: TForageEvalScratch;
     Shelter: TShelterEvalScratch;
     Movement: TMoveEvalScratch;
     Reproduce: TReproduceEvalScratch;
     Cognition: TCognitionScratch;
+    Reflection: TReflectionScratch;
     Wander: TWanderEvalScratch;
   end;
 
@@ -215,6 +244,8 @@ type
 
   TCognitionGene = class(TGene)
     class function Decide(const Input: TCognitionInput; var Scratch: TCognitionScratch): TCognitionOutput; virtual; abstract;
+    class function Reflect(const Input: TCognitionReflectionInput;
+      var Scratch: TReflectionScratch): TCognitionReflectionOutput; virtual;
   end;
   TCognitionGeneClass = class of TCognitionGene;
 
@@ -313,6 +344,15 @@ end;
 class function TGene.GetGenerationCode: Char;
 begin
   Result := 'A';
+end;
+
+{ TCognitionGene }
+
+class function TCognitionGene.Reflect(const Input: TCognitionReflectionInput;
+  var Scratch: TReflectionScratch): TCognitionReflectionOutput;
+begin
+  Scratch := Default(TReflectionScratch);
+  Result := Default(TCognitionReflectionOutput);
 end;
 
 

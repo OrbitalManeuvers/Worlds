@@ -9,6 +9,7 @@ uses System.Types,
 const
   AGENT_BITE_SIZE = 0.1;  // temporary. move to sim params/genome
   AGENT_BASE_MOVE_COST = 0.05; // temporary. move to sim params/genome
+  SHELTER_ENTRY_COST = 0.02;
   SHELTER_UPKEEP_MULTIPLIER = 0.35;
   AGENT_BASE_METABOLISM = 0.01;  // physics floor: applies to all agents regardless of genome
   GENE_GENERATION_COST = 0.005;  // upkeep added per generation above A for each gene slot
@@ -610,6 +611,22 @@ begin
     end;
   end;
 
+  if Requested.RequestedAction = acShelter then
+  begin
+    Result.RequestedTarget.TType := ttCell;
+    Result.RequestedTarget.Cell := State.Location;
+
+    if State.Action <> acShelter then
+    begin
+      State.Reserves := State.Reserves - SHELTER_ENTRY_COST;
+      if State.Reserves < 0.0 then
+        State.Reserves := 0.0;
+    end;
+
+    Result.RequestedAction := acShelter;
+    Exit;
+  end;
+
   if Requested.RequestedAction = acMove then
   begin
     if Requested.RequestedTarget.TType <> ttCell then
@@ -810,6 +827,17 @@ begin
   var stateBeforeResolution := state^;
   var resolved := ResolveRequestedStep(aIndex, state^, requested, forageConsumed, forageGain);
   state.ReserveDelta := state.Reserves - reservesAtTickStart;
+
+  var reflectInput: TBrainReflectInput;
+  reflectInput.ResolvedAction := resolved.RequestedAction;
+  reflectInput.ResolvedTarget := resolved.RequestedTarget;
+  reflectInput.ForageConsumed := forageConsumed;
+  reflectInput.ForageGain := forageGain;
+  reflectInput.GridWidth := fEnvironment.Dimensions.cx;
+  reflectInput.PreviousLocation := stateBeforeResolution.Location;
+  reflectInput.CurrentLocation := state.Location;
+  fPopulation.Reflect(aIndex, requested, reflectInput);
+
   CaptureDecisionTrace(aIndex, state^, Input, requested, resolved, forageConsumed, forageGain);
   EmitActionResolved(stateBeforeResolution, state^, requested, resolved);
   if (aIndex >= 0) and (aIndex < Length(fLastDecisionTraces)) and fHasDecisionTrace[aIndex] then

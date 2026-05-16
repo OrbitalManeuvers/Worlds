@@ -3,14 +3,19 @@ unit u_DebugLibraries;
 interface
 
 uses System.Classes, System.Types, System.Generics.Collections,
-  u_EnvironmentTypes;
+  u_EnvironmentTypes, u_AgentGenome;
 
 // The Debug Library is hand-authored and loaded as records
 
 type
+  TDebugGeneFamily = record
+    Name: string;
+    GeneSequence: TGeneSequence;
+  end;
+
   TDebugAgentProfile = record
     Name: string;
-    GeneSequence: string;
+    GeneFamilyName: string;
     ConverterRatingsName: string;
     SmellRatingsName: string;
   end;
@@ -44,15 +49,19 @@ type
 
   TDebugLibrary = class
   private
+    fGeneFamilies: TArray<TDebugGeneFamily>;
     fScenarios: TArray<TDebugScenario>;
     fProfiles: TArray<TDebugAgentProfile>;
   public
     constructor Create(const aFileName: string);
     destructor Destroy; override;
 
+    function FindGeneFamily(const aName: string): TDebugGeneFamily;
     function FindScenario(const aName: string): TDebugScenario;
     function FindProfile(const aName: string): TDebugAgentProfile;
+    function ResolveGeneSequence(const aProfile: TDebugAgentProfile): string;
 
+    property GeneFamilies: TArray<TDebugGeneFamily> read fGeneFamilies;
     property Scenarios: TArray<TDebugScenario> read fScenarios;
     property Profiles: TArray<TDebugAgentProfile> read fProfiles;
   end;
@@ -67,28 +76,56 @@ uses System.SysUtils, System.JSON, System.IOUtils,
 
 const
   KEY_AGENTS = 'agents';
+  KEY_BASE = 'base';
   KEY_CACHES = 'caches';
+  KEY_COGNITION = 'cognition';
+  KEY_CONVERT = 'convert';
   KEY_CONVERTER_RATINGS = 'converterRatings';
   KEY_COUNT = 'count';
   KEY_DEFAULT_MOBILITY = 'defaultMobility';
   KEY_DEFAULT_SUNLIGHT = 'defaultSunlight';
   KEY_DIMENSIONS = 'dimensions';
+  KEY_ENERGY = 'energy';
   KEY_FOOD = 'food';
   KEY_FOODS = 'foods';
-  KEY_GENE_SEQUENCE = 'geneSequence';
+  KEY_FORAGE = 'forage';
+  KEY_GENE_FAMILIES = 'geneFamilies';
+  KEY_GENE_FAMILY = 'geneFamily';
+  KEY_GENES = 'genes';
   KEY_NAME = 'name';
   KEY_GROWTH_RATE = 'growthRate';
   KEY_LOCATION = 'location';
+  KEY_MOVEMENT = 'movement';
   KEY_PROFILES = 'profiles';
   KEY_PROFILE = 'profile';
+  KEY_REPRODUCE = 'reproduce';
   KEY_RESOURCES = 'resources';
   KEY_SCENARIOS = 'scenarios';
   KEY_SEED = 'seed';
+  KEY_SHELTER = 'shelter';
+  KEY_SIGHT = 'sight';
+  KEY_SMELL = 'smell';
   KEY_SMELL_RATINGS = 'smellRatings';
+  KEY_WANDER = 'wander';
   KEY_X = 'x';
   KEY_Y = 'y';
 
+  GENE_INDEX_ENERGY = 1;
+  GENE_INDEX_SMELL = 2;
+  GENE_INDEX_SIGHT = 3;
+  GENE_INDEX_MOVEMENT = 4;
+  GENE_INDEX_FORAGE = 5;
+  GENE_INDEX_SHELTER = 6;
+  GENE_INDEX_REPRODUCE = 7;
+  GENE_INDEX_COGNITION = 8;
+  GENE_INDEX_CONVERT = 9;
+  GENE_INDEX_WANDER = 10;
+
 type
+  family_loader = record helper for TDebugGeneFamily
+    procedure LoadFromJSON(const JSON: TJSONObject);
+  end;
+
   agent_loader = record helper for TDebugAgentProfile
     procedure LoadFromJSON(const JSON: TJSONObject);
   end;
@@ -109,11 +146,52 @@ type
     procedure LoadFromJSON(const JSON: TJSONObject);
   end;
 
+{ family_loader }
+
+procedure family_loader.LoadFromJSON(const JSON: TJSONObject);
+  procedure ApplyCodeFromJSON(const Obj: TJSONObject; const Key: string; const SlotIndex: Integer;
+    var SequenceText: string);
+  begin
+    if not Assigned(Obj) then
+      Exit;
+
+    var value := Obj.StrValue(Key);
+    if value <> '' then
+      SequenceText[SlotIndex] := value[1];
+  end;
+begin
+  Name := JSON.StrValue(KEY_NAME);
+
+  var baseCode: Char := 'A';
+  var baseText := JSON.StrValue(KEY_BASE);
+  if baseText <> '' then
+    baseCode := baseText[1];
+
+  var sequenceText := StringOfChar(baseCode, GENE_SEQUENCE_LENGTH);
+
+  var genes: TJSONObject;
+  if JSON.TryGetValue(KEY_GENES, genes) then
+  begin
+    ApplyCodeFromJSON(genes, KEY_ENERGY, GENE_INDEX_ENERGY, sequenceText);
+    ApplyCodeFromJSON(genes, KEY_SMELL, GENE_INDEX_SMELL, sequenceText);
+    ApplyCodeFromJSON(genes, KEY_SIGHT, GENE_INDEX_SIGHT, sequenceText);
+    ApplyCodeFromJSON(genes, KEY_MOVEMENT, GENE_INDEX_MOVEMENT, sequenceText);
+    ApplyCodeFromJSON(genes, KEY_FORAGE, GENE_INDEX_FORAGE, sequenceText);
+    ApplyCodeFromJSON(genes, KEY_SHELTER, GENE_INDEX_SHELTER, sequenceText);
+    ApplyCodeFromJSON(genes, KEY_REPRODUCE, GENE_INDEX_REPRODUCE, sequenceText);
+    ApplyCodeFromJSON(genes, KEY_COGNITION, GENE_INDEX_COGNITION, sequenceText);
+    ApplyCodeFromJSON(genes, KEY_CONVERT, GENE_INDEX_CONVERT, sequenceText);
+    ApplyCodeFromJSON(genes, KEY_WANDER, GENE_INDEX_WANDER, sequenceText);
+  end;
+
+  GeneSequence.AsText := sequenceText;
+end;
+
 { agent_loader }
 procedure agent_loader.LoadFromJSON(const JSON: TJSONObject);
 begin
   Name := JSON.StrValue(KEY_NAME);
-  GeneSequence := JSON.StrValue(KEY_GENE_SEQUENCE);
+  GeneFamilyName := JSON.StrValue(KEY_GENE_FAMILY);
   ConverterRatingsName := JSON.StrValue(KEY_CONVERTER_RATINGS);
   SmellRatingsName := JSON.StrValue(KEY_SMELL_RATINGS);
 end;
@@ -191,6 +269,7 @@ end;
 constructor TDebugLibrary.Create(const aFileName: string);
 begin
   inherited Create;
+  SetLength(fGeneFamilies, 0);
   SetLength(fProfiles, 0);
   SetLength(fScenarios, 0);
 
@@ -201,6 +280,15 @@ begin
     begin
       var jsonObject := TJSONObject(json);
       var jArr: TJSONArray;
+
+      // load gene families
+      if jsonObject.TryGetValue(KEY_GENE_FAMILIES, jArr) then
+      begin
+        SetLength(fGeneFamilies, jArr.Count);
+        for var i := 0 to jArr.Count - 1 do
+          if jArr[i] is TJSONObject then
+            fGeneFamilies[i].LoadFromJSON(jArr[i] as TJSONObject)
+      end;
 
       // load profiles
       if jsonObject.TryGetValue(KEY_PROFILES, jArr) then
@@ -230,12 +318,26 @@ begin
   inherited;
 end;
 
+function TDebugLibrary.FindGeneFamily(const aName: string): TDebugGeneFamily;
+begin
+  Result := Default(TDebugGeneFamily);
+  for var i := 0 to High(fGeneFamilies) do
+    if SameText(fGeneFamilies[i].Name, aName) then
+      Exit(fGeneFamilies[i]);
+end;
+
 function TDebugLibrary.FindProfile(const aName: string): TDebugAgentProfile;
 begin
   Result := Default(TDebugAgentProfile);
   for var i := 0 to High(fProfiles) do
     if SameText(fProfiles[i].Name, aName) then
       Exit(fProfiles[i]);
+end;
+
+function TDebugLibrary.ResolveGeneSequence(const aProfile: TDebugAgentProfile): string;
+begin
+  var family := FindGeneFamily(aProfile.GeneFamilyName);
+  Result := family.GeneSequence.AsText;
 end;
 
 function TDebugLibrary.FindScenario(const aName: string): TDebugScenario;

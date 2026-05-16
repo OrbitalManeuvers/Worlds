@@ -36,6 +36,7 @@ type
     procedure NotifyLocationChanged(aIndex: Integer; aOldCell, aNewCell: Integer);
 
     function Think(aIndex: Integer; const Input: TBrainTickInput): TBrainTickOutput;
+    procedure Reflect(aIndex: Integer; const Decision: TBrainTickOutput; const Input: TBrainReflectInput);
     procedure ApplyStep(aIndex: Integer; const Output: TBrainTickOutput);
     procedure StepAgent(aIndex: Integer; const Input: TBrainTickInput);
 
@@ -222,6 +223,11 @@ end;
 function TSimPopulation.Think(aIndex: Integer; const Input: TBrainTickInput): TBrainTickOutput;
 begin
   Result := TAgentBrain.Think(fAgents[aIndex], Input, fScratch);
+end;
+
+procedure TSimPopulation.Reflect(aIndex: Integer; const Decision: TBrainTickOutput; const Input: TBrainReflectInput);
+begin
+  TAgentBrain.Reflect(fAgents[aIndex], Decision, Input, fScratch);
 end;
 
 procedure TSimPopulation.ApplyStep(aIndex: Integer; const Output: TBrainTickOutput);

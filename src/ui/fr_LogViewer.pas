@@ -17,7 +17,7 @@ type
     btnExport: TSpeedButton;
     btnIncAR: TSpeedButton;
     DetailsView: TControlList;
-    Label1: TLabel;
+    lblDetails: TLabel;
     EventList: TControlList;
     lblEventTime: TLabel;
     lblEventContent: TLabel;
@@ -26,6 +26,8 @@ type
     procedure EventListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
     procedure EventListItemClick(Sender: TObject);
+    procedure DetailsViewBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
+      ARect: TRect; AState: TOwnerDrawState);
   private
     ViewDef: TSimEventViewDef;
     EventView: IEventLogView;
@@ -71,6 +73,23 @@ begin
   inherited;
 end;
 
+procedure TLogViewer.DetailsViewBeforeDrawItem(AIndex: Integer;
+  ACanvas: TCanvas; ARect: TRect; AState: TOwnerDrawState);
+begin
+  if (AIndex >= 0) and (AIndex < DetailFields.Count) then
+  begin
+    var event := EventView.Events[EventList.ItemIndex]; // selected event
+    var s := '';
+    if event.Header.Kind = sekDecisionTrace then
+    begin
+      s := Format('trace a%.02d: %s',
+      [event.DecisionTrace.AgentId, DetailFields.ShortFieldText]);
+    end;
+
+    lblDetails.Caption := s; //DetailFields.ShortFieldText;
+  end;
+end;
+
 procedure TLogViewer.EventListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
   ARect: TRect; AState: TOwnerDrawState);
 begin
@@ -87,10 +106,9 @@ begin
     begin
       lblEventContent.Caption := eventFields.Fields[1].Value;
       if Odd(EventView.Events[AIndex].DecisionTrace.AgentId) then
-        lblEventContent.Font.Color := StyleServices.GetSystemColor(clSkyBlue)
+        lblEventContent.Font.Color := StyleServices.GetSystemColor(clWebIvory)
       else
-        lblEventContent.Font.Color := StyleServices.GetSystemColor(clMoneyGreen);
-
+        lblEventContent.Font.Color := StyleServices.GetSystemColor(clWebPaleTurquoise);
     end;
 
   end;
@@ -98,7 +116,20 @@ end;
 
 procedure TLogViewer.EventListItemClick(Sender: TObject);
 begin
-  //
+  DetailFields.Clear;
+
+  if EventList.ItemIndex <> -1 then
+  begin
+    var event := EventView.Events[EventList.ItemIndex];
+    if event.Header.Kind = sekDecisionTrace then
+    begin
+      DetailFields := event.DecisionTrace.Summary.AsFields;
+    end;
+  end;
+  if DetailFields.Count <> 0 then
+    DetailsView.ItemCount := 1;
+
+  DetailsView.Invalidate;
 
 (*
       var event := EventView.Events[sel.Index];
@@ -110,7 +141,6 @@ begin
     DetailFields := Default(TLogFields);
   end;
 
-  DetailsView.ItemCount := Length(DetailFields.Fields);
 
 *)
 end;
@@ -164,13 +194,6 @@ begin
   EventView.Extend;
   EventList.ItemCount := EventView.Count;
   EventList.ItemIndex := EventList.ItemCount - 1;
-
-//  if EventView.Count > 0 then
-//  begin
-//    var lastNode := Tree.GetLast;
-//    if Assigned(lastNode) then
-//      Tree.ScrollIntoView(lastNode, False);
-//  end;
 end;
 
 end.
