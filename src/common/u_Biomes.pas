@@ -17,6 +17,7 @@ type
     fMobility: TRating;
     fGrowthRate: TRating;
     fDensity: TRating;
+    fDeltaDensity: TRating;
     function GetFoodCount: Integer;
     function GetFood(I: Integer): TFood;
     procedure SetColor(const Value: TColor);
@@ -26,6 +27,7 @@ type
     procedure SetGrowthRate(const Value: TRating);
     procedure SetMobility(const Value: TRating);
     procedure SetSunlight(const Value: TRating);
+    procedure SetDeltaDensity(const Value: TRating);
   protected
     property _foodList: TList<TFood> read fFoods;
   public
@@ -43,6 +45,7 @@ type
     property Mobility: TRating read fMobility write SetMobility;
     property GrowthRate: TRating read fGrowthRate write SetGrowthRate;
     property Density: TRating read fDensity write SetDensity;
+    property DeltaDensity: TRating read fDeltaDensity write SetDeltaDensity;
     property FoodCount: Integer read GetFoodCount;
     property Foods[I: Integer]: TFood read GetFood;
   end;
@@ -62,6 +65,7 @@ begin
   Mobility := Normal;
   Density := Normal;
   GrowthRate := Normal;
+  DeltaDensity := Low(TRating); // low = 0
 end;
 
 destructor TBiome.Destroy;
@@ -97,6 +101,15 @@ begin
   if i <> -1 then
   begin
     fFoods.Delete(i);
+    Changed;
+  end;
+end;
+
+procedure TBiome.SetDeltaDensity(const Value: TRating);
+begin
+  if Value <> fDeltaDensity then
+  begin
+    fDeltaDensity := Value;
     Changed;
   end;
 end;

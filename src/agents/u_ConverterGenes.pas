@@ -10,7 +10,7 @@ type
     class function Convert(const Input: TConverterInput; var Scratch: TConverterScratch): Single; override;
   end;
 
-  TBiomassConverter = class(TBasicConverter)
+  TDeltaConverter = class(TBasicConverter)
   public
     class function GetGenerationCode: Char; override;
   end;
@@ -36,9 +36,9 @@ begin
   Result := Input.ConsumedAmount * Max(0.0, efficiency);
 end;
 
-{ TBiomassConverter }
+{ TDeltaConverter }
 
-class function TBiomassConverter.GetGenerationCode: Char;
+class function TDeltaConverter.GetGenerationCode: Char;
 begin
   Result := 'B';
 end;
@@ -46,7 +46,7 @@ end;
 
 initialization
   GlobalGeneRegistry.RegisterGene(TBasicConverter);
-  GlobalGeneRegistry.RegisterGene(TBiomassConverter);
+  GlobalGeneRegistry.RegisterGene(TDeltaConverter);
 
 
 end.

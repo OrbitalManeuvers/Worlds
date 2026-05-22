@@ -22,7 +22,7 @@ type
     DayPhase: TDecisionDayPhase;
   end;
 
-  TCacheKind = (ckResource, ckBiomass);
+  TCacheKind = (ckResource, ckDelta);
   TCacheRef = record
     Kind: TCacheKind;
     Index: Integer;

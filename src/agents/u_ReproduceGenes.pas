@@ -24,6 +24,7 @@ const
   REPRO_LIGHT_CROWDING_PENALTY = 0.02;
   REPRO_MODERATE_CROWDING_PENALTY = 0.05;
   REPRO_HEAVY_CROWDING_PENALTY = 0.09;
+  REPRO_MIN_AGE_TICKS = CLOCK_TICKS_PER_DAY * 3;
 
 { TReproduceEvaluator }
 
@@ -36,6 +37,10 @@ begin
 
   // Do not ask for reproduction when runtime would reject it on reserve floor alone.
   if Input.Reserves < REPRODUCTION_MIN_ATTEMPT_RESERVES then
+    Exit;
+
+  // Minimum age: juveniles cannot reproduce.
+  if Input.Age < REPRO_MIN_AGE_TICKS then
     Exit;
 
   // Recent reproduction is a hard cooldown: do not even consider reproduction yet.

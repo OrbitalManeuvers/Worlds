@@ -43,25 +43,9 @@ begin
       Result.Target.Cache := detail.Cache;
     end;
 
-    // Keep legacy/noise-tolerant behavior if strengths are absent.
-    if (targetSignal = 0.0) and (detail.MoleculesPresent <> []) then
-      if Result.Score < 0.01 then
-        Result.Score := 0.01;
-
     if Result.Score >= 1.0 then
       Break;
   end;
-
-  // Keep a tiny local affordance when a local cache is present but strengths are not populated yet.
-  if (Result.Score = 0.0) and (Length(Input.Smell.Details) > 0) then
-    for var detail in Input.Smell.Details do
-      if detail.Directions.Distance = 0 then
-      begin
-        Result.Score := 0.01;
-        Result.Target.TType := ttCache;
-        Result.Target.Cache := detail.Cache;
-        Break;
-      end;
 
   // Discount forage urgency when reserves are already high � other actions can outcompete.
   case Input.EnergyLevel of

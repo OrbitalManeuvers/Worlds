@@ -5,7 +5,7 @@ interface
 uses u_AgentTypes, u_SimEnvironments;
 
 type
-  TWanderFoodHintPreference = (wfpAny, wfpPreferBiomass, wfpBiomassOnly);
+  TWanderFoodHintPreference = (wfpAny, wfpPreferDelta, wfpDeltaOnly);
 
   ISimQuery = interface
     ['{8C77A41D-4AD7-4232-8E5A-6469F16F1D90}']

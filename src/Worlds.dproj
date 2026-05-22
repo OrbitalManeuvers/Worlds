@@ -171,7 +171,6 @@
         <DCCReference Include="common\u_Serialization.pas"/>
         <DCCReference Include="common\u_BiomeMaps.pas"/>
         <DCCReference Include="sim\u_Simulators.pas"/>
-        <DCCReference Include="sim\u_SimParams.pas"/>
         <DCCReference Include="sim\u_SimControllers.pas"/>
         <DCCReference Include="sim\u_SimClocks.pas"/>
         <DCCReference Include="sim\u_SimRuntimes.pas"/>
@@ -239,7 +238,6 @@
             <Form>SimulatorFrame</Form>
             <DesignClass>TFrame</DesignClass>
         </DCCReference>
-        <DCCReference Include="sim\u_BiomassConfigResolvers.pas"/>
         <DCCReference Include="common\u_SimpleJSON.pas"/>
         <DCCReference Include="ui\fr_SimController.pas">
             <Form>ControllerFrame</Form>

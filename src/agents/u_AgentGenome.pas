@@ -76,6 +76,7 @@ type
     Reserves: Single;
     ReserveDelta: Single;
     TicksSinceReproduction: Integer;
+    Age: Integer;
     CurrentAction: TAgentAction;
     LocalAgentCount: Integer;
   end;
@@ -84,7 +85,7 @@ type
     EnergyLevel: TEnergyLevel;
     ReserveDelta: Single;
     TicksSinceForage: Integer;
-    HasSmellSignal: Boolean;
+    HasRemoteSmellSignal: Boolean;
     CurrentAction: TAgentAction;
   end;
 
@@ -244,8 +245,7 @@ type
 
   TCognitionGene = class(TGene)
     class function Decide(const Input: TCognitionInput; var Scratch: TCognitionScratch): TCognitionOutput; virtual; abstract;
-    class function Reflect(const Input: TCognitionReflectionInput;
-      var Scratch: TReflectionScratch): TCognitionReflectionOutput; virtual;
+    class function Reflect(const Input: TCognitionReflectionInput; var Scratch: TReflectionScratch): TCognitionReflectionOutput; virtual; abstract;
   end;
   TCognitionGeneClass = class of TCognitionGene;
 
@@ -344,15 +344,6 @@ end;
 class function TGene.GetGenerationCode: Char;
 begin
   Result := 'A';
-end;
-
-{ TCognitionGene }
-
-class function TCognitionGene.Reflect(const Input: TCognitionReflectionInput;
-  var Scratch: TReflectionScratch): TCognitionReflectionOutput;
-begin
-  Scratch := Default(TReflectionScratch);
-  Result := Default(TCognitionReflectionOutput);
 end;
 
 

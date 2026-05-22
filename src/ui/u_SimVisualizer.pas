@@ -61,8 +61,17 @@ type
   protected
     function SampleCellLuma(const CellX, CellY: Integer): Byte; override;
   public
-    constructor Create;
     property SubstanceIndex: Integer read fSubstanceIndex write SetSubstanceIndex;
+  end;
+
+  TDeltaVisualizer = class(TSimVisualizer)
+  private
+    fDeltaLumaByCell: array of Byte;
+    fLookupWidth: Integer;
+    fLookupHeight: Integer;
+  protected
+    procedure BeforeDataRequired(DataRect: TRect); override;
+    function SampleCellLuma(const CellX, CellY: Integer): Byte; override;
   end;
 
 
@@ -302,11 +311,6 @@ end;
 
 { TSubstanceVisualizer }
 
-constructor TSubstanceVisualizer.Create;
-begin
-  inherited;
-end;
-
 function TSubstanceVisualizer.SampleCellLuma(const CellX, CellY: Integer): Byte;
 begin
   Result := 0;
@@ -350,6 +354,62 @@ end;
 procedure TSubstanceVisualizer.SetSubstanceIndex(const Value: Integer);
 begin
   fSubstanceIndex := Value;
+end;
+
+
+{ TDeltaVisualizer }
+
+procedure TDeltaVisualizer.BeforeDataRequired(DataRect: TRect);
+begin
+  inherited;
+
+  fLookupWidth := 0;
+  fLookupHeight := 0;
+  SetLength(fDeltaLumaByCell, 0);
+
+  if not Assigned(Simulator) then
+    Exit;
+
+  var env := Simulator.Runtime.Environment;
+  fLookupWidth := env.Dimensions.cx;
+  fLookupHeight := env.Dimensions.cy;
+
+  if (fLookupWidth <= 0) or (fLookupHeight <= 0) then
+    Exit;
+
+  var cellCount := fLookupWidth * fLookupHeight;
+  if cellCount <= 0 then
+    Exit;
+
+  SetLength(fDeltaLumaByCell, cellCount);
+  FillChar(fDeltaLumaByCell[0], cellCount * SizeOf(Byte), 0);
+
+  // Prebuild cell-indexed luma once per data pass for fast O(1) sampling.
+  for var i := 0 to High(env.DeltaCaches) do
+  begin
+    var cache := env.DeltaCaches[i];
+    var cellIndex := cache.CellIndex;
+    if (cellIndex < 0) or (cellIndex >= cellCount) then
+      Continue;
+
+    var luma := Byte(Round(EnsureRange(cache.Amount * 255.0, 0.0, 255.0)));
+    if luma > fDeltaLumaByCell[cellIndex] then
+      fDeltaLumaByCell[cellIndex] := luma;
+  end;
+end;
+
+function TDeltaVisualizer.SampleCellLuma(const CellX, CellY: Integer): Byte;
+begin
+  Result := 0;
+
+  if (CellX < 0) or (CellY < 0) or (CellX >= fLookupWidth) or (CellY >= fLookupHeight) then
+    Exit;
+
+  var cellIndex := (CellY * fLookupWidth) + CellX;
+  if (cellIndex < 0) or (cellIndex >= Length(fDeltaLumaByCell)) then
+    Exit;
+
+  Result := fDeltaLumaByCell[cellIndex];
 end;
 
 end.

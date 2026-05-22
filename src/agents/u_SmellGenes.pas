@@ -11,7 +11,7 @@ type
       var Scratch: TSmellScanScratch): TSmellReport; override;
   end;
 
-  TBiomassSmell = class(TBasicSmell)
+  TDeltaSmell = class(TBasicSmell)
   public
     class function GetGenerationCode: Char; override;
   end;
@@ -298,15 +298,15 @@ begin
   end;
 end;
 
-{ TBiomassSmell }
+{ TDeltaSmell }
 
-class function TBiomassSmell.GetGenerationCode: Char;
+class function TDeltaSmell.GetGenerationCode: Char;
 begin
   Result := 'B';
 end;
 
 initialization
   GlobalGeneRegistry.RegisterGene(TBasicSmell);
-  GlobalGeneRegistry.RegisterGene(TBiomassSmell);
+  GlobalGeneRegistry.RegisterGene(TDeltaSmell);
 
 end.

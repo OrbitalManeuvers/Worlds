@@ -19,25 +19,32 @@ type
     GrowthRate: Single;      // incorporates Biome.GrowthRate and Food.GrowthRate
   end;
 
-  // biomass caches are separate from growable resources - dynamic and temporary
-  TBiomassCache = record
+  // Delta caches are runtime-managed special caches.
+  TDeltaCache = record
     CellIndex: Integer;
     Amount: Single;
     RegenDebt: Single;
+  end;
+
+  TDeltaUpkeepReport = record
+    ActiveCount: Integer;
+    ExtinctCount: Integer;
+    UpdatedCount: Integer;
   end;
 
   // Grid is made up of TCell
   TCell = record
     ResourceStart: Integer;
     ResourceCount: Word;
-    Sunlight: Single;
-    Mobility: Single;
+    Sunlight: Single;  // affects resource growth
+    Mobility: Single;  // affects movement cost
+    DeltaChance: Word; // chance of a cache happening here tonight
   end;
 
   TCellArray = array of TCell;
   TResourceArray = array of TResourceCache;
   TSubstanceArray = array of TSubstance;
-  TBiomassCacheArray = array of TBiomassCache;
+  TDeltaCacheArray = array of TDeltaCache;
 
   TSubstanceEntry = record
     Substance: TSubstance;
@@ -53,11 +60,12 @@ type
     fResourceCount: Integer; // read only cache for instrumentation
     fSubstanceEntries: TSubstanceEntries;
     fSolarFlux: Single;
-    fBiomassCaches: TBiomassCacheArray;
+    fLunarFlux: Single;
+    fDeltaCaches: TDeltaCacheArray;
+    fLastDeltaUpkeepReport: TDeltaUpkeepReport;
     procedure SetDayTick(const Value: TDayTick);
     procedure UpdateResources(const aDayTick: TDayTick);
-    procedure UpdateBiomass(const aDayTick: TDayTick);
-    function CreateBiomassCache(CellIndex: Integer; InitialAmount: Single): Integer;
+    function CreateDeltaCache(CellIndex: Integer; InitialAmount: Single): Integer;
   public
     constructor Create;
     destructor Destroy; override;
@@ -70,12 +78,12 @@ type
     procedure SetDimensions(aSize: TSize);
     procedure SetResourceCount(aCount: Integer);
 
-    // Public biomass insertion path for runtime-controlled deposits.
-    procedure InjectBiomass(Location: Integer; BiomassAmount: Single);
-
     // Hook for runtime death events. BiomassAmount is currently caller-selected.
-    // Future expansion: derive this from richer agent death metadata (mass, composition, etc.).
     procedure NotifyAgentDeath(Location: Integer; BiomassAmount: Single);
+
+    procedure ApplyDeltaSpawnPlan(const Cells: array of Integer; InitialAmount: Single);
+    function UpdateDelta(const aDayTick: TDayTick): TDeltaUpkeepReport;
+    function CleanupExtinctDeltaCaches: Integer;
 
     property Cells: TCellArray read fCells;
     property Resources: TResourceArray read fResources;
@@ -83,14 +91,16 @@ type
     property SubstanceEntries: TSubstanceEntries read fSubstanceEntries;
 
     property SolarFlux: Single read fSolarFlux write fSolarFlux;
+    property LunarFlux: Single read fLunarFlux write fLunarFlux;
     property DayTick: TDayTick write SetDayTick;
     property Dimensions: TSize read fDimensions;
 
-    property BiomassCaches: TBiomassCacheArray read fBiomassCaches;
+    property DeltaCaches: TDeltaCacheArray read fDeltaCaches;
+    property LastDeltaUpkeepReport: TDeltaUpkeepReport read fLastDeltaUpkeepReport;
   end;
 
 const
-  BIOMASS_SUBSTANCE: TSubstance = (0, 0, 0, 100);
+  DELTA_SUBSTANCE: TSubstance = (0, 0, 0, 100);
 
 implementation
 
@@ -110,6 +120,27 @@ begin
     Result := 0;
 end;
 
+function BaseLunarFlux(const DayTick: TDayTick): Single;
+var
+  NightTick: Integer;
+  Phase: Single;
+begin
+  if DayTick <= High(TDaylightTicks) then
+    Exit(0);
+
+  // NightTick: 0 at sunset, NIGHT_TICKS_PER_DAY-1 at end of night
+  NightTick := DayTick - DAYLIGHT_TICKS_PER_DAY;
+
+  // Asymmetric curve: fast rise, slow decay.
+  // Use a skewed sine: compress the rise into the first 1/3 of the night,
+  // let the decay coast through the remaining 2/3.
+  Phase := NightTick / (NIGHT_TICKS_PER_DAY - 1); // 0..1 across night
+  Result := Sin(Pi * Power(Phase, 0.45));           // exponent < 1 skews peak early
+  if Result < 0 then
+    Result := 0;
+end;
+
+
 { TSimEnvironment }
 
 constructor TSimEnvironment.Create;
@@ -126,9 +157,10 @@ end;
 procedure TSimEnvironment.SetDayTick(const Value: TDayTick);
 begin
   fSolarFlux := BaseSolarFlux(Value);
+  fLunarFlux := BaseLunarFlux(Value);
 
   UpdateResources(Value);
-  UpdateBiomass(Value);
+  fLastDeltaUpkeepReport := UpdateDelta(Value);
 end;
 
 procedure TSimEnvironment.UpdateResources(const aDayTick: TDayTick);
@@ -204,48 +236,92 @@ end;
 
 procedure TSimEnvironment.NotifyAgentDeath(Location: Integer; BiomassAmount: Single);
 begin
-  InjectBiomass(Location, BiomassAmount);
+  // kept for future consideration
 end;
 
-procedure TSimEnvironment.InjectBiomass(Location: Integer; BiomassAmount: Single);
-begin
-  // Bounds-check Location against valid cell indices.
-  if (Location < 0) or (Location > High(fCells)) then
-    Exit;
-
-  CreateBiomassCache(Location, BiomassAmount);
-end;
-
-function TSimEnvironment.CreateBiomassCache(CellIndex: Integer; InitialAmount: Single): Integer;
+function TSimEnvironment.CreateDeltaCache(CellIndex: Integer; InitialAmount: Single): Integer;
 var
-  NewCache: TBiomassCache;
+  NewCache: TDeltaCache;
 begin
   NewCache.CellIndex := CellIndex;
   NewCache.Amount := EnsureRange(InitialAmount, 0.0, 1.0);
   NewCache.RegenDebt := 0.0;
-  
-  SetLength(fBiomassCaches, Length(fBiomassCaches) + 1);
-  fBiomassCaches[High(fBiomassCaches)] := NewCache;
-  
-  Result := High(fBiomassCaches);
+
+  SetLength(fDeltaCaches, Length(fDeltaCaches) + 1);
+  fDeltaCaches[High(fDeltaCaches)] := NewCache;
+
+  Result := High(fDeltaCaches);
 end;
 
-procedure TSimEnvironment.UpdateBiomass(const aDayTick: TDayTick);
-const
-  BIOMASS_SUNLIGHT_DECAY_RATE = 0.08;
-  BIOMASS_NIGHT_DECAY_RATE = 0.002;
-var
-  decay: Single;
+procedure TSimEnvironment.ApplyDeltaSpawnPlan(const Cells: array of Integer; InitialAmount: Single);
 begin
-  for var cacheIndex := 0 to High(fBiomassCaches) do
+  for var i := 0 to High(Cells) do
+    if (Cells[i] >= 0) and (Cells[i] <= High(fCells)) then
+      CreateDeltaCache(Cells[i], InitialAmount);
+end;
+
+function TSimEnvironment.UpdateDelta(const aDayTick: TDayTick): TDeltaUpkeepReport;
+const
+  DELTA_GROWTH_RATE = 0.04;
+  DELTA_NO_MOON_DECAY_PER_TICK = 0.088;
+  REGEN_DEBT_DECAY_PER_TICK = 1.0;
+  DELTA_EXTINCTION_EPSILON = 0.001;
+begin
+  Result := Default(TDeltaUpkeepReport);
+  Result.UpdatedCount := Length(fDeltaCaches);
+
+  // Mirror core resource dynamics using lunar flux: soft-cap growth under moonlight,
+  // no-moon decay when flux is absent, and debt-gated regrowth.
+  for var i := 0 to High(fDeltaCaches) do
   begin
-    decay := fSolarFlux * BIOMASS_SUNLIGHT_DECAY_RATE + BIOMASS_NIGHT_DECAY_RATE;
-    fBiomassCaches[cacheIndex].Amount := EnsureRange(
-      fBiomassCaches[cacheIndex].Amount - decay,
-      0.0,
-      1.0
-    );
+    var amount := fDeltaCaches[i].Amount;
+    var debt   := fDeltaCaches[i].RegenDebt;
+    var fill   := EnsureRange(amount, 0.0, 1.0);
+
+    var growth := fLunarFlux * DELTA_GROWTH_RATE * (1.0 - fill);
+
+    if debt > 0.0 then
+    begin
+      debt   := debt - REGEN_DEBT_DECAY_PER_TICK;
+      growth := 0.0;
+    end;
+
+    var decay := 0.0;
+    if fLunarFlux <= 0.0 then
+      decay := DELTA_NO_MOON_DECAY_PER_TICK;
+
+    fDeltaCaches[i].RegenDebt := Max(0.0, debt);
+    fDeltaCaches[i].Amount    := EnsureRange(amount + growth - decay, 0.0, 1.0);
   end;
+
+  for var i := 0 to High(fDeltaCaches) do
+    if fDeltaCaches[i].Amount > DELTA_EXTINCTION_EPSILON then
+      Inc(Result.ActiveCount)
+    else
+      Inc(Result.ExtinctCount);
+end;
+
+function TSimEnvironment.CleanupExtinctDeltaCaches: Integer;
+const
+  DELTA_EXTINCTION_EPSILON = 0.001;
+begin
+  Result := 0;
+  var writeIndex := 0;
+
+  for var i := 0 to High(fDeltaCaches) do
+  begin
+    if fDeltaCaches[i].Amount > DELTA_EXTINCTION_EPSILON then
+    begin
+      if i <> writeIndex then
+        fDeltaCaches[writeIndex] := fDeltaCaches[i];
+      Inc(writeIndex);
+    end
+    else
+      Inc(Result);
+  end;
+
+  if writeIndex <> Length(fDeltaCaches) then
+    SetLength(fDeltaCaches, writeIndex);
 end;
 
 end.

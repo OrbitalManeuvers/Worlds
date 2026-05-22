@@ -17,9 +17,6 @@ type
 
   { TUpscalerParameters - parameters for a normal (upscaled) session }
 
-  TBiomassInjectionMode = (bimOnDeath, bimAtNightfall, bimRandom);
-  TBiomassInjectionModes = set of TBiomassInjectionMode;
-
   TRuleTarget = (rtSmell, rtConverter);
   TRuleTargets = set of TRuleTarget;
   TPopulationRule = record
@@ -41,6 +38,7 @@ type
       DOAChance: Integer;
       Rules: array of TPopulationRule;
       Scheme: TPopulationScheme;
+      AgentActivationTick: Integer;  // 0 = activate from tick 1 (default)
     end;
 
     Environment: record
@@ -48,10 +46,15 @@ type
       NightDecayRate: TRating;
     end;
 
-    Biomass: record
-      InjectionModes: TBiomassInjectionModes;
-      Density: TRating;
-    end;
+//
+//    Delta: record
+//      Enabled: Boolean;
+//      Density: TRating;
+//      InitialAmount: Single;
+//      CycleLength: Integer;
+//      MinSpacingCells: Integer;
+//      CleanupGraceTicks: Integer;
+//    end;
 
     procedure InitDefaults;
   end;
@@ -76,8 +79,13 @@ begin
   Environment.DayDecayRate := Normal;
   Environment.NightDecayRate := Normal;
 
-  Biomass.InjectionModes := [bimOnDeath];
-  Biomass.Density := Normal;
+
+//  Delta.Enabled := False;
+//  Delta.Density := Normal;
+//  Delta.InitialAmount := 1.0;
+//  Delta.CycleLength := 3;
+//  Delta.MinSpacingCells := 4;
+//  Delta.CleanupGraceTicks := 0;
 end;
 
 end.

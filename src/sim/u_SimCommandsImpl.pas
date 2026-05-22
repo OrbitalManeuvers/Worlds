@@ -75,10 +75,10 @@ begin
         Reply.RemainingAmount := fEnvironment.Resources[cacheIndex].Amount;
         Result := consumed > 0.0;
       end;
-    ckBiomass:
+    ckDelta:
       begin
         var cacheIndex := Request.Cache.Index;
-        var available := fEnvironment.BiomassCaches[cacheIndex].Amount;
+        var available := fEnvironment.DeltaCaches[cacheIndex].Amount;
         if available <= 0.0 then
           Exit;
 
@@ -86,13 +86,13 @@ begin
         if consumed > available then
           consumed := available;
 
-        Reply.Substance := BIOMASS_SUBSTANCE;
+        Reply.Substance := DELTA_SUBSTANCE;
 
         var remaining := available - consumed;
-        fEnvironment.BiomassCaches[cacheIndex].Amount := remaining;
+        fEnvironment.DeltaCaches[cacheIndex].Amount := remaining;
 
         Reply.ConsumedAmount := consumed;
-        Reply.RemainingAmount := fEnvironment.BiomassCaches[cacheIndex].Amount;
+        Reply.RemainingAmount := fEnvironment.DeltaCaches[cacheIndex].Amount;
         Result := consumed > 0.0;
       end;
   end;

@@ -2,7 +2,7 @@ unit u_SimPopulators;
 
 interface
 
-uses u_SimParams, u_SimPopulations, u_SimEnvironments, u_BiologyTypes;
+uses u_SessionParameters, u_SimPopulations, u_SimEnvironments, u_BiologyTypes;
 
 type
   TWorldPopulator = class
@@ -10,7 +10,7 @@ type
     class function FindBarrenCell(aEnvironment: TSimEnvironment; aBarrenRadius: Integer): Integer;
     class function FindResourceCell(aEnvironment: TSimEnvironment; aMinResources: Integer): Integer;
   public
-    class procedure Populate(aPopulation: TSimPopulation; aEnvironment: TSimEnvironment; aParams: TSimParams);
+    class procedure Populate(aPopulation: TSimPopulation; aEnvironment: TSimEnvironment; aParams: TUpscalerParameters);
   end;
 
   TDebugPopulator = class
@@ -31,13 +31,13 @@ const
   SMELL_RATING_FACTOR: array[TRating] of Single = (0.00, 0.35, 0.65, 1.00, 1.20, 1.40, 1.60);
   INITIAL_TICKS_SINCE_REPRODUCTION = 0;
 
-procedure ApplyBiomassGeneGates(var State: TAgentState);
+procedure ApplyDeltaGeneGates(var State: TAgentState);
 begin
   if Assigned(State.Genome.GeneMap.Smell) and (State.Genome.GeneMap.Smell.GetGenerationCode = 'A') then
-    State.Genome.SmellRatings[Biomass] := 0.0;
+    State.Genome.SmellRatings[Delta] := 0.0;
 
   if Assigned(State.Genome.GeneMap.Converter) and (State.Genome.GeneMap.Converter.GetGenerationCode = 'A') then
-    State.Genome.ConverterRatings[Biomass] := 0.0;
+    State.Genome.ConverterRatings[Delta] := 0.0;
 end;
 
 
@@ -46,8 +46,6 @@ end;
 // to consider:
 // agent compositions (molecule ratings applied to smell/converter)
 // agent locations
-// initial biomass deposits (DOA chance)
-
 
 // find a cell. optionally called once at startup.
 // aBarrenRadius:
@@ -132,7 +130,7 @@ begin
 
 end;
 
-class procedure TWorldPopulator.Populate(aPopulation: TSimPopulation; aEnvironment: TSimEnvironment; aParams: TSimParams);
+class procedure TWorldPopulator.Populate(aPopulation: TSimPopulation; aEnvironment: TSimEnvironment; aParams: TUpscalerParameters);
 const
   INVALID_CELL = -1;
 var
@@ -217,7 +215,7 @@ begin
       end;
     end;
 
-    ApplyBiomassGeneGates(state^);
+    ApplyDeltaGeneGates(state^);
 
     aPopulation.NotifyLocationChanged(i, INVALID_CELL, state.Location);
   end;
@@ -262,7 +260,7 @@ begin
     state.Genome.SmellRatings[molecule] := value;
   end;
 
-  ApplyBiomassGeneGates(state^);
+  ApplyDeltaGeneGates(state^);
 end;
 
 end.

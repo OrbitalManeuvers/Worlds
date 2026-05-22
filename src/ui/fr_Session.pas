@@ -27,7 +27,7 @@ type
     Label4: TLabel;
     SeedList: TControlList;
     lblSeedName: TLabel;
-    SpinEdit2: TSpinEdit;
+    seScaleFactor: TSpinEdit;
     Label5: TLabel;
     ScenarioList: TControlList;
     Label6: TLabel;
@@ -63,7 +63,7 @@ implementation
 {$R *.dfm}
 
 uses System.Types, System.Math, Vcl.GraphUtil,
-  u_SimParams, u_EditorTypes, u_Foods,
+  u_EditorTypes, u_Foods,
   u_Regions, u_AgentTypes, u_BiologyTypes, u_EnvironmentTypes,
   u_SimEnvironments, u_SimEventTypes,
   u_DebugLibraries, u_SessionManager;
@@ -130,7 +130,7 @@ begin
 
   if pcPages.ActivePage = tsStandard then
   begin
-    valid := False;
+    valid := valid and (WorldList.ItemIndex >= 0);
   end
   else
   begin
@@ -174,8 +174,11 @@ procedure TSessionFrame.btnCreateSimClick(Sender: TObject);
 begin
   if pcPages.ActivePage = tsStandard then
   begin
-    Assert(False);
-//    SessionManager.SubmitStandardSession(BuildCommonParameters, fUpscalerParameters);
+    fUpscalerParameters.World := WorldLibrary.Worlds[WorldList.ItemIndex];
+    fUpscalerParameters.Seed := -1;
+    fUpscalerParameters.Factor := seScaleFactor.Value;
+
+    SessionManager.SubmitStandardSession(BuildCommonParameters, fUpscalerParameters);
 
   end
   else if pcPages.ActivePage = tsDebug then

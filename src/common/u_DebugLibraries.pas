@@ -42,6 +42,7 @@ type
     Dimensions: TSize;
     DefaultSunlight: TRating;
     DefaultMobility: TRating;
+    AgentActivationTick: Integer;
     Foods: TArray<string>;
     Resources: TArray<TDebugResource>;
     Agents: TArray<TDebugAgentPresence>;
@@ -75,6 +76,7 @@ uses System.SysUtils, System.JSON, System.IOUtils,
   u_EditorTypes, u_SimpleJSON;
 
 const
+  KEY_AGENT_ACTIVATION_TICK = 'agentActivationTick';
   KEY_AGENTS = 'agents';
   KEY_BASE = 'base';
   KEY_CACHES = 'caches';
@@ -238,6 +240,7 @@ begin
 
   DefaultSunlight.AsText := JSON.StrValue(KEY_DEFAULT_SUNLIGHT);
   DefaultMobility.AsText := JSON.StrValue(KEY_DEFAULT_MOBILITY);
+  AgentActivationTick := JSON.IntValue(KEY_AGENT_ACTIVATION_TICK);
 
   var jArr: TJSONArray;
   if JSON.TryGetValue(KEY_FOODS, jArr) then

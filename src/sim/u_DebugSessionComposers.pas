@@ -63,6 +63,11 @@ begin
   if scenario.Seed <> 0 then
     RandSeed := scenario.Seed;
 
+  // runtime config
+  var runtimeConfig := Default(TRuntimeConfig);
+  runtimeConfig.AgentActivationTick := scenario.AgentActivationTick;
+  aRuntime.ConfigureRuntime(runtimeConfig);
+
   // environment
   var upscaler := TDebugUpscaler.Create(aRuntime.Environment,
     scenario.Dimensions, scenario.DefaultSunlight, scenario.DefaultMobility);
@@ -95,6 +100,8 @@ begin
   finally
     upscaler.Free;
   end;
+
+  aRuntime.RebuildDeltaPlacementCycles;
 
   // population
   var population := aRuntime.Population;

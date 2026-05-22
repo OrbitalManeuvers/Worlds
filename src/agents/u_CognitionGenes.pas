@@ -8,16 +8,30 @@ type
   TBasicCognition = class(TCognitionGene)
   public
     class function Decide(const Input: TCognitionInput; var Scratch: TCognitionScratch): TCognitionOutput; override;
+    class function Reflect(const Input: TCognitionReflectionInput; var Scratch: TReflectionScratch): TCognitionReflectionOutput; override;
   end;
 
-  // consider for mutations
+
+  // knows how to incorporate decision weights
   TLearningCognition = class(TBasicCognition)
+  private
+    class function MoveReflection(const Input: TCognitionReflectionInput;
+      var Scratch: TReflectionScratch): TCognitionReflectionOutput;
+
+    class function ForageReflection(const Input: TCognitionReflectionInput;
+      var Scratch: TReflectionScratch): TCognitionReflectionOutput;
+    class function ShelterReflection(const Input: TCognitionReflectionInput;
+      var Scratch: TReflectionScratch): TCognitionReflectionOutput;
+    class function ReproduceReflection(const Input: TCognitionReflectionInput;
+      var Scratch: TReflectionScratch): TCognitionReflectionOutput;
   public
     class function GetGenerationCode: Char; override;
     class function Reflect(const Input: TCognitionReflectionInput;
       var Scratch: TReflectionScratch): TCognitionReflectionOutput; override;
-  end;  // knows how to incorporate decision weights
-  TExploringCognition = class(TCognitionGene); // knows how to wander in good times
+  end;
+
+  // knows how to wander in good times
+  TExploringCognition = class(TCognitionGene);
 
 
 implementation
@@ -36,6 +50,16 @@ const
   MOVE_REFLECT_PROGRESS_OUTCOME = 0.06;
   MOVE_REFLECT_NO_PROGRESS_OUTCOME = -0.03;
   MOVE_REFLECT_BLOCKED_OUTCOME = -0.06;
+
+  // Forage reflection: small signal tied to realized gain.
+  // Keep magnitudes modest so forage learning doesn't drown out move learning.
+  FORAGE_REFLECT_GAIN_OUTCOME = 0.05;
+  FORAGE_REFLECT_NO_GAIN_OUTCOME = -0.04;
+
+  // Shelter reflection: reward when reserves are recovering while sheltered.
+  // No negative signal — flat/declining reserves while sheltered may still be
+  // better than the alternative, so silence is more honest than punishment.
+  SHELTER_REFLECT_RECOVERY_OUTCOME = 0.04;
 
 function SmellSignalForCell(const Smell: TSmellReport; const CellIndex: Integer): Single;
 begin
@@ -188,6 +212,15 @@ begin
   end;
 end;
 
+class function TBasicCognition.Reflect(const Input: TCognitionReflectionInput;
+  var Scratch: TReflectionScratch): TCognitionReflectionOutput;
+begin
+  Scratch := Default(TReflectionScratch);
+  Result := Default(TCognitionReflectionOutput);
+end;
+
+
+
 { TLearningCognition }
 
 class function TLearningCognition.GetGenerationCode: Char;
@@ -201,9 +234,43 @@ begin
   Scratch := Default(TReflectionScratch);
   Result := Default(TCognitionReflectionOutput);
 
-  if Input.RequestedAction <> acMove then
-    Exit;
+  case Input.RequestedAction of
+    acMove: Result := MoveReflection(Input, Scratch);
+    acForage: Result := ForageReflection(Input, Scratch);
+    acShelter: Result := ShelterReflection(Input, Scratch);
+    acReproduce: Result := ReproduceReflection(Input, Scratch);
+    acIdle: begin  end;
+  else
+    Assert(False, 'unknown learned action');
+  end;
+end;
 
+class function TLearningCognition.ForageReflection(
+  const Input: TCognitionReflectionInput;
+  var Scratch: TReflectionScratch): TCognitionReflectionOutput;
+begin
+  Result := Default(TCognitionReflectionOutput);
+  Result.LearnedAction := acForage;
+
+  // Skip update if the action was downgraded — agent didn't actually forage.
+  if Input.ResolvedAction <> acForage then
+  begin
+    Result.HasWeightUpdate := False;
+    Exit;
+  end;
+
+  // Positive outcome when forage produced a gain; negative when it produced nothing.
+  Result.HasWeightUpdate := True;
+  if Input.ForageGain > 0.0 then
+    Result.Outcome := FORAGE_REFLECT_GAIN_OUTCOME
+  else
+    Result.Outcome := FORAGE_REFLECT_NO_GAIN_OUTCOME;
+end;
+
+class function TLearningCognition.MoveReflection(
+  const Input: TCognitionReflectionInput;
+  var Scratch: TReflectionScratch): TCognitionReflectionOutput;
+begin
   Result.LearnedAction := acMove;
   Result.HasWeightUpdate := True;
 
@@ -233,6 +300,39 @@ begin
     Result.Outcome := MOVE_REFLECT_NO_PROGRESS_OUTCOME;
 end;
 
+class function TLearningCognition.ReproduceReflection(
+  const Input: TCognitionReflectionInput;
+  var Scratch: TReflectionScratch): TCognitionReflectionOutput;
+begin
+  Result := Default(TCognitionReflectionOutput);
+  Result.LearnedAction := acReproduce;
+  Result.HasWeightUpdate := False;
+end;
+
+class function TLearningCognition.ShelterReflection(
+  const Input: TCognitionReflectionInput;
+  var Scratch: TReflectionScratch): TCognitionReflectionOutput;
+begin
+  Result := Default(TCognitionReflectionOutput);
+  Result.LearnedAction := acShelter;
+
+  // Skip update if the action was downgraded — agent didn't actually shelter.
+  if Input.ResolvedAction <> acShelter then
+  begin
+    Result.HasWeightUpdate := False;
+    Exit;
+  end;
+
+  // Reward shelter when reserves are visibly recovering.
+  // Flat or negative delta gets silence — not a punishment.
+  if Input.ReserveDelta > 0.0 then
+  begin
+    Result.HasWeightUpdate := True;
+    Result.Outcome := SHELTER_REFLECT_RECOVERY_OUTCOME;
+  end
+  else
+    Result.HasWeightUpdate := False;
+end;
 
 initialization
   GlobalGeneRegistry.RegisterGene(TBasicCognition);

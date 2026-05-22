@@ -198,8 +198,18 @@ begin
   Result.EnergyLevel := Context.EnergyLevel;
   Result.ReserveDelta := State.ReserveDelta;
   Result.TicksSinceForage := State.TicksSinceForage;
-  Result.HasSmellSignal := Context.Smell.Count > 0;
   Result.CurrentAction := Context.CurrentAction;
+
+  // Suppress wander only when there's a remote smell signal worth chasing.
+  // A local-only signal (distance 0) means the agent is already on the food;
+  // that should influence forage scoring, not block wander.
+  Result.HasRemoteSmellSignal := False;
+  for var detail in Context.Smell.Details do
+    if detail.Directions.Distance > 0 then
+    begin
+      Result.HasRemoteSmellSignal := True;
+      Break;
+    end;
 end;
 
 function BuildShelterEvalInput(const Context: TDecisionContext): TShelterEvalInput;
@@ -221,6 +231,7 @@ begin
   Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
   Result.TicksSinceReproduction := State.TicksSinceReproduction;
+  Result.Age := State.Age;
   Result.CurrentAction := Context.CurrentAction;
   Result.LocalAgentCount := LocalAgentCount;
 end;
@@ -236,6 +247,16 @@ begin
   Result.Context := Context;
   Result.ActionEvaluations := ActionEvaluations;
   Result.CurrentTarget := CurrentTarget;
+end;
+
+function BuildWeightedEvaluations(const State: TAgentState; const Buckets: TDecisionBuckets;
+  const BaseEvaluations: TActionEvaluations): TActionEvaluations;
+begin
+  Result := BaseEvaluations;
+
+  for var action := Low(TDecisionAction) to High(TDecisionAction) do
+    Result[action].Score := Result[action].Score
+      + State.DecisionWeights[action, Buckets.Energy, Buckets.FoodSignal, Buckets.DayPhase];
 end;
 
 function BuildCognitionReflectionInput(const State: TAgentState; const Decision: TBrainTickOutput;
@@ -437,7 +458,8 @@ begin
   var cognitionGene := State.Genome.GeneMap.Cognition;
   if Assigned(cognitionGene) then
   begin
-    var cognitionInput := BuildCognitionInput(Scratch.DecisionContext, Scratch.ActionEvaluations, State.ActionTarget);
+    var weightedEvaluations := BuildWeightedEvaluations(State, Result.DecisionBuckets, Scratch.ActionEvaluations);
+    var cognitionInput := BuildCognitionInput(Scratch.DecisionContext, weightedEvaluations, State.ActionTarget);
     var cognitionOutput := cognitionGene.Decide(cognitionInput, Scratch.EvaluatorScratch.Cognition);
 
     Result.RequestedAction := cognitionOutput.RequestedAction;
@@ -460,8 +482,8 @@ begin
     begin
       var wanderQuery := Input.Query as IEnvironmentWanderQuery;
       var hintPreference := wfpAny;
-      if State.Genome.ConverterRatings[Biomass] > 0.0 then
-        hintPreference := wfpPreferBiomass;
+      if State.Genome.ConverterRatings[Delta] > 0.0 then
+        hintPreference := wfpPreferDelta;
       var hintWasFallback := False;
 
       // Keep move output valid even when no distant hint is available.

@@ -5,17 +5,17 @@ interface
 uses System.Types, System.Classes, System.Generics.Collections,
   u_Regions, u_EnvironmentTypes, u_EnvironmentLibraries,
   u_Biomes, u_Foods,
-  u_SimParams, u_SimEnvironments, u_WorldLayouts;
+  u_SessionParameters, u_SimEnvironments, u_WorldLayouts;
 
 type
   TWorldUpscaler = class
   private
-    Params: TSimParams;
+    Params: TUpscalerParameters;
     Environment: TSimEnvironment;
     RequiredResourceCount: Integer;
     function ResourceGrowthRate(aBiomeRating, aFoodRating: TRating): Single;
   public
-    constructor Create(aEnvironment: TSimEnvironment; aParams: TSimParams);
+    constructor Create(aEnvironment: TSimEnvironment; aParams: TUpscalerParameters);
 
     procedure UpscaleWorld(aLayout: TWorldLayout);
     property ResourceCount: Integer read RequiredResourceCount;
@@ -76,6 +76,10 @@ const
   // E.g. yourDensityChance = baseChance * DENSITY_FACTOR[rating]
   DENSITY_FACTOR: array[TRating] of Single = (0.01, 0.03, 0.06, 0.10, 0.11, 0.118, 0.135);
 
+  // Chance (i.e. X in 100) that a Delta cache might be created here.
+  // Worst = none, Best = guaranteed. Curve is roughly exponential across the 7 steps.
+  DELTA_CHANCE: array[TRating] of Word = (0, 3, 8, 18, 40, 70, 100);
+
 
 { TBiomeHelper }
 
@@ -91,13 +95,13 @@ begin
   Result[Alpha] := Self.Recipe.Percents[Alpha];
   Result[Beta] := Self.Recipe.Percents[Beta];
   Result[Gamma] := Self.Recipe.Percents[Gamma];
-  Result[Biomass] := 0;
+  Result[Delta] := 0;
 end;
 
 
 { TWorldUpscaler }
 
-constructor TWorldUpscaler.Create(aEnvironment: TSimEnvironment; aParams: TSimParams);
+constructor TWorldUpscaler.Create(aEnvironment: TSimEnvironment; aParams: TUpscalerParameters);
 begin
   inherited Create;
   Environment := aEnvironment;
@@ -205,6 +209,7 @@ begin
       Environment.Cells[cellIndex].Mobility := MOBILITY_COST_PENALTY[biome.Mobility];
       Environment.Cells[cellIndex].ResourceStart := resourceWriteIndex;
       Environment.Cells[cellIndex].ResourceCount := 0;
+      Environment.Cells[cellIndex].DeltaChance := DELTA_CHANCE[biome.DeltaDensity];
 
       var biomeFoods := aLayout.BiomeFoodIndexes[biomeIndex];
       for var i := 0 to Length(biomeFoods) - 1 do

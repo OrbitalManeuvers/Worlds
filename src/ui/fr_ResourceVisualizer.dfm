@@ -1,8 +1,8 @@
 object ResViewFrame: TResViewFrame
   Left = 0
   Top = 0
-  Width = 299
-  Height = 329
+  Width = 300
+  Height = 330
   DoubleBuffered = True
   DoubleBufferedMode = dbmRequested
   Font.Charset = DEFAULT_CHARSET
@@ -17,8 +17,8 @@ object ResViewFrame: TResViewFrame
     AlignWithMargins = True
     Left = 3
     Top = 3
-    Width = 293
-    Height = 323
+    Width = 294
+    Height = 324
     Align = alClient
     ExplicitLeft = 280
     ExplicitTop = 320
@@ -53,6 +53,7 @@ object ResViewFrame: TResViewFrame
     Height = 17
     PageSize = 0
     TabOrder = 0
+    OnChange = ScrollChange
   end
   object sbVPan: TScrollBar
     Left = 273
@@ -62,6 +63,7 @@ object ResViewFrame: TResViewFrame
     Kind = sbVertical
     PageSize = 0
     TabOrder = 1
+    OnChange = ScrollChange
   end
   object spZoomFactor: TSpinEdit
     Left = 253

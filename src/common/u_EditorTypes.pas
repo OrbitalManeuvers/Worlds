@@ -14,7 +14,7 @@ type
 
 const
   RATING_NAMES: TRatingNames = ('Worst', 'Horrible', 'Bad', 'Normal', 'Good', 'Great', 'Best');
-  MOLECULE_NAMES: array[TMolecule] of string = ('Alpha', 'Beta', 'Gamma', 'Biomass');
+  MOLECULE_NAMES: array[TMolecule] of string = ('Alpha', 'Beta', 'Gamma', 'Delta');
 
   MOLECULE_COLORS: array[TMolecule] of string = ('#6FA8DC', '#93C47D', '#E69138', '#D3A29C');
 

@@ -153,6 +153,7 @@ begin
     ground.Mobility := Best;    // i.e. unmodified
     ground.Density := Worst;   // doesn't really matter
     ground.GrowthRate := Worst; // doesn't really matter
+    ground.DeltaDensity := Low(TRating);
     AddBiome(ground);
   except
     ground.Free;

@@ -27,7 +27,7 @@ begin
   inherited Create;
   for var molecule := Low(TMolecule) to High(TMolecule) do
     fRatings[molecule] := Normal;
-  fRatings[Biomass] := Worst;  // worst means cannot convert/detect
+  fRatings[Delta] := Worst;  // worst means cannot convert/detect
 end;
 
 function TMoleculeRatings.GetRating(I: TMolecule): TRating;

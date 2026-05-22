@@ -37,11 +37,12 @@ const
   KEY_DENSITY = 'density';
   KEY_SUNLIGHT = 'sunlight';
   KEY_MOBILITY = 'mobility';
+  KEY_DELTA_DENSITY = 'deltaDensity';
 
   KEY_ALPHA = 'alpha';
   KEY_BETA = 'beta';
   KEY_GAMMA = 'gamma';
-  KEY_BIOMASS = 'biomass';
+  KEY_DELTA = 'delta';
 
   KEY_LAYOUT = 'layout';
 
@@ -529,6 +530,7 @@ begin
   Result.AddPair(KEY_DENSITY, Density.AsText);
   Result.AddPair(KEY_SUNLIGHT, Sunlight.AsText);
   Result.AddPair(KEY_MOBILITY, Mobility.AsText);
+  Result.AddPair(KEY_DELTA_DENSITY, DeltaDensity.AsText);
 
   var arr := TJSONArray.Create;
   for var i := 0 to FoodCount - 1 do
@@ -558,6 +560,8 @@ begin
     Sunlight.AsText := strVal;
   if Value.TryGetValue(KEY_MOBILITY, strVal) then
     Mobility.AsText := strVal;
+  if Value.TryGetValue(KEY_DELTA_DENSITY, strVal) then
+    DeltaDensity.AsText := strVal;
 end;
 
 { TRegionHelper }
@@ -618,7 +622,7 @@ begin
   Result.AddPair(KEY_ALPHA, Ratings[Alpha].AsText);
   Result.AddPair(KEY_BETA, Ratings[Beta].AsText);
   Result.AddPair(KEY_GAMMA, Ratings[Gamma].AsText);
-  Result.AddPair(KEY_BIOMASS, Ratings[Biomass].AsText);
+  Result.AddPair(KEY_DELTA, Ratings[Delta].AsText);
 end;
 
 procedure TRatingsHelper.setJSON(const Value: TJSONObject);
@@ -645,10 +649,10 @@ begin
     rating.AsText := strVal;
     Ratings[Gamma] := rating;
   end;
-  if Value.TryGetValue(KEY_BIOMASS, strVal) then
+  if Value.TryGetValue(KEY_DELTA, strVal) then
   begin
     rating.AsText := strVal;
-    Ratings[Biomass] := rating;
+    Ratings[Delta] := rating;
   end;
   Modified := False;
 end;

@@ -2,17 +2,9 @@ unit u_AgentState;
 
 interface
 
-uses u_AgentTypes, u_AgentGenome;
+uses u_AgentTypes, u_AgentGenome, u_EnvironmentTypes;
 
 type
-  (*
-  Energy:     4 buckets (low, medium, high, full)
-  FoodSignal: 3 buckets (none, weak, strong)
-  DayPhase:   2 buckets (day, night)
-              -------------------------------
-              4 x 3 x 2 = 24 contexts
-              x 4 actions = 96 weights total
-  *)
   TDecisionWeights = array[TDecisionAction, TDecisionEnergy, TDecisionFoodSignal, TDecisionDayPhase] of Single;
 
   PAgentState = ^TAgentState;
@@ -38,6 +30,7 @@ type
 
     // Learned state (decision weights)
     DecisionWeights: TDecisionWeights;
+    ForageMoleculeWeights: array[TMolecule] of Single;  // to-do
 
     // Heritable traits (for reproduction + mutation)
     Genome: TAgentGenome;  // sensor ranges, metabolic params, etc.

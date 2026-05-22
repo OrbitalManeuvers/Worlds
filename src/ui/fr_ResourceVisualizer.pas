@@ -24,6 +24,7 @@ type
     procedure sbSubstanceUpClick(Sender: TObject);
     procedure sbSubstanceDownClick(Sender: TObject);
     procedure spZoomFactorChange(Sender: TObject);
+    procedure ScrollChange(Sender: TObject);
   private
     fIsActive: Boolean;
     fOnPaint: TNotifyEvent;
@@ -34,6 +35,7 @@ type
     procedure SetSubstanceNames(const Value: TStrings);
     procedure SetSubstanceIndex(const Value: Integer);
     function GetZoomFactor: Integer;
+    function GetAnchorCell: TPoint;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -46,13 +48,14 @@ type
     property SubstanceNames: TStrings read fSubstanceNames write SetSubstanceNames;
     property SubstanceIndex: Integer read fSubstanceIndex write SetSubstanceIndex;
     property ZoomFactor: Integer read GetZoomFactor;
+    property AnchorCell: TPoint read GetAnchorCell;
   end;
 
 implementation
 
 {$R *.dfm}
 
-uses Vcl.Themes,
+uses System.Types, Vcl.Themes, System.Math,
   u_SimVisualizer;
 
 procedure TResViewFrame.cbActiveClick(Sender: TObject);
@@ -123,6 +126,11 @@ begin
   SubstanceIndex := SubstanceIndex + 1;
 end;
 
+procedure TResViewFrame.ScrollChange(Sender: TObject);
+begin
+  InvalidateView;
+end;
+
 procedure TResViewFrame.SetIsActive(const Value: Boolean);
 begin
   if Value <> fIsActive then
@@ -130,8 +138,16 @@ begin
     fIsActive := Value;
     if Value <> cbActive.Checked then
       cbActive.Checked := Value;
-    if fIsActive then
-      pbVis.Invalidate;
+
+    if not fIsActive then
+    begin
+      sbHPan.Position := 0;
+      sbVPan.Position := 0;
+    end;
+    sbHPan.Enabled := fIsActive;
+    sbVPan.Enabled := fIsActive;
+
+    pbVis.Invalidate;
   end;
 end;
 
@@ -169,14 +185,41 @@ begin
 end;
 
 procedure TResViewFrame.spZoomFactorChange(Sender: TObject);
+const
+  ZoomPixels: array[TVisualizerZoom] of Integer = (1, 2, 4, 8, 16, 32);
 begin
-  pbVis.Invalidate;
+  var zoom := TVisualizerZoom(spZoomFactor.Value);
+  var visibleCells := VisualizerSize div ZoomPixels[zoom];
+  var maxAnchor := VisualizerSize - visibleCells;
+
+  sbHPan.Min := 0;
+  sbHPan.Max := maxAnchor;
+  sbHPan.SmallChange := 1;
+  sbHPan.LargeChange := Max(1, visibleCells div 4);
+  sbHPan.Enabled := maxAnchor > 0;
+  if sbHPan.Position > maxAnchor then
+    sbHPan.Position := maxAnchor;
+
+  sbVPan.Min := 0;
+  sbVPan.Max := maxAnchor;  // square world, same in both axes
+  sbVPan.SmallChange := 1;
+  sbVPan.LargeChange := Max(1, visibleCells div 4);
+  sbVPan.Enabled := maxAnchor > 0;
+  if sbVPan.Position > maxAnchor then
+    sbVPan.Position := maxAnchor;
+
+  InvalidateView;
 end;
 
 procedure TResViewFrame.InvalidateView;
 begin
   if fIsActive then
     pbVis.Invalidate;
+end;
+
+function TResViewFrame.GetAnchorCell: TPoint;
+begin
+  Result := Point(sbHPan.Position, sbVPan.Position);
 end;
 
 end.

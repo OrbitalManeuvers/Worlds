@@ -28,9 +28,9 @@ begin
   Result.Score := 0.0;
   Result.Target.TType := ttNone;
 
-  // Wander is the "no local smell" movement pressure. If smell is present,
-  // the smell-follow move evaluator should dominate move scoring.
-  if Input.HasSmellSignal then
+  // Wander is the "no remote smell" movement pressure. If there's a remote smell
+  // signal worth chasing, the smell-follow move evaluator should dominate instead.
+  if Input.HasRemoteSmellSignal then
     Exit;
 
   case Input.EnergyLevel of

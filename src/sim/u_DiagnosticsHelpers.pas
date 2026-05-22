@@ -22,10 +22,6 @@ type
     function AsText: string;
   end;
 
-  _biomassCreateReason = record helper for TBiomassCreateReason
-    function AsText: string;
-  end;
-
   _energyLevel = record helper for TEnergyLevel
     function AsText: string;
   end;
@@ -128,8 +124,8 @@ begin
   case Self.Kind of
     ckResource:
       Result := 'r:' + Self.Index.AsText;
-    ckBiomass:
-      Result := 'b:' + Self.Index.AsText;
+    ckDelta:
+      Result := 'd:' + Self.Index.AsText;
   end;
 end;
 
@@ -159,20 +155,6 @@ end;
 function _point.AsText: string;
 begin
   Result := X.AsText + ',' + Y.AsText;
-end;
-
-{ _biomassCreateReason }
-
-function _biomassCreateReason.AsText: string;
-const
-  reasonStrs: array[TBiomassCreateReason] of string = (
-    'Unknown',
-    'Nightfall',
-    'RandNight',
-    'AgentDeath'
-  );
-begin
-  Result := reasonStrs[Self];
 end;
 
 { _energyLevel }
@@ -307,8 +289,7 @@ begin
       end;
     sekAgentBorn: ;
     sekAgentMoved: ;
-    sekBiomassCreated: ;
-    sekBiomassConsumed: ;
+    sekDeltaConsumed: ;
     sekAgentDied: ;
     sekResourceSampled: ;
   end;
@@ -371,20 +352,13 @@ begin
         AgentMoved.MoveCost.AsText,
         AgentMoved.Reserves.AsText
       ]);
-    sekBiomassCreated:
-      Result := Result + Format('cell=%s amount=%s reason=%s sourceAgent=%d', [
-        BiomassCreated.Cell.AsText,
-        BiomassCreated.Amount.AsText,
-        BiomassCreated.Reason.AsText,
-        BiomassCreated.SourceAgentId
-      ]);
-    sekBiomassConsumed:
+    sekDeltaConsumed:
       Result := Result + Format('agent=%d cell=%s cache=%s consumed=%s gain=%s', [
-        BiomassConsumed.AgentId,
-        BiomassConsumed.Cell.AsText,
-        BiomassConsumed.Cache.AsText,
-        BiomassConsumed.ConsumedAmount.AsText,
-        BiomassConsumed.GainAmount.AsText
+        DeltaConsumed.AgentId,
+        DeltaConsumed.Cell.AsText,
+        DeltaConsumed.Cache.AsText,
+        DeltaConsumed.ConsumedAmount.AsText,
+        DeltaConsumed.GainAmount.AsText
       ]);
     sekAgentDied:
       Result := Result + Format('agent=%d cell=%s age=%d reservesBefore=%s', [

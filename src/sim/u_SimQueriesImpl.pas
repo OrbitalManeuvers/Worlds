@@ -41,7 +41,7 @@ const
   MIN_SMELL_DETECTABLE_AMOUNT = 0.02;
   MAX_LOCAL_QUERY_RADIUS_CELLS = 2;
   MIN_FOOD_HINT_DISTANCE = 5;
-  MIN_BIOMASS_HINT_DISTANCE = MIN_FOOD_HINT_DISTANCE;
+  MIN_DELTA_HINT_DISTANCE = MIN_FOOD_HINT_DISTANCE;
 
 { TSimQuery }
 
@@ -147,10 +147,10 @@ begin
     end;
   end;
 
-  // Then, collect biomass caches as explicit biomass cache references.
-  for var cacheIndex := 0 to High(fEnvironment.BiomassCaches) do
+  // Then, collect Delta caches as explicit Delta cache references.
+  for var cacheIndex := 0 to High(fEnvironment.DeltaCaches) do
   begin
-    var cache := fEnvironment.BiomassCaches[cacheIndex];
+    var cache := fEnvironment.DeltaCaches[cacheIndex];
     if cache.Amount <= MIN_SMELL_DETECTABLE_AMOUNT then
       Continue;
 
@@ -170,10 +170,10 @@ begin
       SetLength(Buffer, Count + 16);
 
     Buffer[Count].CellIndex := cache.CellIndex;
-    Buffer[Count].Cache.Kind := ckBiomass;
+    Buffer[Count].Cache.Kind := ckDelta;
     Buffer[Count].Cache.Index := cacheIndex;
     Buffer[Count].Amount := cache.Amount;
-    Buffer[Count].Substance := BIOMASS_SUBSTANCE;
+    Buffer[Count].Substance := DELTA_SUBSTANCE;
 
     Inc(Count);
   end;
@@ -230,30 +230,30 @@ var
     end;
   end;
 
-  function TryBiomassHint: Boolean;
+  function TryDeltaHint: Boolean;
   begin
     Result := False;
 
-    var biomassCount := Length(fEnvironment.BiomassCaches);
-    if biomassCount <= 0 then
+    var deltaCount := Length(fEnvironment.DeltaCaches);
+    if deltaCount <= 0 then
       Exit;
 
     var direction := 1;
     if Random(2) = 0 then
       direction := -1;
 
-    var startIndex := Random(biomassCount);
-    for var offset := 0 to biomassCount - 1 do
+    var startIndex := Random(deltaCount);
+    for var offset := 0 to deltaCount - 1 do
     begin
-      var index := (startIndex + (direction * offset)) mod biomassCount;
+      var index := (startIndex + (direction * offset)) mod deltaCount;
       if index < 0 then
-        index := index + biomassCount;
+        index := index + deltaCount;
 
-      var cache := fEnvironment.BiomassCaches[index];
+      var cache := fEnvironment.DeltaCaches[index];
       if cache.Amount <= MIN_SMELL_DETECTABLE_AMOUNT then
         Continue;
 
-      if not IsFarEnough(cache.CellIndex, MIN_BIOMASS_HINT_DISTANCE) then
+      if not IsFarEnough(cache.CellIndex, MIN_DELTA_HINT_DISTANCE) then
         Continue;
 
       CellIndex := cache.CellIndex;
@@ -281,15 +281,15 @@ begin
   originY := Location div width;
 
   case Preference of
-    wfpBiomassOnly:
+    wfpDeltaOnly:
     begin
-      if TryBiomassHint then
+      if TryDeltaHint then
         Exit(True);
     end;
 
-    wfpPreferBiomass:
+    wfpPreferDelta:
     begin
-      if TryBiomassHint then
+      if TryDeltaHint then
         Exit(True);
       if TryResourceHint then
         Exit(True);
@@ -299,7 +299,7 @@ begin
     begin
       if TryResourceHint then
         Exit(True);
-      if TryBiomassHint then
+      if TryDeltaHint then
         Exit(True);
     end;
   end;

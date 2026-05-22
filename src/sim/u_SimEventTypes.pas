@@ -11,20 +11,12 @@ type
     sekDecisionTrace,
     sekAgentBorn,
     sekAgentMoved,
-    sekBiomassCreated,
-    sekBiomassConsumed,
+    sekDeltaConsumed,
     sekAgentDied,
     sekResourceSampled
   );
 
   TSimEventKinds = set of TSimEventKind;
-
-  TBiomassCreateReason = (
-    bcrUnknown,
-    bcrNightfallInjection,
-    bcrRandomNightInjection,
-    bcrAgentDeath
-  );
 
   TActionResolutionNote = (
     arnNone,
@@ -89,14 +81,7 @@ type
     InitialReserves: Single;
   end;
 
-  TBiomassCreatedEvent = record
-    Cell: TPoint;
-    Amount: Single;
-    Reason: TBiomassCreateReason;
-    SourceAgentId: Integer;
-  end;
-
-  TBiomassConsumedEvent = record
+  TDeltaConsumedEvent = record
     AgentId: Integer;
     Cell: TPoint;
     Cache: TCacheRef;
@@ -123,8 +108,7 @@ type
     DecisionTrace: TDecisionTraceEvent;
     AgentBorn: TAgentBornEvent;
     AgentMoved: TAgentMovedEvent;
-    BiomassCreated: TBiomassCreatedEvent;
-    BiomassConsumed: TBiomassConsumedEvent;
+    DeltaConsumed: TDeltaConsumedEvent;
     AgentDied: TAgentDiedEvent;
     ResourceSampled: TResourceSampledEvent;
   end;

@@ -113,7 +113,7 @@ inherited SessionFrame: TSessionFrame
           Caption = 'lblSeedName'
         end
       end
-      object SpinEdit2: TSpinEdit
+      object seScaleFactor: TSpinEdit
         Left = 400
         Top = 77
         Width = 73
@@ -137,8 +137,8 @@ inherited SessionFrame: TSessionFrame
       object ScenarioList: TControlList
         Left = 12
         Top = 39
-        Width = 253
-        Height = 324
+        Width = 213
+        Height = 313
         ItemHeight = 32
         ItemMargins.Left = 0
         ItemMargins.Top = 0

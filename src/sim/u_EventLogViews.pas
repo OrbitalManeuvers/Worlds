@@ -113,12 +113,7 @@ function TEventLogView.EventMatchesFilter(const aEvent: TSimEvent): Boolean;
       sekDecisionTrace:   Result := [aEvent.DecisionTrace.AgentId];
       sekAgentBorn:       Result := [aEvent.AgentBorn.AgentId, aEvent.AgentBorn.ParentAgentId];
       sekAgentMoved:      Result := [aEvent.AgentMoved.AgentId];
-      sekBiomassCreated:
-        if aEvent.BiomassCreated.SourceAgentId >= 0 then
-          Result := [aEvent.BiomassCreated.SourceAgentId]
-        else
-          SetLength(Result, 0);
-      sekBiomassConsumed: Result := [aEvent.BiomassConsumed.AgentId];
+      sekDeltaConsumed: Result := [aEvent.DeltaConsumed.AgentId];
       sekAgentDied:       Result := [aEvent.AgentDied.AgentId];
       sekResourceSampled: SetLength(Result, 0);
     end;

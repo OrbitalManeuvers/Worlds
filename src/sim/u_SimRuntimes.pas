@@ -1,4 +1,4 @@
-unit u_SimRuntimes;
+﻿unit u_SimRuntimes;
 
 interface
 
@@ -13,7 +13,6 @@ const
   SHELTER_UPKEEP_MULTIPLIER = 0.35;
   AGENT_BASE_METABOLISM = 0.01;  // physics floor: applies to all agents regardless of genome
   GENE_GENERATION_COST = 0.005;  // upkeep added per generation above A for each gene slot
-  AGENT_MAX_RESERVES = 10.0;     // hard ceiling on energy reserves
   REPRODUCTION_DURATION_TICKS = 3;
   REPRODUCTION_CHILD_START_RESERVES = 2.0;
   REPRODUCTION_FATIGUE_BASE = 0.10;
@@ -22,15 +21,26 @@ const
   // sunk cost before birth so abandoning it is less free.
   REPRODUCTION_PARENT_COST = 3.8;
 
+  // AGENT_MAX_RESERVES: no hard cap currently — tuning unbounded.
+  // Target: ~25.0 (covers a half-region round trip on flat terrain at base move cost).
+  // Math: 128 cells x 2 (round trip) x 0.05 (move) + 256 ticks x 0.01 (metabolism) ~= 15.
+  // Add margin for terrain variation and overhead -> ~25.
+  // Grid basis: 32x32 authored region, scale factor 8 -> 256x256 sim cells per region.
+
 type
   TRuntimePhaseEvent = procedure (Sender: TObject; Phase: TSimTickPhase) of object;
+  TCellIndexArray = TArray<Integer>;
+  TCellIndexCycles = array of TCellIndexArray;
 
-  TBiomassRuntimeConfig = record
-    InjectOnDeath: Boolean;
-    InjectAtNightfall: Boolean;
-    InjectRandomlyAtNight: Boolean;
-    NightfallCacheCount: Integer;
-    RandomInjectChancePercent: Integer;
+  TRuntimeConfig = record
+//    NightfallCacheCount: Integer;
+    AgentActivationTick: Integer;
+//    DeltaEnabled: Boolean;
+//    DeltaNightlyCacheCount: Integer;
+//    DeltaInitialAmount: Single;
+//    DeltaCycleLength: Integer;
+//    DeltaMinSpacingCells: Integer;
+//    DeltaCleanupGraceTicks: Integer;
   end;
 
   TDecisionTrace = record
@@ -51,10 +61,17 @@ type
   TSimRuntime = class
   private const
     DEFAULT_DEATH_BIOMASS_AMOUNT = 1.0;
+    DEFAULT_DELTA_CACHE_AMOUNT = 0.0;
+    DELTA_CREATE_TICK = DAYLIGHT_TICKS_PER_DAY;
+    DELTA_CLEANUP_GRACE_TICKS = 0;
+    DELTA_EXTINCTION_EPSILON = 0.001;
+    DELTA_PLACEMENT_CYCLE_COUNT = 3;
+    DELTA_MIN_SPACING_CELLS = 4;
+    DELTA_MAX_CACHES_PER_NIGHT = 32;
   private
     fCurrentGlobalTick: Integer;
     fCurrentDayTick: TDayTick;
-    fBiomassConfig: TBiomassRuntimeConfig;
+    fRuntimeConfig: TRuntimeConfig;
     fEnvironment: TSimEnvironment;
     fHasDecisionTrace: TArray<Boolean>;
     fLastDecisionTraces: TArray<TDecisionTrace>;
@@ -64,15 +81,20 @@ type
     fSimCommand: ISimCommand;
     fOnPhase: TRuntimePhaseEvent;
     fTrackedResourceCacheIndex: Integer;
+    fDeltaPlacementCycles: TCellIndexCycles;
+    fDeltaPlacementCycleIndex: Integer;
+    fLastDeltaSpawnCount: Integer;
+    fDeltaCleanupGraceTicksRemaining: Integer;
     function BuildEventHeader(aKind: TSimEventKind; const aPhase: TSimTickPhase): TSimEventHeader;
+    function BuildDeltaSpawnPlan: TArray<Integer>;
+    procedure InjectDeltaAtNightfall;
+    procedure HandleDeltaCleanupPolicy(const Report: TDeltaUpkeepReport);
     procedure EmitActionResolved(const StateBeforeResolution, State: TAgentState; const Requested, Resolved: TBrainTickOutput);
     procedure EmitDecisionTrace(const State: TAgentState; const Trace: TDecisionTrace);
     procedure EmitAgentBorn(const OffspringState: TAgentState; const ParentAgentId: Integer);
     procedure EmitAgentDied(const State: TAgentState; const ReservesBeforeDeath: Single);
     procedure EmitAgentMoved(const State: TAgentState; const FromCell, ToCell: Integer; const MoveCost: Single);
-    procedure EmitBiomassConsumed(const State: TAgentState; const Cache: TCacheRef; const ConsumedAmount, GainAmount: Single);
-    procedure EmitBiomassCreated(const CellIndex: Integer; const Amount: Single;
-      const Reason: TBiomassCreateReason; const SourceAgentId: Integer; const Phase: TSimTickPhase);
+    procedure EmitDeltaConsumed(const State: TAgentState; const Cache: TCacheRef; const ConsumedAmount, GainAmount: Single);
     procedure EmitResourceSampled;
     procedure CaptureDecisionTrace(AgentIndex: Integer; const State: TAgentState; const Input: TBrainTickInput;
       const Requested, Resolved: TBrainTickOutput;
@@ -83,7 +105,6 @@ type
     function BuildOffspringState(const ParentState: TAgentState; const OffspringId: Integer): TAgentState;
     function NextAgentId: Integer;
     function ApplyAgentUpkeep(var State: TAgentState): Boolean;
-    procedure InjectSimBiomass(const IsNightfall: Boolean);
     function ResolveRequestedStep(AgentIndex: Integer; var State: TAgentState; const Requested: TBrainTickOutput;
       out ForageConsumed, ForageGain: Single): TBrainTickOutput;
     procedure ProcessAgentTick(aIndex: Integer; const Input: TBrainTickInput);
@@ -96,13 +117,15 @@ type
     constructor Create(const aDiagnostics: ISimDiagnosticsSink = nil);
     destructor Destroy; override;
 
-    procedure ConfigureBiomass(const aConfig: TBiomassRuntimeConfig);
+    procedure ConfigureRuntime(const aConfig: TRuntimeConfig);
+    procedure RebuildDeltaPlacementCycles;
 
     procedure AdvanceClock(const GlobalTick: Integer; const DayTick: TDayTick);
     function TryGetLastDecision(AgentIndex: Integer; out Trace: TDecisionTrace): Boolean;
 
     property Environment: TSimEnvironment read fEnvironment;
     property Population: TSimPopulation read fPopulation;
+    property LastDeltaSpawnCount: Integer read fLastDeltaSpawnCount;
 
     property OnPhase: TRuntimePhaseEvent read fOnPhase write fOnPhase;
     property TrackedResourceCacheIndex: Integer read fTrackedResourceCacheIndex write fTrackedResourceCacheIndex;
@@ -118,19 +141,119 @@ uses System.Math, System.SysUtils, u_SimQueriesImpl,
 constructor TSimRuntime.Create(const aDiagnostics: ISimDiagnosticsSink);
 begin
   inherited Create;
-  fBiomassConfig := Default(TBiomassRuntimeConfig);
-  fBiomassConfig.InjectOnDeath := True;
+  fRuntimeConfig := Default(TRuntimeConfig);
   fDiagnostics := aDiagnostics;
   fTrackedResourceCacheIndex := -1;
+  fDeltaPlacementCycleIndex := 0;
+  fLastDeltaSpawnCount := 0;
+  fDeltaCleanupGraceTicksRemaining := 0;
   fEnvironment := TSimEnvironment.Create;
   fPopulation := TSimPopulation.Create;
   fSimQuery := TSimQuery.Create(fEnvironment, fPopulation);
   fSimCommand := TSimCommand.Create(fEnvironment, fPopulation);
 end;
 
-procedure TSimRuntime.ConfigureBiomass(const aConfig: TBiomassRuntimeConfig);
+procedure TSimRuntime.ConfigureRuntime(const aConfig: TRuntimeConfig);
 begin
-  fBiomassConfig := aConfig;
+  fRuntimeConfig := aConfig;
+end;
+
+procedure TSimRuntime.RebuildDeltaPlacementCycles;
+  function HasMinSpacing(const CandidateCell: Integer; const Selected: TCellIndexArray;
+    const SelectedCount, GridWidth: Integer): Boolean;
+  begin
+    var candidateX := CandidateCell mod GridWidth;
+    var candidateY := CandidateCell div GridWidth;
+
+    for var i := 0 to SelectedCount - 1 do
+    begin
+      var selectedCell := Selected[i];
+      var selectedX := selectedCell mod GridWidth;
+      var selectedY := selectedCell div GridWidth;
+
+      var chebyshevDistance := Abs(selectedX - candidateX);
+      if Abs(selectedY - candidateY) > chebyshevDistance then
+        chebyshevDistance := Abs(selectedY - candidateY);
+
+      if chebyshevDistance < DELTA_MIN_SPACING_CELLS then
+        Exit(False);
+    end;
+
+    Result := True;
+  end;
+  procedure ShuffleCells(var Cells: TCellIndexArray);
+  begin
+    for var i := High(Cells) downto 1 do
+    begin
+      var j := Random(i + 1);
+      var temp := Cells[i];
+      Cells[i] := Cells[j];
+      Cells[j] := temp;
+    end;
+  end;
+  function BuildCycle(const GridWidth: Integer): TCellIndexArray;
+  begin
+    Result := nil;
+
+    var candidates: TCellIndexArray;
+    var candidateCount := 0;
+    for var cellIndex := 0 to High(fEnvironment.Cells) do
+    begin
+      var deltaChance := Integer(fEnvironment.Cells[cellIndex].DeltaChance);
+      if deltaChance <= 0 then
+        Continue;
+
+      if deltaChance > 100 then
+        deltaChance := 100;
+
+      if Random(100) >= deltaChance then
+        Continue;
+
+      if candidateCount >= Length(candidates) then
+        SetLength(candidates, candidateCount + 128);
+
+      candidates[candidateCount] := cellIndex;
+      Inc(candidateCount);
+    end;
+
+    if candidateCount = 0 then
+      Exit;
+
+    SetLength(candidates, candidateCount);
+    ShuffleCells(candidates);
+
+    var selectedCount := 0;
+    for var i := 0 to High(candidates) do
+    begin
+      var candidateCell := candidates[i];
+      if not HasMinSpacing(candidateCell, Result, selectedCount, GridWidth) then
+        Continue;
+
+      if selectedCount >= Length(Result) then
+        SetLength(Result, selectedCount + 16);
+
+      Result[selectedCount] := candidateCell;
+      Inc(selectedCount);
+
+      if selectedCount >= DELTA_MAX_CACHES_PER_NIGHT then
+        Break;
+    end;
+
+    SetLength(Result, selectedCount);
+  end;
+begin
+  SetLength(fDeltaPlacementCycles, 0);
+  fDeltaPlacementCycleIndex := 0;
+  fLastDeltaSpawnCount := 0;
+
+  var width := fEnvironment.Dimensions.cx;
+  var height := fEnvironment.Dimensions.cy;
+  if (width <= 0) or (height <= 0) then
+    Exit;
+
+  SetLength(fDeltaPlacementCycles, DELTA_PLACEMENT_CYCLE_COUNT);
+  for var cycleIndex := 0 to DELTA_PLACEMENT_CYCLE_COUNT - 1 do
+    fDeltaPlacementCycles[cycleIndex] := BuildCycle(width);
 end;
 
 destructor TSimRuntime.Destroy;
@@ -229,107 +352,58 @@ begin
     State.Reserves := 0.0;
 end;
 
-procedure TSimRuntime.InjectSimBiomass(const IsNightfall: Boolean);
-var
-  cellCount: Integer;
-  width: Integer;
-  height: Integer;
-  function IsSafeInjectionCell(const CellIndex: Integer): Boolean;
-  begin
-    Result := (CellIndex >= 0) and (CellIndex < cellCount);
-    if not Result then
-      Exit;
-
-    var cellX := CellIndex mod width;
-    var cellY := CellIndex div width;
-
-    for var agentIndex := 0 to fPopulation.AgentCount - 1 do
-    begin
-      var state := fPopulation.GetAgentState(agentIndex);
-
-      if state.Reserves <= 0.0 then
-        Continue;
-
-      if (state.Location < 0) or (state.Location >= cellCount) then
-        Continue;
-
-      var agentX := state.Location mod width;
-      var agentY := state.Location div width;
-      var distance := Abs(agentX - cellX);
-      if Abs(agentY - cellY) > distance then
-        distance := Abs(agentY - cellY);
-
-      // Avoid creating biomass in the current cell or immediate neighborhood of a living agent.
-      if distance < 2 then
-        Exit(False);
-    end;
-  end;
-
-  function TryFindInjectionCell(out CellIndex: Integer): Boolean;
-  begin
-    Result := False;
-    CellIndex := -1;
-
-    var randomAttempts := cellCount;
-    if randomAttempts > 16 then
-      randomAttempts := 16;
-
-    for var attempt := 1 to randomAttempts do
-    begin
-      var candidate := Random(cellCount);
-      if IsSafeInjectionCell(candidate) then
-      begin
-        CellIndex := candidate;
-        Exit(True);
-      end;
-    end;
-
-    var startIndex := Random(cellCount);
-    for var offset := 0 to cellCount - 1 do
-    begin
-      var candidate := (startIndex + offset) mod cellCount;
-      if IsSafeInjectionCell(candidate) then
-      begin
-        CellIndex := candidate;
-        Exit(True);
-      end;
-    end;
-  end;
-
+function TSimRuntime.BuildDeltaSpawnPlan: TArray<Integer>;
 begin
-  cellCount := Length(fEnvironment.Cells);
-  if cellCount <= 0 then
+  Result := nil;
+
+  var cycleCount := Length(fDeltaPlacementCycles);
+  if cycleCount = 0 then
     Exit;
 
-  width := fEnvironment.Dimensions.cx;
-  height := fEnvironment.Dimensions.cy;
-  if (width <= 0) or (height <= 0) then
+  if fDeltaPlacementCycleIndex < 0 then
+    fDeltaPlacementCycleIndex := 0;
+
+  var cycleIndex := fDeltaPlacementCycleIndex mod cycleCount;
+  Result := Copy(fDeltaPlacementCycles[cycleIndex]);
+
+  Inc(fDeltaPlacementCycleIndex);
+  if fDeltaPlacementCycleIndex >= cycleCount then
+    fDeltaPlacementCycleIndex := 0;
+end;
+
+procedure TSimRuntime.InjectDeltaAtNightfall;
+begin
+  if fCurrentDayTick <> DELTA_CREATE_TICK then
     Exit;
 
-  if IsNightfall and fBiomassConfig.InjectAtNightfall then
+  var spawnPlan := BuildDeltaSpawnPlan;
+  fLastDeltaSpawnCount := Length(spawnPlan);
+  if fLastDeltaSpawnCount = 0 then
+    Exit;
+
+  fEnvironment.ApplyDeltaSpawnPlan(spawnPlan, DEFAULT_DELTA_CACHE_AMOUNT);
+end;
+
+procedure TSimRuntime.HandleDeltaCleanupPolicy(const Report: TDeltaUpkeepReport);
+begin
+  if DELTA_EXTINCTION_EPSILON <= 0.0 then
+    Exit;
+
+  if DELTA_CLEANUP_GRACE_TICKS <= 0 then
   begin
-    for var i := 1 to fBiomassConfig.NightfallCacheCount do
-    begin
-      var cellIndex := -1;
-      if TryFindInjectionCell(cellIndex) then
-      begin
-        fEnvironment.InjectBiomass(cellIndex, DEFAULT_DEATH_BIOMASS_AMOUNT);
-        EmitBiomassCreated(cellIndex, DEFAULT_DEATH_BIOMASS_AMOUNT, bcrNightfallInjection, -1, stpPostEnvironment);
-      end;
-    end;
+    if (Report.ActiveCount = 0) and (Report.ExtinctCount > 0) then
+      fEnvironment.CleanupExtinctDeltaCaches;
+    Exit;
   end;
 
-  if fBiomassConfig.InjectRandomlyAtNight and (fBiomassConfig.RandomInjectChancePercent > 0) then
+  if (Report.ActiveCount = 0) and (Report.ExtinctCount > 0) then
+    fDeltaCleanupGraceTicksRemaining := DELTA_CLEANUP_GRACE_TICKS;
+
+  if fDeltaCleanupGraceTicksRemaining > 0 then
   begin
-    if Random(100) < fBiomassConfig.RandomInjectChancePercent then
-    begin
-      var cellIndex := -1;
-      if TryFindInjectionCell(cellIndex) then
-      begin
-        fEnvironment.InjectBiomass(cellIndex, DEFAULT_DEATH_BIOMASS_AMOUNT);
-        EmitBiomassCreated(cellIndex, DEFAULT_DEATH_BIOMASS_AMOUNT, bcrRandomNightInjection, -1, stpPostEnvironment);
-      end;
-    end;
+    Dec(fDeltaCleanupGraceTicksRemaining);
+    if fDeltaCleanupGraceTicksRemaining = 0 then
+      fEnvironment.CleanupExtinctDeltaCaches;
   end;
 end;
 
@@ -447,34 +521,19 @@ begin
   fDiagnostics.Emit(event);
 end;
 
-procedure TSimRuntime.EmitBiomassConsumed(const State: TAgentState; const Cache: TCacheRef;
+procedure TSimRuntime.EmitDeltaConsumed(const State: TAgentState; const Cache: TCacheRef;
   const ConsumedAmount, GainAmount: Single);
 begin
   if not Assigned(fDiagnostics) then
     Exit;
 
   var event := Default(TSimEvent);
-  event.Header := BuildEventHeader(sekBiomassConsumed, stpPostAgents);
-  event.BiomassConsumed.AgentId := State.AgentId;
-  event.BiomassConsumed.Cell := CellToPoint(State.Location);
-  event.BiomassConsumed.Cache := Cache;
-  event.BiomassConsumed.ConsumedAmount := ConsumedAmount;
-  event.BiomassConsumed.GainAmount := GainAmount;
-  fDiagnostics.Emit(event);
-end;
-
-procedure TSimRuntime.EmitBiomassCreated(const CellIndex: Integer; const Amount: Single;
-  const Reason: TBiomassCreateReason; const SourceAgentId: Integer; const Phase: TSimTickPhase);
-begin
-  if not Assigned(fDiagnostics) then
-    Exit;
-
-  var event := Default(TSimEvent);
-  event.Header := BuildEventHeader(sekBiomassCreated, Phase);
-  event.BiomassCreated.Cell := CellToPoint(CellIndex);
-  event.BiomassCreated.Amount := Amount;
-  event.BiomassCreated.Reason := Reason;
-  event.BiomassCreated.SourceAgentId := SourceAgentId;
+  event.Header := BuildEventHeader(sekDeltaConsumed, stpPostAgents);
+  event.DeltaConsumed.AgentId := State.AgentId;
+  event.DeltaConsumed.Cell := CellToPoint(State.Location);
+  event.DeltaConsumed.Cache := Cache;
+  event.DeltaConsumed.ConsumedAmount := ConsumedAmount;
+  event.DeltaConsumed.GainAmount := GainAmount;
   fDiagnostics.Emit(event);
 end;
 
@@ -738,10 +797,10 @@ begin
                 Break;
               end;
           end;
-        ckBiomass:
+        ckDelta:
           begin
-            if (cacheRef.Index >= 0) and (cacheRef.Index <= High(fEnvironment.BiomassCaches)) then
-              isLocalCache := fEnvironment.BiomassCaches[cacheRef.Index].CellIndex = State.Location;
+            if (cacheRef.Index >= 0) and (cacheRef.Index <= High(fEnvironment.DeltaCaches)) then
+              isLocalCache := fEnvironment.DeltaCaches[cacheRef.Index].CellIndex = State.Location;
           end;
       end;
     end;
@@ -769,11 +828,10 @@ begin
         ForageConsumed := reply.ConsumedAmount;
         ForageGain := CalculateForageGain(State, reply);
         State.Reserves := State.Reserves + ForageGain;
-        if State.Reserves > AGENT_MAX_RESERVES then
-          State.Reserves := AGENT_MAX_RESERVES;
+        State.TicksSinceForage := 0;
 
-        if cacheRef.Kind = ckBiomass then
-          EmitBiomassConsumed(State, cacheRef, ForageConsumed, ForageGain);
+        if cacheRef.Kind = ckDelta then
+          EmitDeltaConsumed(State, cacheRef, ForageConsumed, ForageGain);
       end
       else
       begin
@@ -801,6 +859,7 @@ begin
   // Age tracks ticks survived; this includes the tick where upkeep may cause death.
   Inc(state.Age);
   Inc(state.TicksSinceReproduction);
+  Inc(state.TicksSinceForage);
 
   var reservesAtTickStart := state.Reserves;
   var reservesBeforeUpkeep := state.Reserves;
@@ -813,11 +872,7 @@ begin
     EmitAgentDied(state^, reservesBeforeUpkeep);
 
     // Notify environment once at transition-to-death.
-    if fBiomassConfig.InjectOnDeath then
-    begin
-      fEnvironment.NotifyAgentDeath(state.Location, DEFAULT_DEATH_BIOMASS_AMOUNT);
-      EmitBiomassCreated(state.Location, DEFAULT_DEATH_BIOMASS_AMOUNT, bcrAgentDeath, state.AgentId, stpPostAgents);
-    end;
+    fEnvironment.NotifyAgentDeath(state.Location, DEFAULT_DEATH_BIOMASS_AMOUNT);
     Exit;
   end;
 
@@ -863,12 +918,13 @@ begin
 
   fCurrentDayTick := Value;
   fEnvironment.DayTick := Value;
+
+  InjectDeltaAtNightfall;
+  HandleDeltaCleanupPolicy(fEnvironment.LastDeltaUpkeepReport);
+
   var currentSolarFlux := fEnvironment.SolarFlux;
 
   var isNightTick := Value > High(TDaylightTicks);
-  var isNightfall := isNightTick and (previousSolarFlux > 0.0) and (currentSolarFlux = 0.0);
-  if isNightTick then
-    InjectSimBiomass(isNightfall);
 
   EmitResourceSampled;
   NotifyPhase(stpPostEnvironment);
@@ -886,7 +942,7 @@ begin
   input.Query := fSimQuery;
 
   var agentCount := fPopulation.AgentCount;
-  if agentCount > 0 then
+  if (agentCount > 0) and (fCurrentGlobalTick >= fRuntimeConfig.AgentActivationTick) then
   begin
     // Fairness pass: randomize both start index and traversal direction each tick.
     var startIndex := Random(agentCount);

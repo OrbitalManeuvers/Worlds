@@ -4,8 +4,8 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
-  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, VirtualTrees, Vcl.ExtCtrls,
-  VirtualTrees.Export, Vcl.Buttons, Vcl.Grids, Vcl.ValEdit,
+  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls,
+  Vcl.Buttons, Vcl.Grids,
   Vcl.ControlList,
 
   u_SimEventTypes, u_DiagnosticsHelpers, u_LogTypes, Vcl.StdCtrls;

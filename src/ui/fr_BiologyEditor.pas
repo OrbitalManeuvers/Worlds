@@ -95,12 +95,12 @@ begin
   UpdateLabel(lblAlphaRating, Alpha);
   UpdateLabel(lblBetaRating, Beta);
   UpdateLabel(lblGammaRating, Gamma);
-  UpdateLabel(lblBiomassRating, Biomass);
+  UpdateLabel(lblBiomassRating, Delta);
 
   UpdateEditor(AlphaRatingFrame, Alpha);
   UpdateEditor(BetaRatingFrame, Beta);
   UpdateEditor(GammaRatingFrame, Gamma);
-  UpdateEditor(BiomassRatingFrame, Biomass);
+  UpdateEditor(BiomassRatingFrame, Delta);
 end;
 
 procedure TBiologyEditor.ItemChanged;
@@ -159,7 +159,7 @@ begin
     AlphaRatingFrame.Rating := fRatings[Alpha];
     BetaRatingFrame.Rating := fRatings[Beta];
     GammaRatingFrame.Rating := fRatings[Gamma];
-    BiomassRatingFrame.Rating := fRatings[Biomass];
+    BiomassRatingFrame.Rating := fRatings[Delta];
   end
   else
   begin

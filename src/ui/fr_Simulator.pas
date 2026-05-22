@@ -6,11 +6,19 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, fr_ContentFrames, Vcl.StdCtrls,
   System.Generics.Collections, Vcl.Menus,
-  VirtualTrees, VirtualTrees.DrawTree, Vcl.ExtCtrls,
+  Vcl.ExtCtrls, Vcl.ComCtrls,
 
   u_SessionComposerIntf, u_SimSessions, u_SimEventTypes, u_EventLogViews,
-  fr_SimController, fr_LogViewer,
-  u_SessionParameters, Vcl.ComCtrls;
+  fr_SimController, fr_LogViewer, fr_ResourceVisualizer, u_SimVisualizer,
+  u_SessionParameters;
+
+(*
+
+To-do:
+
+  - This content frame is presented modally. Creation/teardown desperately needs review here.
+
+*)
 
 type
   TSimulatorFrame = class(TContentFrame)
@@ -21,6 +29,9 @@ type
     phLogViewer: TShape;
     btnSaveClose: TButton;
     SaveProgress: TProgressBar;
+    bvBottom: TBevel;
+    phResViewer: TShape;
+    phDeltaViewer: TShape;
     procedure btnCloseClick(Sender: TObject);
     procedure mniExportClick(Sender: TObject);
   private
@@ -29,17 +40,23 @@ type
     EventLogView: IEventLogView;
     Controller: TControllerFrame;
     LogViewer: TLogViewer;
+    ResViewer: TResViewFrame;
+    DeltaViewer: TResViewFrame;
+    Visualizer: TSubstanceVisualizer;
+    DeltaVisualizer: TDeltaVisualizer;
 
     procedure DestroySession;
     procedure HandleBeforeRun(Sender: TObject);
     procedure HandleAfterRun(Sender: TObject);
     procedure HandleSaveProgress(Sender: TObject; Progress: Integer);
     procedure HandleRecordingChanged(Sender: TObject);
+    procedure HandleResViewerPaint(Sender: TObject);
+    procedure HandleDeltaViewerPaint(Sender: TObject);
 
   public
     procedure Init; override;
     procedure Done; override;
-    procedure DeactivateContent; override;
+    procedure DeactivateContent; override;    // eliminate, this is doubling up
 
     { called externally }
     procedure CreateSession(const aComposer: ISessionComposer;
@@ -51,7 +68,8 @@ implementation
 
 {$R *.dfm}
 
-uses u_WorldsMessages, {u_LogExport,} System.IOUtils, u_SessionManager;
+uses System.IOUtils, Vcl.Graphics,
+  u_WorldsMessages, {u_LogExport,} u_SessionManager;
 
 { TSimulatorFrame }
 
@@ -60,6 +78,7 @@ procedure TSimulatorFrame.Init;
   procedure InitFrame(aFrame: TFrame; aPlaceholder: TShape);
   begin
     aFrame.BoundsRect := aPlaceholder.BoundsRect;
+    aFrame.Anchors := aPlaceholder.Anchors;
     aFrame.Parent := aPlaceholder.Parent;
     aPlaceholder.Hide;
     aFrame.Show;
@@ -79,13 +98,20 @@ begin
   LogViewer := TLogViewer.Create(Self);
   InitFrame(LogViewer, phLogViewer);
 
+  { UI for resource visualization }
+  ResViewer := TResViewFrame.Create(Self);
+  ResViewer.Name := 'rezViewer';
+  ResViewer.OnPaint := HandleResViewerPaint;
+  InitFrame(ResViewer, phResViewer);
 
-end;
+  DeltaViewer := TResViewFrame.Create(Self);
+  DeltaViewer.Name := 'deltaViewer';
+  DeltaViewer.OnPaint := HandleDeltaViewerPaint;
+  InitFrame(DeltaViewer, phDeltaViewer);
 
-procedure TSimulatorFrame.mniExportClick(Sender: TObject);
-begin
-  inherited;
-  //
+  { class to handle drawing resource visualizer frames }
+  Visualizer := TSubstanceVisualizer.Create;
+  DeltaVisualizer := TDeltaVisualizer.Create;
 end;
 
 procedure TSimulatorFrame.Done;
@@ -94,14 +120,49 @@ begin
   inherited;
 end;
 
+procedure TSimulatorFrame.mniExportClick(Sender: TObject);
+begin
+  inherited;
+  //
+end;
+
 procedure TSimulatorFrame.HandleBeforeRun(Sender: TObject);
 begin
   //
 end;
 
+procedure TSimulatorFrame.HandleDeltaViewerPaint(Sender: TObject);
+begin
+ if Assigned(DeltaVisualizer) then
+ begin
+   var view := Sender as TResViewFrame;
+   if Assigned(view) then
+   begin
+     DeltaVisualizer.ZoomLevel := TVisualizerZoom(view.ZoomFactor);
+     DeltaVisualizer.AnchorCell := view.AnchorCell;
+     DeltaVisualizer.Paint(view.Canvas, clWebOrange);
+   end;
+ end;
+end;
+
 procedure TSimulatorFrame.HandleRecordingChanged(Sender: TObject);
 begin
   Session.Recording := Controller.Recording;
+end;
+
+procedure TSimulatorFrame.HandleResViewerPaint(Sender: TObject);
+begin
+  if Assigned(Visualizer) then
+  begin
+    var view := Sender as TResViewFrame;
+    if Assigned(view) then
+    begin
+      Visualizer.ZoomLevel := TVisualizerZoom(view.ZoomFactor);
+      Visualizer.SubstanceIndex := view.SubstanceIndex;
+      Visualizer.AnchorCell := view.AnchorCell;
+      Visualizer.Paint(view.Canvas, clMoneyGreen);
+    end;
+  end;
 end;
 
 procedure TSimulatorFrame.HandleSaveProgress(Sender: TObject; Progress: Integer);
@@ -114,6 +175,11 @@ begin
   if Assigned(Session) then
     Session.AssertScratchLogReadable;
   LogViewer.Refresh;
+
+  if Assigned(ResViewer) then
+    ResViewer.Invalidate;
+  if Assigned(DeltaViewer) then
+    DeltaViewer.Invalidate;
 end;
 
 procedure TSimulatorFrame.DestroySession;
@@ -130,6 +196,9 @@ begin
   Session.EndSession;
   Session.Free;
   Session := nil;
+
+  Visualizer.Free;
+  DeltaVisualizer.Free;
 end;
 
 procedure TSimulatorFrame.btnCloseClick(Sender: TObject);
@@ -174,13 +243,24 @@ begin
   EventLog := Session.EventLog;
   EventLogView := TEventLogView.Create(EventLog);
 
-
   LogViewer.Connect(EventLogView);
   try
     aComposer.Compose(Session.Simulator.Runtime);
     Session.BeginSession;
     Session.AssertScratchLogReadable;
     Controller.Controller := Session.Controller;
+
+
+    Visualizer.Simulator := Session.Simulator;
+    DeltaVisualizer.Simulator := Session.Simulator;
+
+    var env := Session.Simulator.Runtime.Environment;
+    var names: TArray<string>;
+    SetLength(names, Length(env.SubstanceEntries));
+    for var i := 0 to High(env.SubstanceEntries) do
+      names[i] := env.SubstanceEntries[i].Name;
+    ResViewer.ApplySubstanceNames(names);
+
   except
     DestroySession;
     raise;
@@ -192,5 +272,7 @@ begin
   inherited;
   DestroySession;
 end;
+
+
 
 end.

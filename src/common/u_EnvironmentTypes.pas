@@ -10,7 +10,7 @@ type
   TPercentage = 0 .. 100;
 
 type
-  TMolecule = (Alpha, Beta, Gamma, Biomass);
+  TMolecule = (Alpha, Beta, Gamma, Delta);
   TMolecules = set of TMolecule;
   TGrowableMolecule = TMolecule.Alpha .. TMolecule.Gamma;
 

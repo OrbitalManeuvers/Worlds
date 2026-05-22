@@ -1,10 +1,10 @@
 inherited SimulatorFrame: TSimulatorFrame
-  Width = 881
-  Height = 560
+  Width = 1387
+  Height = 606
   Font.Height = -13
   ParentFont = False
-  ExplicitWidth = 881
-  ExplicitHeight = 560
+  ExplicitWidth = 1387
+  ExplicitHeight = 606
   object phController: TShape
     Left = 16
     Top = 16
@@ -16,41 +16,69 @@ inherited SimulatorFrame: TSimulatorFrame
   object phLogViewer: TShape
     Left = 16
     Top = 200
-    Width = 841
-    Height = 305
-    Anchors = [akLeft, akTop, akRight, akBottom]
+    Width = 604
+    Height = 333
+    Anchors = [akLeft, akTop, akBottom]
     Brush.Color = clGray
     Visible = False
+    ExplicitHeight = 305
+  end
+  object bvBottom: TBevel
+    Left = 16
+    Top = 548
+    Width = 1361
+    Height = 11
+    Anchors = [akLeft, akRight, akBottom]
+    Shape = bsBottomLine
+    ExplicitTop = 520
+    ExplicitWidth = 857
+  end
+  object phResViewer: TShape
+    Left = 640
+    Top = 200
+    Width = 300
+    Height = 330
+    Brush.Color = clGray
+  end
+  object phDeltaViewer: TShape
+    Left = 946
+    Top = 200
+    Width = 300
+    Height = 330
+    Brush.Color = clGray
   end
   object btnClose: TButton
-    Left = 732
-    Top = 519
+    Left = 1257
+    Top = 565
     Width = 125
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'DISCARD + Close'
     TabOrder = 0
     OnClick = btnCloseClick
+    ExplicitLeft = 900
   end
   object btnSaveClose: TButton
     Tag = 1
-    Left = 592
-    Top = 519
+    Left = 1121
+    Top = 565
     Width = 117
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'SAVE + Close'
     TabOrder = 1
     OnClick = btnCloseClick
+    ExplicitLeft = 764
   end
   object SaveProgress: TProgressBar
-    Left = 15
-    Top = 519
-    Width = 562
+    Left = 521
+    Top = 565
+    Width = 584
     Height = 25
     Anchors = [akRight, akBottom]
     TabOrder = 2
     Visible = False
+    ExplicitLeft = 164
   end
   object ViewPopup: TPopupMenu
     Left = 592
