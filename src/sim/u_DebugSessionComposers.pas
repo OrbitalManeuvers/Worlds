@@ -103,6 +103,29 @@ begin
 
   aRuntime.RebuildDeltaPlacementCycles;
 
+  // If the scenario provides explicit Delta placement lists, use them directly.
+  // Otherwise the probabilistic generation from RebuildDeltaPlacementCycles stands.
+  if Length(scenario.DeltaLists) > 0 then
+  begin
+    var width := aRuntime.Environment.Dimensions.cx;
+    var cycles: TCellIndexCycles;
+    var amounts: TCellAmountCycles;
+    SetLength(cycles, Length(scenario.DeltaLists));
+    SetLength(amounts, Length(scenario.DeltaLists));
+    for var listIndex := 0 to High(scenario.DeltaLists) do
+    begin
+      var list := scenario.DeltaLists[listIndex];
+      SetLength(cycles[listIndex], Length(list));
+      SetLength(amounts[listIndex], Length(list));
+      for var i := 0 to High(list) do
+      begin
+        cycles[listIndex][i] := (list[i].Location.Y * width) + list[i].Location.X;
+        amounts[listIndex][i] := list[i].Amount;
+      end;
+    end;
+    aRuntime.SetDeltaPlacementCyclesWithAmounts(cycles, amounts);
+  end;
+
   // population
   var population := aRuntime.Population;
   population.SetCellCount(Length(aRuntime.Environment.Cells));

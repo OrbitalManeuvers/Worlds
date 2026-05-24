@@ -8,11 +8,11 @@ object LogViewer: TLogViewer
     699
     401)
   object pnlViewTools: TPanel
-    Left = 24
-    Top = 16
-    Width = 657
+    Left = 0
+    Top = 0
+    Width = 699
     Height = 41
-    Anchors = [akLeft, akTop, akRight]
+    Align = alTop
     TabOrder = 0
     object btnIncDT: TSpeedButton
       Left = 8
@@ -44,9 +44,9 @@ object LogViewer: TLogViewer
     end
   end
   object DetailsView: TControlList
-    Left = 16
-    Top = 288
-    Width = 665
+    Left = 8
+    Top = 297
+    Width = 679
     Height = 97
     Anchors = [akLeft, akRight, akBottom]
     ItemHeight = 20
@@ -61,8 +61,8 @@ object LogViewer: TLogViewer
       AlignWithMargins = True
       Left = 4
       Top = 3
-      Width = 70
-      Height = 14
+      Width = -7
+      Height = -6
       Margins.Left = 4
       Align = alClient
       Caption = 'lblDetails'
@@ -73,13 +73,15 @@ object LogViewer: TLogViewer
       Font.Style = []
       ParentFont = False
       StyleElements = [seClient, seBorder]
+      ExplicitWidth = 70
+      ExplicitHeight = 14
     end
   end
   object EventList: TControlList
-    Left = 16
-    Top = 72
-    Width = 665
-    Height = 201
+    Left = 8
+    Top = 49
+    Width = 684
+    Height = 240
     Anchors = [akLeft, akTop, akRight, akBottom]
     Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
@@ -102,7 +104,7 @@ object LogViewer: TLogViewer
       Left = 3
       Top = 3
       Width = 84
-      Height = 14
+      Height = -6
       Align = alLeft
       Caption = 'lblEventTime'
       Font.Charset = ANSI_CHARSET
@@ -115,13 +117,14 @@ object LogViewer: TLogViewer
       StyleElements = [seClient, seBorder]
       ExplicitLeft = 14
       ExplicitTop = 8
+      ExplicitHeight = 14
     end
     object lblEventContent: TLabel
       AlignWithMargins = True
       Left = 96
       Top = 3
       Width = 105
-      Height = 14
+      Height = -6
       Margins.Left = 6
       Align = alClient
       Caption = 'lblEventContent'
@@ -135,6 +138,7 @@ object LogViewer: TLogViewer
       ParentFont = False
       Layout = tlCenter
       StyleElements = [seClient, seBorder]
+      ExplicitHeight = 14
     end
   end
 end

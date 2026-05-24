@@ -245,7 +245,7 @@ begin
   // converter
   for var molecule := Low(TMolecule) to High(TMolecule) do
   begin
-    var value: Single := 1.0;
+    var value: Single := CONVERTER_RATING_FACTOR[Normal];
     if Assigned(aConverterRatings) then
       value := CONVERTER_RATING_FACTOR[aConverterRatings[molecule]];
     state.Genome.ConverterRatings[molecule] := value;
@@ -254,7 +254,7 @@ begin
   // smell
   for var molecule := Low(TMolecule) to High(TMolecule) do
   begin
-    var value: Single := 1.0;
+    var value: Single := SMELL_RATING_FACTOR[Normal];
     if Assigned(aSmellRatings) then
       value := SMELL_RATING_FACTOR[aSmellRatings[molecule]];
     state.Genome.SmellRatings[molecule] := value;

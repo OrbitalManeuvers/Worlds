@@ -31,16 +31,11 @@ type
   TRuntimePhaseEvent = procedure (Sender: TObject; Phase: TSimTickPhase) of object;
   TCellIndexArray = TArray<Integer>;
   TCellIndexCycles = array of TCellIndexArray;
+  TCellAmountArray = TArray<Single>;
+  TCellAmountCycles = array of TCellAmountArray;
 
   TRuntimeConfig = record
-//    NightfallCacheCount: Integer;
     AgentActivationTick: Integer;
-//    DeltaEnabled: Boolean;
-//    DeltaNightlyCacheCount: Integer;
-//    DeltaInitialAmount: Single;
-//    DeltaCycleLength: Integer;
-//    DeltaMinSpacingCells: Integer;
-//    DeltaCleanupGraceTicks: Integer;
   end;
 
   TDecisionTrace = record
@@ -60,7 +55,7 @@ type
 
   TSimRuntime = class
   private const
-    DEFAULT_DEATH_BIOMASS_AMOUNT = 1.0;
+    DEFAULT_DEATH_BIOMASS_AMOUNT = 1.0;   // currently unused
     DEFAULT_DELTA_CACHE_AMOUNT = 0.0;
     DELTA_CREATE_TICK = DAYLIGHT_TICKS_PER_DAY;
     DELTA_CLEANUP_GRACE_TICKS = 0;
@@ -82,6 +77,7 @@ type
     fOnPhase: TRuntimePhaseEvent;
     fTrackedResourceCacheIndex: Integer;
     fDeltaPlacementCycles: TCellIndexCycles;
+    fDeltaPlacementAmounts: TCellAmountCycles;
     fDeltaPlacementCycleIndex: Integer;
     fLastDeltaSpawnCount: Integer;
     fDeltaCleanupGraceTicksRemaining: Integer;
@@ -110,15 +106,15 @@ type
     procedure ProcessAgentTick(aIndex: Integer; const Input: TBrainTickInput);
     procedure NotifyPhase(const Phase: TSimTickPhase);
     procedure SetDayTick(const Value: TDayTick);
-    { conversions for event emission }
-    function CellToPoint(aCell: Integer): TPoint;
-    function TargetToRef(const aTarget: TTarget): TTargetRef;
   public
     constructor Create(const aDiagnostics: ISimDiagnosticsSink = nil);
     destructor Destroy; override;
 
     procedure ConfigureRuntime(const aConfig: TRuntimeConfig);
     procedure RebuildDeltaPlacementCycles;
+    procedure SetDeltaPlacementCycles(const aCycles: TCellIndexCycles);
+    procedure SetDeltaPlacementCyclesWithAmounts(const aCycles: TCellIndexCycles;
+      const aAmounts: TCellAmountCycles);
 
     procedure AdvanceClock(const GlobalTick: Integer; const DayTick: TDayTick);
     function TryGetLastDecision(AgentIndex: Integer; out Trace: TDecisionTrace): Boolean;
@@ -244,6 +240,7 @@ procedure TSimRuntime.RebuildDeltaPlacementCycles;
 begin
   SetLength(fDeltaPlacementCycles, 0);
   fDeltaPlacementCycleIndex := 0;
+  SetLength(fDeltaPlacementAmounts, 0);
   fLastDeltaSpawnCount := 0;
 
   var width := fEnvironment.Dimensions.cx;
@@ -254,6 +251,23 @@ begin
   SetLength(fDeltaPlacementCycles, DELTA_PLACEMENT_CYCLE_COUNT);
   for var cycleIndex := 0 to DELTA_PLACEMENT_CYCLE_COUNT - 1 do
     fDeltaPlacementCycles[cycleIndex] := BuildCycle(width);
+end;
+
+procedure TSimRuntime.SetDeltaPlacementCycles(const aCycles: TCellIndexCycles);
+begin
+  fDeltaPlacementCycles := Copy(aCycles);
+  SetLength(fDeltaPlacementAmounts, 0);  // no per-entry amounts; injection uses DEFAULT_DELTA_CACHE_AMOUNT
+  fDeltaPlacementCycleIndex := 0;
+  fLastDeltaSpawnCount := 0;
+end;
+
+procedure TSimRuntime.SetDeltaPlacementCyclesWithAmounts(const aCycles: TCellIndexCycles;
+  const aAmounts: TCellAmountCycles);
+begin
+  fDeltaPlacementCycles := Copy(aCycles);
+  fDeltaPlacementAmounts := Copy(aAmounts);
+  fDeltaPlacementCycleIndex := 0;
+  fLastDeltaSpawnCount := 0;
 end;
 
 destructor TSimRuntime.Destroy;
@@ -290,58 +304,33 @@ begin
   fLastDecisionTraces[AgentIndex].Summary := Requested.Trace;
 end;
 
-function TSimRuntime.CellToPoint(aCell: Integer): TPoint;
-begin
-  Result := Point(aCell mod fEnvironment.Dimensions.cx, aCell div fEnvironment.Dimensions.cx);
-end;
-
 function TSimRuntime.CalculateAgentTickCost(const State: TAgentState): Single;
-  function GeneGenerationCost(aGeneClass: TGeneClass): Single;
+
+  function GestationFatigueCost(aProgress: Integer): Single;
   begin
-    if not Assigned(aGeneClass) then
-      Exit(0.0);
-
-    // Gen-A costs nothing. Each generation above A adds an upkeep tax.
-    Result := (Ord(aGeneClass.GetGenerationCode) - Ord('A')) * GENE_GENERATION_COST;
-    if Result < 0.0 then
-      Result := 0.0;
+    Result := REPRODUCTION_FATIGUE_BASE + ((aProgress - 1) * REPRODUCTION_FATIGUE_STEP);
   end;
-  function GestationFatigueCost: Single;
-  begin
-    Result := 0.0;
 
-    if (State.Action <> acShelter) or (State.ActionProgress <= 0) then
-      Exit;
-
-    Result := REPRODUCTION_FATIGUE_BASE
-      + ((State.ActionProgress - 1) * REPRODUCTION_FATIGUE_STEP);
-  end;
 begin
+  Result := AGENT_BASE_METABOLISM;
+  var flags: TGeneSlotFlags := [];
+
+  // special charges for shelter
   if State.Action = acShelter then
   begin
-    // Shelter mode: base physics cost only, plus active genes (energy, shelter, cognition).
-    Result := AGENT_BASE_METABOLISM
-      + GeneGenerationCost(State.Genome.GeneMap.Energy)
-      + GeneGenerationCost(State.Genome.GeneMap.ShelterEval)
-      + GeneGenerationCost(State.Genome.GeneMap.Cognition);
-
     Result := Result * SHELTER_UPKEEP_MULTIPLIER;
-    Result := Result + GestationFatigueCost;
-    Exit;
+    flags := [gsfAlwaysOn];
   end;
 
-  // Full upkeep: base physics cost plus all active gene generation taxes.
-  Result := AGENT_BASE_METABOLISM
-    + GeneGenerationCost(State.Genome.GeneMap.Energy)
-    + GeneGenerationCost(State.Genome.GeneMap.Smell)
-    + GeneGenerationCost(State.Genome.GeneMap.Sight)
-    + GeneGenerationCost(State.Genome.GeneMap.MoveEval)
-    + GeneGenerationCost(State.Genome.GeneMap.ForageEval)
-    + GeneGenerationCost(State.Genome.GeneMap.ShelterEval)
-    + GeneGenerationCost(State.Genome.GeneMap.ReproduceEval)
-    + GeneGenerationCost(State.Genome.GeneMap.Cognition)
-    + GeneGenerationCost(State.Genome.GeneMap.Converter)
-    + GestationFatigueCost;
+  // special charges for reproduce
+  if State.Action = acReproduce then
+  begin
+    Result := Result + GestationFatigueCost(State.GestationProgress);
+    flags := [gsfAlwaysOn];
+  end;
+
+  // and the cost everyone pays for their gene usage
+  Result := Result + State.Genome.GeneMap.SumGenerationCost(GENE_GENERATION_COST, flags);
 end;
 
 function TSimRuntime.ApplyAgentUpkeep(var State: TAgentState): Boolean;
@@ -381,7 +370,16 @@ begin
   if fLastDeltaSpawnCount = 0 then
     Exit;
 
-  fEnvironment.ApplyDeltaSpawnPlan(spawnPlan, DEFAULT_DELTA_CACHE_AMOUNT);
+  // Use per-entry amounts if available (debug path), otherwise uniform default.
+  // Note: BuildDeltaSpawnPlan already advanced the index, so look at the previous one.
+  var prevCycleIndex := (fDeltaPlacementCycleIndex - 1 + Max(1, Length(fDeltaPlacementCycles)))
+    mod Max(1, Length(fDeltaPlacementCycles));
+
+  if (Length(fDeltaPlacementAmounts) > prevCycleIndex)
+    and (Length(fDeltaPlacementAmounts[prevCycleIndex]) > 0) then
+    fEnvironment.ApplyDeltaSpawnPlan(spawnPlan, fDeltaPlacementAmounts[prevCycleIndex])
+  else
+    fEnvironment.ApplyDeltaSpawnPlan(spawnPlan, DEFAULT_DELTA_CACHE_AMOUNT);
 end;
 
 procedure TSimRuntime.HandleDeltaCleanupPolicy(const Report: TDeltaUpkeepReport);
@@ -426,32 +424,11 @@ begin
   event.Header := BuildEventHeader(sekActionResolved, stpPostAgents);
   event.ActionResolved.AgentId := State.AgentId;
   event.ActionResolved.RequestedAction := Requested.RequestedAction;
-  event.ActionResolved.RequestedTarget := TargetToRef(Requested.RequestedTarget);
+  event.ActionResolved.RequestedTarget := Requested.RequestedTarget;
   event.ActionResolved.ResolvedAction := Resolved.RequestedAction;
-  event.ActionResolved.ResolvedTarget := TargetToRef(Resolved.RequestedTarget);
+  event.ActionResolved.ResolvedTarget := Resolved.RequestedTarget;
   event.ActionResolved.Reserves := State.Reserves;
-  event.ActionResolved.ActionProgress := State.ActionProgress;
-
-  if (Requested.RequestedAction = acReproduce)
-    and (Resolved.RequestedAction = acIdle)
-    and (StateBeforeResolution.Action <> acShelter)
-    and (StateBeforeResolution.Reserves < REPRODUCTION_MIN_ATTEMPT_RESERVES) then
-    event.ActionResolved.Note := arnReproduceBlockedLowReserves
-  else if (Requested.RequestedAction = acReproduce)
-    and (Resolved.RequestedAction = acShelter)
-    and (StateBeforeResolution.Action <> acShelter)
-    and (State.ActionProgress > 0) then
-    event.ActionResolved.Note := arnGestationStarted
-  else if (StateBeforeResolution.Action = acShelter)
-    and (StateBeforeResolution.ActionProgress > 0)
-    and (Resolved.RequestedAction = acShelter)
-    and (State.ActionProgress > 0) then
-    event.ActionResolved.Note := arnGestationContinuing
-  else if (StateBeforeResolution.Action = acShelter)
-    and (StateBeforeResolution.ActionProgress > 0)
-    and (Resolved.RequestedAction = acIdle)
-    and (State.ActionProgress = 0) then
-    event.ActionResolved.Note := arnGestationCompleted;
+  event.ActionResolved.GestationProgress := State.GestationProgress;
 
   fDiagnostics.Emit(event);
 end;
@@ -464,11 +441,11 @@ begin
   var event := Default(TSimEvent);
   event.Header := BuildEventHeader(sekDecisionTrace, stpPostAgents);
   event.DecisionTrace.AgentId := Trace.AgentId;
-  event.DecisionTrace.Cell := CellToPoint(State.Location);
+  event.DecisionTrace.Cell := State.Location;
   event.DecisionTrace.RequestedAction := Trace.RequestedAction;
-  event.DecisionTrace.RequestedTarget := TargetToRef(Trace.RequestedTarget);
+  event.DecisionTrace.RequestedTarget := Trace.RequestedTarget;
   event.DecisionTrace.ResolvedAction := Trace.ResolvedAction;
-  event.DecisionTrace.ResolvedTarget := TargetToRef(Trace.ResolvedTarget);
+  event.DecisionTrace.ResolvedTarget := Trace.ResolvedTarget;
   event.DecisionTrace.ForageConsumed := Trace.ForageConsumed;
   event.DecisionTrace.ForageGain := Trace.ForageGain;
   event.DecisionTrace.ForageEfficiency := Trace.ForageEfficiency;
@@ -486,7 +463,7 @@ begin
   event.Header := BuildEventHeader(sekAgentBorn, stpPostAgents);
   event.AgentBorn.AgentId := OffspringState.AgentId;
   event.AgentBorn.ParentAgentId := ParentAgentId;
-  event.AgentBorn.Cell := CellToPoint(OffspringState.Location);
+  event.AgentBorn.Cell := OffspringState.Location;
   event.AgentBorn.InitialReserves := OffspringState.Reserves;
   fDiagnostics.Emit(event);
 end;
@@ -499,7 +476,7 @@ begin
   var event := Default(TSimEvent);
   event.Header := BuildEventHeader(sekAgentDied, stpPostAgents);
   event.AgentDied.AgentId := State.AgentId;
-  event.AgentDied.Cell := CellToPoint(State.Location);
+  event.AgentDied.Cell := State.Location;
   event.AgentDied.Age := State.Age;
   event.AgentDied.ReservesBeforeDeath := ReservesBeforeDeath;
   fDiagnostics.Emit(event);
@@ -514,8 +491,8 @@ begin
   var event := Default(TSimEvent);
   event.Header := BuildEventHeader(sekAgentMoved, stpPostAgents);
   event.AgentMoved.AgentId := State.AgentId;
-  event.AgentMoved.FromCell := CellToPoint(FromCell);
-  event.AgentMoved.ToCell := CellToPoint(ToCell);
+  event.AgentMoved.FromCell := FromCell;
+  event.AgentMoved.ToCell := ToCell;
   event.AgentMoved.MoveCost := movecost;
   event.AgentMoved.Reserves := State.Reserves;
   fDiagnostics.Emit(event);
@@ -530,7 +507,7 @@ begin
   var event := Default(TSimEvent);
   event.Header := BuildEventHeader(sekDeltaConsumed, stpPostAgents);
   event.DeltaConsumed.AgentId := State.AgentId;
-  event.DeltaConsumed.Cell := CellToPoint(State.Location);
+  event.DeltaConsumed.Cell := State.Location;
   event.DeltaConsumed.Cache := Cache;
   event.DeltaConsumed.ConsumedAmount := ConsumedAmount;
   event.DeltaConsumed.GainAmount := GainAmount;
@@ -579,7 +556,8 @@ begin
   Result.Reserves := REPRODUCTION_CHILD_START_RESERVES;
   Result.TicksSinceReproduction := 0;
   Result.Action := acIdle;
-  Result.ActionProgress := 0;
+  Result.ActionAge := 0;
+  Result.GestationProgress := 0;
   Result.ActionTarget.TType := ttCell;
   Result.ActionTarget.Cell := ParentState.Location;
   Result.WanderTarget := -1;
@@ -620,22 +598,22 @@ begin
   ForageConsumed := 0.0;
   ForageGain := 0.0;
 
-  if (State.Action = acShelter) and (State.ActionProgress > 0) then
+  if (State.Action = acReproduce) and (State.GestationProgress > 0) then
   begin
     Result.RequestedTarget.TType := ttCell;
     Result.RequestedTarget.Cell := State.Location;
 
-    if State.ActionProgress >= REPRODUCTION_DURATION_TICKS then
-      State.ActionProgress := REPRODUCTION_DURATION_TICKS - 1;
+    if State.GestationProgress >= REPRODUCTION_DURATION_TICKS then
+      State.GestationProgress := REPRODUCTION_DURATION_TICKS - 1;
 
-    if State.ActionProgress >= (REPRODUCTION_DURATION_TICKS - 1) then
+    if State.GestationProgress >= (REPRODUCTION_DURATION_TICKS - 1) then
     begin
       var offspringState := BuildOffspringState(State, NextAgentId);
       State.Reserves := State.Reserves - REPRODUCTION_PARENT_COST;
       if State.Reserves < 0.0 then
         State.Reserves := 0.0;
       State.TicksSinceReproduction := 0;
-      State.ActionProgress := 0;
+      State.GestationProgress := 0;
       fPopulation.AppendAgent(offspringState);
       EmitAgentBorn(offspringState, State.AgentId);
 
@@ -643,20 +621,17 @@ begin
       Exit;
     end;
 
-    Inc(State.ActionProgress);
-    Result.RequestedAction := acShelter;
+    Inc(State.GestationProgress);
+    Result.RequestedAction := acReproduce;
     Exit;
   end;
-
-  if State.ActionProgress <> 0 then
-    State.ActionProgress := 0;
 
   if Requested.RequestedAction = acReproduce then
   begin
     Result.RequestedTarget.TType := ttCell;
     Result.RequestedTarget.Cell := State.Location;
 
-    if State.Action <> acShelter then
+    if State.Action <> acReproduce then
     begin
       if State.Reserves < REPRODUCTION_MIN_ATTEMPT_RESERVES then
       begin
@@ -664,8 +639,8 @@ begin
         Exit;
       end;
 
-      State.ActionProgress := 1;
-      Result.RequestedAction := acShelter;
+      State.GestationProgress := 1;
+      Result.RequestedAction := acReproduce;
       Exit;
     end;
   end;
@@ -757,6 +732,15 @@ begin
 
         if (State.WanderTarget >= 0) and (State.Location = State.WanderTarget) then
           State.WanderTarget := -1;
+
+        // Clear the action target when the agent arrives at its destination,
+        // so cognition doesn't carry a stale target into the next tick.
+        if (Result.RequestedTarget.TType = ttCell)
+          and (State.Location = Result.RequestedTarget.Cell) then
+        begin
+          Result.RequestedTarget.TType := ttNone;
+          Result.RequestedTarget.Cell := -1;
+        end;
 
         Result.RequestedAction := acMove;
         Result.RequestedTarget := Requested.RequestedTarget;
@@ -869,6 +853,8 @@ begin
     // Dead agents do not think or request actions.
     state.ReserveDelta := state.Reserves - reservesAtTickStart;
     state.Action := acIdle;
+    state.ActionAge := 0;
+    state.GestationProgress := 0;
     EmitAgentDied(state^, reservesBeforeUpkeep);
 
     // Notify environment once at transition-to-death.
@@ -940,6 +926,7 @@ begin
   input.SolarFlux := currentSolarFlux;
   input.SolarFluxDelta := currentSolarFlux - previousSolarFlux;
   input.Query := fSimQuery;
+  input.GestationDuration := REPRODUCTION_DURATION_TICKS;
 
   var agentCount := fPopulation.AgentCount;
   if (agentCount > 0) and (fCurrentGlobalTick >= fRuntimeConfig.AgentActivationTick) then
@@ -961,16 +948,6 @@ begin
   end;
 
   NotifyPhase(stpPostAgents);
-end;
-
-function TSimRuntime.TargetToRef(const aTarget: TTarget): TTargetRef;
-begin
-  Result.TType := aTarget.TType;
-  case Result.TType of
-    ttNone: ;
-    ttCell: Result.Cell := CellToPoint(aTarget.Cell);
-    ttCache: Result.Cache := aTarget.Cache;
-  end;
 end;
 
 function TSimRuntime.TryGetLastDecision(AgentIndex: Integer; out Trace: TDecisionTrace): Boolean;

@@ -18,14 +18,6 @@ type
 
   TSimEventKinds = set of TSimEventKind;
 
-  TActionResolutionNote = (
-    arnNone,
-    arnReproduceBlockedLowReserves,
-    arnGestationStarted,
-    arnGestationContinuing,
-    arnGestationCompleted
-  );
-
   TSimEventHeader = record
     Sequence: Integer;
     DayNumber: Integer;
@@ -34,31 +26,23 @@ type
     Kind: TSimEventKind;
   end;
 
-  TTargetRef = record
-    case TType: TTargetType of
-      ttNone: ();
-      ttCell: (Cell: TPoint);
-      ttCache: (Cache: TCacheRef);
-  end;
-
   TActionResolvedEvent = record
-    AgentId: Integer;
+    AgentId: TAgentId;
     RequestedAction: TAgentAction;
-    RequestedTarget: TTargetRef;
+    RequestedTarget: TTarget;
     ResolvedAction: TAgentAction;
-    ResolvedTarget: TTargetRef;
+    ResolvedTarget: TTarget;
     Reserves: Single;
-    ActionProgress: Integer;
-    Note: TActionResolutionNote;
+    GestationProgress: Integer;
   end;
 
   TDecisionTraceEvent = record
-    AgentId: Integer;
-    Cell: TPoint;
+    AgentId: TAgentId;
+    Cell: TCellIndex;
     RequestedAction: TAgentAction;
-    RequestedTarget: TTargetRef;
+    RequestedTarget: TTarget;
     ResolvedAction: TAgentAction;
-    ResolvedTarget: TTargetRef;
+    ResolvedTarget: TTarget;
     ForageConsumed: Single;
     ForageGain: Single;
     ForageEfficiency: Single;
@@ -67,31 +51,31 @@ type
   end;
 
   TAgentMovedEvent = record
-    AgentId: Integer;
-    FromCell: TPoint;
-    ToCell: TPoint;
+    AgentId: TAgentId;
+    FromCell: TCellIndex;
+    ToCell: TCellIndex;
     MoveCost: Single;
     Reserves: Single;
   end;
 
   TAgentBornEvent = record
-    AgentId: Integer;
+    AgentId: TAgentId;
     ParentAgentId: Integer;
-    Cell: TPoint;
+    Cell: TCellIndex;
     InitialReserves: Single;
   end;
 
   TDeltaConsumedEvent = record
-    AgentId: Integer;
-    Cell: TPoint;
+    AgentId: TAgentId;
+    Cell: TCellIndex;
     Cache: TCacheRef;
     ConsumedAmount: Single;
     GainAmount: Single;
   end;
 
   TAgentDiedEvent = record
-    AgentId: Integer;
-    Cell: TPoint;
+    AgentId: TAgentId;
+    Cell: TCellIndex;
     Age: Integer;
     ReservesBeforeDeath: Single;
   end;

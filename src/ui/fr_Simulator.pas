@@ -68,8 +68,8 @@ implementation
 
 {$R *.dfm}
 
-uses System.IOUtils, Vcl.Graphics,
-  u_WorldsMessages, {u_LogExport,} u_SessionManager;
+uses System.IOUtils, Vcl.Graphics, Vcl.Themes,
+  u_WorldsMessages, u_SessionManager;
 
 { TSimulatorFrame }
 
@@ -78,8 +78,8 @@ procedure TSimulatorFrame.Init;
   procedure InitFrame(aFrame: TFrame; aPlaceholder: TShape);
   begin
     aFrame.BoundsRect := aPlaceholder.BoundsRect;
-    aFrame.Anchors := aPlaceholder.Anchors;
     aFrame.Parent := aPlaceholder.Parent;
+    aFrame.Anchors := aPlaceholder.Anchors;
     aPlaceholder.Hide;
     aFrame.Show;
   end;
@@ -160,7 +160,7 @@ begin
       Visualizer.ZoomLevel := TVisualizerZoom(view.ZoomFactor);
       Visualizer.SubstanceIndex := view.SubstanceIndex;
       Visualizer.AnchorCell := view.AnchorCell;
-      Visualizer.Paint(view.Canvas, clMoneyGreen);
+      Visualizer.Paint(view.Canvas, StyleServices.GetSystemColor(clRed));
     end;
   end;
 end;

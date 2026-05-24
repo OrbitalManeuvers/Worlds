@@ -1,4 +1,4 @@
-unit u_WanderGenes;
+﻿unit u_WanderGenes;
 
 interface
 
@@ -16,8 +16,18 @@ uses System.Math, u_SimClocks;
 const
   WANDER_MAX_SCORE = 0.30;
   WANDER_MIN_VOTE_SCORE = 0.02;
+  WANDER_RESERVE_COMFORT_LEVEL = 8.0;  // above this, wander urgency fades
+  WANDER_RESERVE_PRESSURE = 0.10;      // max contribution from low reserves
   WANDER_RESERVE_DELTA_RANGE = 0.15;
   WANDER_FORAGE_TICKS_RANGE = CLOCK_TICKS_PER_DAY;
+
+  // Action context modifiers.
+  // Sheltering: resting agent should not wander without real pressure.
+  // Foraging: eating right now — wander should not interrupt a meal.
+  // Already moving: small persistence bonus — keep going.
+  WANDER_SHELTER_PENALTY   = 0.05;
+  WANDER_FORAGE_PENALTY    = 0.04;
+  WANDER_PERSISTENCE_BONUS = 0.015;
 
 { TWanderEvaluator }
 
@@ -33,28 +43,33 @@ begin
   if Input.HasRemoteSmellSignal then
     Exit;
 
-  case Input.EnergyLevel of
-    elEmpty:
-      Result.Score := Result.Score + 0.14;
-    elLow:
-      Result.Score := Result.Score + 0.10;
-    elMedium:
-      Result.Score := Result.Score + 0.05;
-    elHigh:
-      Result.Score := Result.Score + 0.01;
-    elFull:
-      ;
-  end;
+  // An agent in gestation does not wander — no score, no target.
+  if Input.CurrentAction = acReproduce then
+    Exit;
 
-  // Negative ReserveDelta means the agent is losing ground.
+  // Continuous reserve pressure: wander is a desperation move.
+  // Low reserves push urgency up; comfortable reserves let other actions compete.
+  var reservePressure := EnsureRange(
+    1.0 - (Input.Reserves / WANDER_RESERVE_COMFORT_LEVEL),
+    0.0, 1.0);
+  Result.Score := Result.Score + (reservePressure * WANDER_RESERVE_PRESSURE);
+
+  // Negative ReserveDelta means the agent is losing ground — adds urgency on top of level.
   var reserveTrend := EnsureRange((-Input.ReserveDelta) / WANDER_RESERVE_DELTA_RANGE, 0.0, 1.0);
   Result.Score := Result.Score + (reserveTrend * 0.08);
 
   var foragePressure := EnsureRange(Input.TicksSinceForage / WANDER_FORAGE_TICKS_RANGE, 0.0, 1.0);
   Result.Score := Result.Score + (foragePressure * 0.12);
 
-  if Input.CurrentAction = acMove then
-    Result.Score := Result.Score + 0.015;
+  // Action context shapes entry friction.
+  // Sheltering and foraging resist wander interruption.
+  // Already moving: small persistence bonus — keep going.
+  // Idle: no modifier — wander competes freely.
+  case Input.CurrentAction of
+    acShelter: Result.Score := Result.Score - WANDER_SHELTER_PENALTY;
+    acForage:  Result.Score := Result.Score - WANDER_FORAGE_PENALTY;
+    acMove:    Result.Score := Result.Score + WANDER_PERSISTENCE_BONUS;
+  end;
 
   Result.Score := EnsureRange(Result.Score, 0.0, WANDER_MAX_SCORE);
 

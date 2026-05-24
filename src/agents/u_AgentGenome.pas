@@ -47,46 +47,47 @@ type
 
   // Action-specific evaluator inputs keep evaluator contracts narrow.
   TForageEvalInput = record
-    IsNight: Boolean;
-    EnergyLevel: TEnergyLevel;
+    Reserves: Single;
+    ReserveDelta: Single;  // per-tick change in reserves; negative = losing energy, positive = gaining
     CurrentAction: TAgentAction;
+    CurrentActionAge: Integer;
     Smell: TSmellReport;
   end;
 
   TMoveEvalInput = record
-    IsNight: Boolean;
-    EnergyLevel: TEnergyLevel;
+    Reserves: Single;
     ReserveDelta: Single;
     CurrentAction: TAgentAction;
+    CurrentActionAge: Integer;
     Smell: TSmellReport;
   end;
 
   TShelterEvalInput = record
-    IsNight: Boolean;
-    SolarFlux: Single;
-    SolarFluxDelta: Single;
-    EnergyLevel: TEnergyLevel;
     CurrentAction: TAgentAction;
-    ThreatPressure: Single;
+    CurrentActionAge: Integer;
+    Reserves: Single;
+    ReserveDelta: Single;  // per-tick change in reserves; negative = losing energy, positive = gaining
   end;
 
   TReproduceEvalInput = record
-    IsNight: Boolean;
-    EnergyLevel: TEnergyLevel;
     Reserves: Single;
     ReserveDelta: Single;
     TicksSinceReproduction: Integer;
     Age: Integer;
     CurrentAction: TAgentAction;
+    CurrentActionAge: Integer;
     LocalAgentCount: Integer;
+    TicksRemainingInGestation: Integer; // ticks until birth; only meaningful when CurrentAction = acReproduce
+    GestationDuration: Integer;         // total gestation ticks; used to normalize commitment ratio
   end;
 
   TWanderEvalInput = record
-    EnergyLevel: TEnergyLevel;
+    Reserves: Single;
     ReserveDelta: Single;
     TicksSinceForage: Integer;
     HasRemoteSmellSignal: Boolean;
     CurrentAction: TAgentAction;
+    CurrentActionAge: Integer;
   end;
 
   TConverterInput = record
@@ -126,7 +127,7 @@ type
     PreviousLocation: Integer;
     CurrentLocation: Integer;
     CurrentReserves: Single;
-    ActionProgress: Integer;
+    GestationProgress: Integer;
   end;
 
   TCognitionReflectionOutput = record
@@ -230,6 +231,7 @@ type
   // Reproduction evaluation
   TReproduceEvalGene = class(TGene)
     class function Evaluate(const Input: TReproduceEvalInput; var Scratch: TReproduceEvalScratch): TActionEvalResult; virtual; abstract;
+    class function MinimumAge: Integer; virtual; abstract;
   end;
   TReproduceEvalGeneClass = class of TReproduceEvalGene;
 
@@ -258,6 +260,9 @@ type
   TConverterGeneClass = class of TConverterGene;
 
 
+  TGeneSlotFlag = (gsfAlwaysOn);
+  TGeneSlotFlags = set of TGeneSlotFlag;
+
   // part of the agent's genome record
   TGeneMap = record
     Energy: TEnergyGeneClass;
@@ -270,6 +275,9 @@ type
     Cognition: TCognitionGeneClass;
     Converter: TConverterGeneClass;
     WanderEval: TWanderEvalGeneClass;
+    function SumGenerationCost(const aCostPerGeneration: Single;
+      const aRequiredFlags: TGeneSlotFlags = [];
+      const aExcludedFlags: TGeneSlotFlags = []): Single;
   end;
 
   // record of an agent's gene sequence
@@ -344,6 +352,46 @@ end;
 class function TGene.GetGenerationCode: Char;
 begin
   Result := 'A';
+end;
+
+{ TGeneMap }
+
+function TGeneMap.SumGenerationCost(const aCostPerGeneration: Single;
+  const aRequiredFlags: TGeneSlotFlags; const aExcludedFlags: TGeneSlotFlags): Single;
+
+  function GeneGenerationCost(aGeneClass: TGeneClass): Single;
+  begin
+    if not Assigned(aGeneClass) then
+      Exit(0.0);
+
+    Result := (Ord(aGeneClass.GetGenerationCode) - Ord('A')) * aCostPerGeneration;
+    if Result < 0.0 then
+      Result := 0.0;
+  end;
+
+  procedure AddSlot(aGeneClass: TGeneClass; const aFlags: TGeneSlotFlags);
+  begin
+    if (aRequiredFlags - aFlags) <> [] then
+      Exit;
+
+    if (aFlags * aExcludedFlags) <> [] then
+      Exit;
+
+    Result := Result + GeneGenerationCost(aGeneClass);
+  end;
+begin
+  Result := 0.0;
+
+  AddSlot(Energy, [gsfAlwaysOn]);
+  AddSlot(Smell, []);
+  AddSlot(Sight, []);
+  AddSlot(MoveEval, []);
+  AddSlot(ForageEval, []);
+  AddSlot(ShelterEval, [gsfAlwaysOn]);
+  AddSlot(ReproduceEval, []);
+  AddSlot(Cognition, [gsfAlwaysOn]);
+  AddSlot(Converter, []);
+  AddSlot(WanderEval, []);
 end;
 
 

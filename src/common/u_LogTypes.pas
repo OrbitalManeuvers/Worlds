@@ -6,15 +6,17 @@ type
   TLogField = record
     Name: string;
     Value: string;
-    function AsShortText: string;
+    function AsFieldText: string;
   end;
 
   TLogFields = record
     Fields: TArray<TLogField>;    // structured data for details, export, columns
     procedure Add(const aName, aValue: string);
-    function ShortFieldText: string;
+    procedure AddFields(aNewFields: TLogFields);
     function Count: Integer;
     procedure Clear;
+    function AsFieldText(FromField, ToField: Integer): string; overload;
+    function AsFieldText(): string; overload;
   end;
 
 implementation
@@ -29,6 +31,31 @@ begin
   Fields[i].Value := aValue;
 end;
 
+procedure TLogFields.AddFields(aNewFields: TLogFields);
+begin
+  var newLen := Self.Count + aNewFields.Count;
+  if newLen <> Self.Count then
+  begin
+    var baseIndex := Length(Fields);
+    SetLength(Fields, newLen);
+    for var i := 0 to aNewFields.Count - 1 do
+      Fields[baseIndex + i] := aNewFields.Fields[i];
+  end;
+end;
+
+function TLogFields.AsFieldText: string;
+begin
+  Result := AsFieldText(Low(Fields), High(Fields));
+end;
+
+function TLogFields.AsFieldText(FromField, ToField: Integer): string;
+begin
+  Result := '';
+  for var i := FromField to ToField do
+    Result := Result + Fields[i].AsFieldText() + ' ';
+  SetLength(Result, Length(Result) - 1);
+end;
+
 procedure TLogFields.Clear;
 begin
   SetLength(Fields, 0);
@@ -39,17 +66,8 @@ begin
   Result := Length(Fields);
 end;
 
-function TLogFields.ShortFieldText: string;
-begin
-  var s := '';
-  for var f in Fields do
-    s := s + f.AsShortText + ' ';
-  Result := s;
-end;
-
 { TLogField }
-
-function TLogField.AsShortText: string;
+function TLogField.AsFieldText: string;
 begin
   Result := Name + ':' + Value;
 end;

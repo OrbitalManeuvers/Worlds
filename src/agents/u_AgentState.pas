@@ -10,8 +10,8 @@ type
   PAgentState = ^TAgentState;
   TAgentState = record
     // Identity
-    AgentId: Integer;
-    Location: Integer;
+    AgentId: TAgentId;
+    Location: TCellIndex;
 
     // Lifecycle
     Age: Integer;  // in ticks
@@ -24,9 +24,10 @@ type
 
     // Current action
     Action: TAgentAction;
-    ActionProgress: Integer;  // ticks spent on current action
     ActionTarget: TTarget;
+    ActionAge: Integer;          // number of ticks spent doing current action
     WanderTarget: Integer;
+    GestationProgress: Integer;  // ticks spent in gestation
 
     // Learned state (decision weights)
     DecisionWeights: TDecisionWeights;

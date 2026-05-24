@@ -5,11 +5,9 @@ interface
 uses u_AgentTypes, u_AgentState, u_AgentGenome, u_SimQueriesIntf;
 
 type
-//  TActionScores = TCognitionActionScores;
-
   TBrainTraceSummary = record
     EnergyLevel: TEnergyLevel;
-    ActionProgress: Integer;
+    GestationProgress: Integer;
     ReserveDelta: Single;
     TicksSinceReproduction: Integer;
     LocalAgentCount: Integer;
@@ -18,11 +16,11 @@ type
     TopSmellCache: TCacheRef;
     TopSmellDistance: Integer;
     TopSmellSignal: Single;
-    ThreatPressure: Single;
     SolarFlux: Single;
     SolarFluxDelta: Single;
     HadSmellTarget: Boolean;
     HadSightTarget: Boolean;
+    Reserves: Single;
   end;
 
   // Runtime-owned inputs for one brain decision pass.
@@ -31,6 +29,7 @@ type
     SolarFlux: Single;
     SolarFluxDelta: Single;
     Query: ISimQuery;
+    GestationDuration: Integer; // total ticks for gestation; supplied by runtime
   end;
 
   // Result returned by the brain to the population/sim tick routine.
@@ -73,11 +72,9 @@ type
 
 implementation
 
-uses System.SysUtils, u_EnvironmentTypes;
+uses System.SysUtils, System.Math, u_EnvironmentTypes;
 
 const
-  // Keep hold mode for deeply dark conditions; rising light should wake sensing/evals.
-  SHELTER_HOLD_MAX_SOLAR_FLUX = 0.02;
   FOOD_SIGNAL_STRONG_THRESHOLD = 1.0;
   DECISION_WEIGHT_LEARNING_RATE = 0.20;
 
@@ -151,7 +148,8 @@ function BuildTraceSummary(const State: TAgentState; const Context: TDecisionCon
   const LocalAgentCount: Integer): TBrainTraceSummary;
 begin
   Result.EnergyLevel := Context.EnergyLevel;
-  Result.ActionProgress := State.ActionProgress;
+  Result.GestationProgress := State.GestationProgress;
+  Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
   Result.TicksSinceReproduction := State.TicksSinceReproduction;
   Result.LocalAgentCount := LocalAgentCount;
@@ -160,7 +158,6 @@ begin
   Result.TopSmellCache := Default(TCacheRef);
   Result.TopSmellDistance := -1;
   Result.TopSmellSignal := 0.0;
-  Result.ThreatPressure := 0.0;
   Result.SolarFlux := Context.SolarFlux;
   Result.SolarFluxDelta := Context.SolarFluxDelta;
   Result.HadSmellTarget := Context.Smell.Count > 0;
@@ -176,29 +173,31 @@ begin
   end;
 end;
 
-function BuildForageEvalInput(const Context: TDecisionContext): TForageEvalInput;
+function BuildForageEvalInput(const State: TAgentState; const Context: TDecisionContext): TForageEvalInput;
 begin
-  Result.IsNight := Context.IsNight;
-  Result.EnergyLevel := Context.EnergyLevel;
+  Result.Reserves := State.Reserves;
+  Result.ReserveDelta := State.ReserveDelta;
   Result.CurrentAction := Context.CurrentAction;
+  Result.CurrentActionAge := Context.CurrentActionAge;
   Result.Smell := Context.Smell;
 end;
 
 function BuildMoveEvalInput(const State: TAgentState; const Context: TDecisionContext): TMoveEvalInput;
 begin
-  Result.IsNight := Context.IsNight;
-  Result.EnergyLevel := Context.EnergyLevel;
+  Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
   Result.CurrentAction := Context.CurrentAction;
+  Result.CurrentActionAge := Context.CurrentActionAge;
   Result.Smell := Context.Smell;
 end;
 
 function BuildWanderEvalInput(const State: TAgentState; const Context: TDecisionContext): TWanderEvalInput;
 begin
-  Result.EnergyLevel := Context.EnergyLevel;
+  Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
   Result.TicksSinceForage := State.TicksSinceForage;
   Result.CurrentAction := Context.CurrentAction;
+  Result.CurrentActionAge := Context.CurrentActionAge;
 
   // Suppress wander only when there's a remote smell signal worth chasing.
   // A local-only signal (distance 0) means the agent is already on the food;
@@ -212,28 +211,26 @@ begin
     end;
 end;
 
-function BuildShelterEvalInput(const Context: TDecisionContext): TShelterEvalInput;
+function BuildShelterEvalInput(const State: TAgentState; const Context: TDecisionContext): TShelterEvalInput;
 begin
-  Result.IsNight := Context.IsNight;
-  Result.SolarFlux := Context.SolarFlux;
-  Result.SolarFluxDelta := Context.SolarFluxDelta;
-  Result.EnergyLevel := Context.EnergyLevel;
   Result.CurrentAction := Context.CurrentAction;
-  // Placeholder until explicit threat modeling is added.
-  Result.ThreatPressure := 0.0;
+  Result.CurrentActionAge := Context.CurrentActionAge;
+  Result.Reserves := State.Reserves;
+  Result.ReserveDelta := State.ReserveDelta;
 end;
 
 function BuildReproduceEvalInput(const State: TAgentState; const Context: TDecisionContext;
-  const LocalAgentCount: Integer): TReproduceEvalInput;
+  const LocalAgentCount: Integer; const GestationDuration: Integer): TReproduceEvalInput;
 begin
-  Result.IsNight := Context.IsNight;
-  Result.EnergyLevel := Context.EnergyLevel;
   Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
   Result.TicksSinceReproduction := State.TicksSinceReproduction;
   Result.Age := State.Age;
   Result.CurrentAction := Context.CurrentAction;
+  Result.CurrentActionAge := Context.CurrentActionAge;
   Result.LocalAgentCount := LocalAgentCount;
+  Result.TicksRemainingInGestation := Max(0, GestationDuration - State.GestationProgress);
+  Result.GestationDuration := GestationDuration;
 end;
 
 function BuildEnergyInput(const State: TAgentState): TEnergyInput;
@@ -275,7 +272,7 @@ begin
   Result.PreviousLocation := Input.PreviousLocation;
   Result.CurrentLocation := Input.CurrentLocation;
   Result.CurrentReserves := State.Reserves;
-  Result.ActionProgress := State.ActionProgress;
+  Result.GestationProgress := State.GestationProgress;
 end;
 
 procedure ApplyDecisionWeightUpdate(var State: TAgentState; const Buckets: TDecisionBuckets;
@@ -311,6 +308,7 @@ begin
   DecisionContext.SolarFlux := Input.SolarFlux;
   DecisionContext.SolarFluxDelta := Input.SolarFluxDelta;
   DecisionContext.CurrentAction := State.Action;
+  DecisionContext.CurrentActionAge := State.ActionAge;
   DecisionContext.EnergyLevel := Low(TEnergyLevel);
 
   for var action := Low(TAgentAction) to High(TAgentAction) do
@@ -344,36 +342,20 @@ begin
   var energyInput := BuildEnergyInput(State);
   Scratch.DecisionContext.EnergyLevel := State.Genome.GeneMap.Energy.EvaluateEnergyLevel(energyInput);
 
-  // Shelter hold mode: keep expensive sensing/evaluators quiet while sheltered in
-  // deep darkness, unless light is rising or energy has dropped to low/empty.
-  // Gestating shelter is always runtime-owned hold state.
-  var shelterHoldMode := (State.Action = acShelter)
-    and (
-      (State.ActionProgress > 0)
-      or (
-        (Input.SolarFlux <= SHELTER_HOLD_MAX_SOLAR_FLUX)
-        and (Input.SolarFluxDelta <= 0.0)
-        and (Scratch.DecisionContext.EnergyLevel > elLow)
-      )
-    );
-
   // 2. Smell
-  if not shelterHoldMode then
-  begin
-    // allow parameters to adjust the gene's operation
-    var smellParams: TSmellParams;
-    smellParams.EdgeRetention := State.Genome.SmellEdgeRetention;
-    smellParams.Ratings := State.Genome.SmellRatings;
+  // allow parameters to adjust the gene's operation
+  var smellParams: TSmellParams;
+  smellParams.EdgeRetention := State.Genome.SmellEdgeRetention;
+  smellParams.Ratings := State.Genome.SmellRatings;
 
-    // activate the gene and save its reply
-    var smellGene := State.Genome.GeneMap.Smell;
-    var smellReport := smellGene.Scan(State.Location, smellParams, Input.Query, Scratch.SensorScratch.Smell);
+  // activate the gene and save its reply
+  var smellGene := State.Genome.GeneMap.Smell;
+  var smellReport := smellGene.Scan(State.Location, smellParams, Input.Query, Scratch.SensorScratch.Smell);
 
-    Scratch.DecisionContext.Smell := smellReport;
-  end;
+  Scratch.DecisionContext.Smell := smellReport;
 
   // 3. Sight
-  if (not shelterHoldMode) and Assigned(State.Genome.GeneMap.Sight) then
+  if Assigned(State.Genome.GeneMap.Sight) then
   begin
     var sightGene := State.Genome.GeneMap.Sight;
     var sightReport := sightGene.Scan(State.Location, State.Genome.SightRange, Input.Query, Scratch.SensorScratch.Sight);
@@ -386,52 +368,41 @@ begin
   // Evaluation stage: score available actions.
 
   // 1. Movement
-  if not shelterHoldMode then
+  var bestMove := Default(TActionEvalResult);
+  bestMove.Score := 0.0;
+  bestMove.Target.TType := ttNone;
+  var moveEval := State.Genome.GeneMap.MoveEval;
+  if Assigned(moveEval) then
   begin
-    var bestMove := Default(TActionEvalResult);
-    bestMove.Score := 0.0;
-    bestMove.Target.TType := ttNone;
-{.define no_movement}
-{$ifdef no_movement}
-    Scratch.ActionEvaluations[acMove].Score := 0.0;
-{$else}
-    var moveEval := State.Genome.GeneMap.MoveEval;
-    if Assigned(moveEval) then
-    begin
-      var moveInput := BuildMoveEvalInput(State, Scratch.DecisionContext);
-      bestMove := moveEval.Evaluate(moveInput, Scratch.EvaluatorScratch.Movement);
-    end;
-
-    var wanderEval := State.Genome.GeneMap.WanderEval;
-    if Assigned(wanderEval) then
-    begin
-      var wanderInput := BuildWanderEvalInput(State, Scratch.DecisionContext);
-      var wanderMove := wanderEval.Evaluate(wanderInput, Scratch.EvaluatorScratch.Wander);
-
-      if wanderMove.Score > bestMove.Score then
-        bestMove := wanderMove;
-    end;
-
-    Scratch.ActionEvaluations[acMove] := bestMove;
-{$endif}
+    var moveInput := BuildMoveEvalInput(State, Scratch.DecisionContext);
+    bestMove := moveEval.Evaluate(moveInput, Scratch.EvaluatorScratch.Movement);
   end;
 
-  // 2. Foraging
-  if not shelterHoldMode then
+  var wanderEval := State.Genome.GeneMap.WanderEval;
+  if Assigned(wanderEval) then
   begin
-    var forageEval := State.Genome.GeneMap.ForageEval;
-    if Assigned(forageEval) then
-    begin
-      var forageInput := BuildForageEvalInput(Scratch.DecisionContext);
-      Scratch.ActionEvaluations[acForage] := forageEval.Evaluate(forageInput, Scratch.EvaluatorScratch.Forage);
-    end;
+    var wanderInput := BuildWanderEvalInput(State, Scratch.DecisionContext);
+    var wanderMove := wanderEval.Evaluate(wanderInput, Scratch.EvaluatorScratch.Wander);
+
+    if wanderMove.Score > bestMove.Score then
+      bestMove := wanderMove;
+  end;
+
+  Scratch.ActionEvaluations[acMove] := bestMove;
+
+  // 2. Foraging
+  var forageEval := State.Genome.GeneMap.ForageEval;
+  if Assigned(forageEval) then
+  begin
+    var forageInput := BuildForageEvalInput(State, Scratch.DecisionContext);
+    Scratch.ActionEvaluations[acForage] := forageEval.Evaluate(forageInput, Scratch.EvaluatorScratch.Forage);
   end;
 
   // 3. Shelter
   var shelterEval := State.Genome.GeneMap.ShelterEval;
   if Assigned(shelterEval) then
   begin
-    var shelterInput := BuildShelterEvalInput(Scratch.DecisionContext);
+    var shelterInput := BuildShelterEvalInput(State, Scratch.DecisionContext);
     Scratch.ActionEvaluations[acShelter] := shelterEval.Evaluate(shelterInput, Scratch.EvaluatorScratch.Shelter);
   end;
 
@@ -440,16 +411,20 @@ begin
   var reproduceEval := State.Genome.GeneMap.ReproduceEval;
   if Assigned(reproduceEval) and (State.Action <> acShelter) then
   begin
-    var crowdingQuery: IPopulationCrowdingQuery;
-    if Supports(Input.Query, IPopulationCrowdingQuery, crowdingQuery) then
+    // don't run the sight query if it's not needed
+    if state.Age >= reproduceEval.MinimumAge then
     begin
-      localAgentCount := crowdingQuery.CountAgentsWithinRadius(State.Location, 1);
-      // Query counts local living agents in the source cell too, so drop self for social pressure.
-      if localAgentCount > 0 then
-        Dec(localAgentCount);
+      var crowdingQuery: IPopulationCrowdingQuery;
+      if Supports(Input.Query, IPopulationCrowdingQuery, crowdingQuery) then
+      begin
+        localAgentCount := crowdingQuery.CountAgentsWithinRadius(State.Location, 1);
+        // Query counts local living agents in the source cell too, so drop self for social pressure.
+        if localAgentCount > 0 then
+          Dec(localAgentCount);
+      end;
     end;
 
-    var reproduceInput := BuildReproduceEvalInput(State, Scratch.DecisionContext, localAgentCount);
+    var reproduceInput := BuildReproduceEvalInput(State, Scratch.DecisionContext, localAgentCount, Input.GestationDuration);
     Scratch.ActionEvaluations[acReproduce] := reproduceEval.Evaluate(reproduceInput, Scratch.EvaluatorScratch.Reproduce);
   end;
 

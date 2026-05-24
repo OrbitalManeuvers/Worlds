@@ -81,7 +81,8 @@ type
     // Hook for runtime death events. BiomassAmount is currently caller-selected.
     procedure NotifyAgentDeath(Location: Integer; BiomassAmount: Single);
 
-    procedure ApplyDeltaSpawnPlan(const Cells: array of Integer; InitialAmount: Single);
+    procedure ApplyDeltaSpawnPlan(const Cells: array of Integer; InitialAmount: Single); overload;
+    procedure ApplyDeltaSpawnPlan(const Cells: array of Integer; const Amounts: array of Single); overload;
     function UpdateDelta(const aDayTick: TDayTick): TDeltaUpkeepReport;
     function CleanupExtinctDeltaCaches: Integer;
 
@@ -258,6 +259,18 @@ begin
   for var i := 0 to High(Cells) do
     if (Cells[i] >= 0) and (Cells[i] <= High(fCells)) then
       CreateDeltaCache(Cells[i], InitialAmount);
+end;
+
+procedure TSimEnvironment.ApplyDeltaSpawnPlan(const Cells: array of Integer; const Amounts: array of Single);
+begin
+  for var i := 0 to High(Cells) do
+    if (Cells[i] >= 0) and (Cells[i] <= High(fCells)) then
+    begin
+      var amount := 0.0;
+      if i <= High(Amounts) then
+        amount := Amounts[i];
+      CreateDeltaCache(Cells[i], amount);
+    end;
 end;
 
 function TSimEnvironment.UpdateDelta(const aDayTick: TDayTick): TDeltaUpkeepReport;

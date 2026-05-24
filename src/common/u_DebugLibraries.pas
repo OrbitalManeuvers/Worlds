@@ -36,6 +36,13 @@ type
     Caches: TArray<TDebugCache>;
   end;
 
+  TDebugDeltaEntry = record
+    Location: TPoint;
+    Amount: Single;   // initial cache amount in [0..1]; 0 = absent/default
+  end;
+
+  TDebugDeltaList = TArray<TDebugDeltaEntry>;
+
   TDebugScenario = record
     Name: string;
     Seed: Integer;
@@ -46,6 +53,7 @@ type
     Foods: TArray<string>;
     Resources: TArray<TDebugResource>;
     Agents: TArray<TDebugAgentPresence>;
+    DeltaLists: TArray<TDebugDeltaList>;  // up to 3 pre-defined placement lists; empty = use runtime generation
   end;
 
   TDebugLibrary = class
@@ -111,6 +119,11 @@ const
   KEY_WANDER = 'wander';
   KEY_X = 'x';
   KEY_Y = 'y';
+  KEY_AMOUNT = 'amount';
+  KEY_DELTA = 'delta';
+  KEY_DELTA_LIST1 = 'list1';
+  KEY_DELTA_LIST2 = 'list2';
+  KEY_DELTA_LIST3 = 'list3';
 
   GENE_INDEX_ENERGY = 1;
   GENE_INDEX_SMELL = 2;
@@ -231,6 +244,8 @@ end;
 
 { scenario_loader }
 procedure scenario_loader.LoadFromJSON(const JSON: TJSONObject);
+const
+  LIST_KEYS: array[0..2] of string = (KEY_DELTA_LIST1, KEY_DELTA_LIST2, KEY_DELTA_LIST3);
 begin
   Name := JSON.StrValue(KEY_NAME);
   Seed := JSON.IntValue(KEY_SEED);
@@ -264,6 +279,34 @@ begin
     for var i := 0 to jArr.Count - 1 do
       if jArr[i] is TJSONObject then
         Agents[i].LoadFromJSON(jArr[i] as TJSONObject);
+  end;
+
+  var deltaObj: TJSONObject;
+  if JSON.TryGetValue(KEY_DELTA, deltaObj) then
+  begin
+    SetLength(DeltaLists, Length(LIST_KEYS));
+    for var listIndex := 0 to High(LIST_KEYS) do
+    begin
+      SetLength(DeltaLists[listIndex], 0);
+      if deltaObj.TryGetValue(LIST_KEYS[listIndex], jArr) then
+      begin
+        SetLength(DeltaLists[listIndex], jArr.Count);
+        for var i := 0 to jArr.Count - 1 do
+        begin
+          if not (jArr[i] is TJSONObject) then
+            Continue;
+          var entryObj := jArr[i] as TJSONObject;
+          DeltaLists[listIndex][i].Location.X := entryObj.IntValue(KEY_X);
+          DeltaLists[listIndex][i].Location.Y := entryObj.IntValue(KEY_Y);
+          // amount is optional; missing or null defaults to 0.0
+          var amountVal: TJSONValue;
+          if entryObj.TryGetValue(KEY_AMOUNT, amountVal) and (amountVal is TJSONNumber) then
+            DeltaLists[listIndex][i].Amount := (amountVal as TJSONNumber).AsDouble
+          else
+            DeltaLists[listIndex][i].Amount := 0.0;
+        end;
+      end;
+    end;
   end;
 end;
 

@@ -21,7 +21,7 @@ implementation
 uses System.SysUtils, System.Math, u_EnvironmentTypes;
 
 const
-  MAX_SMELL_QUERY_RADIUS = 2.0;
+  MAX_SMELL_QUERY_RADIUS = 3.0;
   MOLECULE_PRESENT_EPSILON = 0.000001;
   SIGNAL_COMPARE_EPSILON = 0.000001;
 

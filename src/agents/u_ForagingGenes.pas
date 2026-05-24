@@ -1,4 +1,4 @@
-unit u_ForagingGenes;
+﻿unit u_ForagingGenes;
 
 interface
 
@@ -12,7 +12,14 @@ type
 
 implementation
 
-uses u_EnvironmentTypes;
+uses u_EnvironmentTypes, System.Math;
+
+const
+  FORAGE_RESERVE_COMFORT_LEVEL = 8.0;   // above this, forage urgency fades
+  FORAGE_HIGH_RESERVE_DISCOUNT = 0.20;  // minimum score multiplier when reserves are full
+  FORAGE_PERSISTENCE_BONUS = 0.03;      // already foraging — continue eating
+  FORAGE_SEEKING_BONUS = 0.02;          // was moving/wandering toward food — reward the find
+  FORAGE_SHELTER_PENALTY = 0.05;        // resting agent resists being pulled out by weak signals
 
 { TForagingGene }
 
@@ -47,10 +54,22 @@ begin
       Break;
   end;
 
-  // Discount forage urgency when reserves are already high � other actions can outcompete.
-  case Input.EnergyLevel of
-    elFull: Result.Score := Result.Score * 0.2;
-    elHigh: Result.Score := Result.Score * 0.6;
+  // Continuous reserve discount: urgency fades as reserves fill.
+  // At comfort level and above, score is scaled down to FORAGE_HIGH_RESERVE_DISCOUNT.
+  // Below comfort level the full signal competes normally.
+  var reserveRatio := EnsureRange(Input.Reserves / FORAGE_RESERVE_COMFORT_LEVEL, 0.0, 1.0);
+  var discount := 1.0 - (reserveRatio * (1.0 - FORAGE_HIGH_RESERVE_DISCOUNT));
+  Result.Score := Result.Score * discount;
+
+  // Action context shapes entry friction.
+  // Already foraging: small persistence bonus — don't interrupt a meal.
+  // Moving or wandering: small bonus — the agent was seeking food, reward the find.
+  // Sheltering: penalty — a resting agent should resist weak signals pulling it out.
+  // Reproducing, idle: no modifier — forage competes on its own merits.
+  case Input.CurrentAction of
+    acForage:   Result.Score := Result.Score + FORAGE_PERSISTENCE_BONUS;
+    acMove:     Result.Score := Result.Score + FORAGE_SEEKING_BONUS;
+    acShelter:  Result.Score := Result.Score - FORAGE_SHELTER_PENALTY;
   end;
 end;
 

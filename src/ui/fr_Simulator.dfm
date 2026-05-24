@@ -1,9 +1,9 @@
 inherited SimulatorFrame: TSimulatorFrame
-  Width = 1387
+  Width = 1259
   Height = 606
   Font.Height = -13
   ParentFont = False
-  ExplicitWidth = 1387
+  ExplicitWidth = 1259
   ExplicitHeight = 606
   object phController: TShape
     Left = 16
@@ -18,7 +18,7 @@ inherited SimulatorFrame: TSimulatorFrame
     Top = 200
     Width = 604
     Height = 333
-    Anchors = [akLeft, akTop, akBottom]
+    Anchors = [akLeft, akTop, akRight, akBottom]
     Brush.Color = clGray
     Visible = False
     ExplicitHeight = 305
@@ -26,7 +26,7 @@ inherited SimulatorFrame: TSimulatorFrame
   object bvBottom: TBevel
     Left = 16
     Top = 548
-    Width = 1361
+    Width = 1233
     Height = 11
     Anchors = [akLeft, akRight, akBottom]
     Shape = bsBottomLine
@@ -38,6 +38,7 @@ inherited SimulatorFrame: TSimulatorFrame
     Top = 200
     Width = 300
     Height = 330
+    Anchors = [akTop, akRight]
     Brush.Color = clGray
   end
   object phDeltaViewer: TShape
@@ -45,10 +46,11 @@ inherited SimulatorFrame: TSimulatorFrame
     Top = 200
     Width = 300
     Height = 330
+    Anchors = [akTop, akRight]
     Brush.Color = clGray
   end
   object btnClose: TButton
-    Left = 1257
+    Left = 1129
     Top = 565
     Width = 125
     Height = 25
@@ -60,7 +62,7 @@ inherited SimulatorFrame: TSimulatorFrame
   end
   object btnSaveClose: TButton
     Tag = 1
-    Left = 1121
+    Left = 993
     Top = 565
     Width = 117
     Height = 25
@@ -71,7 +73,7 @@ inherited SimulatorFrame: TSimulatorFrame
     ExplicitLeft = 764
   end
   object SaveProgress: TProgressBar
-    Left = 521
+    Left = 393
     Top = 565
     Width = 584
     Height = 25

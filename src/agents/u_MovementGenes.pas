@@ -13,6 +13,19 @@ implementation
 
 uses u_EnvironmentTypes;
 
+const
+  // While reproducing, movement toward remote food is heavily suppressed.
+  // A very strong signal can still win, but routine smell-following won't interrupt gestation.
+  MOVE_REPRODUCE_SUPPRESSION = 0.90;
+
+  // Action context modifiers.
+  // Foraging: don't abandon a meal for a distant smell.
+  // Sheltering: resting agent resists being pulled out by remote signals.
+  // Already moving: small persistence bonus — stay the course toward a known target.
+  MOVE_FORAGE_PENALTY    = 0.04;
+  MOVE_SHELTER_PENALTY   = 0.05;
+  MOVE_PERSISTENCE_BONUS = 0.02;
+
 { TMoveEvaluator }
 
 class function TMoveEvaluator.Evaluate(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TActionEvalResult;
@@ -49,6 +62,20 @@ begin
       Result.Target.TType := ttCell;
       Result.Target.Cell := detail.CellIndex;
     end;
+  end;
+
+  // Gestating agents are committed — suppress movement toward remote food.
+  // Only an unusually strong signal will overcome this.
+  if Input.CurrentAction = acReproduce then
+    Result.Score := Result.Score * (1.0 - MOVE_REPRODUCE_SUPPRESSION);
+
+  // Action context shapes entry friction.
+  // Signal strength drives the base score; current action shapes how easy it is to act on it.
+  // Wander and idle are low-commitment — move competes freely from those states.
+  case Input.CurrentAction of
+    acForage:  Result.Score := Result.Score - MOVE_FORAGE_PENALTY;
+    acShelter: Result.Score := Result.Score - MOVE_SHELTER_PENALTY;
+    acMove:    Result.Score := Result.Score + MOVE_PERSISTENCE_BONUS;
   end;
 
 end;

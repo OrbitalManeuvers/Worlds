@@ -39,7 +39,7 @@ uses u_AgentState;
 const
   // Ignore trace residue so smell only reports caches with meaningful mass.
   MIN_SMELL_DETECTABLE_AMOUNT = 0.02;
-  MAX_LOCAL_QUERY_RADIUS_CELLS = 2;
+  MAX_LOCAL_QUERY_RADIUS_CELLS = 3;
   MIN_FOOD_HINT_DISTANCE = 5;
   MIN_DELTA_HINT_DISTANCE = MIN_FOOD_HINT_DISTANCE;
 

@@ -7,6 +7,9 @@ uses System.Types,
   u_EnvironmentTypes;
 
 type
+  TAgentId = type Integer;
+  TCellIndex = type Integer;
+
   TAgentAction = (acMove, acForage, acShelter, acReproduce, acIdle);
   TDecisionAction = acMove..acReproduce;
 
@@ -32,7 +35,7 @@ type
   TTarget = record
     case TType: TTargetType of
       ttNone, ttWander: ();
-      ttCell: (Cell: Integer);
+      ttCell: (Cell: TCellIndex);
       ttCache: (Cache: TCacheRef);
   end;
 
@@ -55,7 +58,7 @@ type
   // what the agent detects about a resource cache.
   TSmellDetails = record
     Cache: TCacheRef;
-    CellIndex: Integer;
+    CellIndex: TCellIndex;
     Directions: TDirections;
     MoleculesPresent: TMolecules;
     MoleculeStrength: array[TMolecule] of Single;
@@ -79,6 +82,7 @@ type
     // evaluator scores
 
     CurrentAction: TAgentAction;
+    CurrentActionAge: Integer;
   end;
 
 

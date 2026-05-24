@@ -232,6 +232,11 @@ end;
 
 procedure TSimPopulation.ApplyStep(aIndex: Integer; const Output: TBrainTickOutput);
 begin
+  if fAgents[aIndex].Action = Output.RequestedAction then
+    Inc(fAgents[aIndex].ActionAge)
+  else
+    fAgents[aIndex].ActionAge := 0;
+
   fAgents[aIndex].Action := Output.RequestedAction;
   fAgents[aIndex].ActionTarget := Output.RequestedTarget;
 end;

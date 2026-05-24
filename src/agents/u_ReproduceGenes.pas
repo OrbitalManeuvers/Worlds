@@ -1,4 +1,4 @@
-unit u_ReproduceGenes;
+﻿unit u_ReproduceGenes;
 
 interface
 
@@ -7,6 +7,7 @@ uses u_AgentTypes, u_AgentGenome;
 type
   TReproduceEvaluator = class(TReproduceEvalGene)
     class function Evaluate(const Input: TReproduceEvalInput; var Scratch: TReproduceEvalScratch): TActionEvalResult; override;
+    class function MinimumAge: Integer; override;
   end;
 
 
@@ -16,8 +17,6 @@ uses System.Math, u_SimClocks;
 
 const
   REPRO_MAX_SCORE = 0.25;
-  REPRO_RESERVE_BASELINE = REPRODUCTION_MIN_ATTEMPT_RESERVES;
-  REPRO_RESERVE_RANGE = 4.0;
   REPRO_RESERVE_DELTA_RANGE = 0.15;
   REPRO_RECENT_COOLDOWN_TICKS = CLOCK_TICKS_PER_DAY;
   REPRO_SETTLED_COOLDOWN_TICKS = 90;
@@ -25,6 +24,11 @@ const
   REPRO_MODERATE_CROWDING_PENALTY = 0.05;
   REPRO_HEAVY_CROWDING_PENALTY = 0.09;
   REPRO_MIN_AGE_TICKS = CLOCK_TICKS_PER_DAY * 3;
+
+  // Persistence bonus ramps with commitment: more ticks remaining = stronger hold.
+  // At max remaining ticks the agent is deeply committed; near zero it's almost done anyway.
+  REPRO_PERSISTENCE_MIN_BONUS = 0.02;  // bonus when nearly complete (low ticks remaining)
+  REPRO_PERSISTENCE_MAX_BONUS = 0.10;  // bonus when just started (high ticks remaining)
 
 { TReproduceEvaluator }
 
@@ -47,26 +51,12 @@ begin
   if Input.TicksSinceReproduction < REPRO_RECENT_COOLDOWN_TICKS then
     Exit;
 
-  case Input.EnergyLevel of
-    elEmpty:
-      Result.Score := Result.Score - 0.20;
-    elLow:
-      Result.Score := Result.Score - 0.06;
-    elMedium:
-      Result.Score := Result.Score + 0.03;
-    elHigh:
-      Result.Score := Result.Score + 0.08;
-    elFull:
-      Result.Score := Result.Score + 0.12;
-  end;
-
-  // Energy buckets provide the coarse band; exact reserves refine pressure within that band.
-  var reserveHeadroom := EnsureRange(
-    (Input.Reserves - REPRO_RESERVE_BASELINE) / REPRO_RESERVE_RANGE,
-    -1.0,
-    1.0
-  );
-  Result.Score := Result.Score + (reserveHeadroom * 0.04);
+  // Continuous reserve pressure: negative when depleted, positive when well-fed.
+  // Range: -0.20 (empty) to +0.12 (full), crossing zero around mid reserves.
+  var energyPressure := EnsureRange(
+    -0.20 + (Input.Reserves / 8.0) * 0.32,
+    -0.20, 0.12);
+  Result.Score := Result.Score + energyPressure;
 
   // ReserveDelta is a short-horizon body signal, not a learned history. Let a
   // declining reserve trend weigh more strongly than a rising trend helps.
@@ -93,14 +83,24 @@ begin
       Result.Score := Result.Score - REPRO_HEAVY_CROWDING_PENALTY;
   end;
 
-  // Keep nighttime pressure slightly lower until explicit mating/safety constraints exist.
-  if Input.IsNight then
-    Result.Score := Result.Score - 0.02;
-
   if Input.CurrentAction = acReproduce then
-    Result.Score := Result.Score + 0.03;
+  begin
+    // Persistence bonus ramps with remaining commitment: deeply invested = stronger hold.
+    // High TicksRemainingInGestation means just started — most committed, max bonus.
+    // Low remaining means nearly done — modest bonus, almost there regardless.
+    var denominator := Max(1, Input.GestationDuration);
+    var commitmentRatio := EnsureRange(Input.TicksRemainingInGestation / denominator, 0.0, 1.0);
+    var persistenceBonus := REPRO_PERSISTENCE_MIN_BONUS +
+      (commitmentRatio * (REPRO_PERSISTENCE_MAX_BONUS - REPRO_PERSISTENCE_MIN_BONUS));
+    Result.Score := Result.Score + persistenceBonus;
+  end;
 
   Result.Score := EnsureRange(Result.Score, 0.0, REPRO_MAX_SCORE);
+end;
+
+class function TReproduceEvaluator.MinimumAge: Integer;
+begin
+  Result := REPRO_MIN_AGE_TICKS;
 end;
 
 initialization
