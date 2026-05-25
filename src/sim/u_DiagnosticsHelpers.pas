@@ -4,7 +4,7 @@ interface
 
 uses System.Types, System.SysUtils, System.TypInfo,
   u_SimEventTypes, u_AgentTypes, u_AgentBrain,
-  u_AgentGenome, u_LogTypes;
+  u_AgentGenome, u_LogTypes, u_SimPopulations;
 
 (*
 
@@ -25,9 +25,23 @@ type
     function AsEvaluationFields: TLogFields;
   end;
 
+  // TAgentMovedEvent field helper
+  _agentMovedEvent = record helper for TAgentMovedEvent
+    function AsFields: TLogFields;
+  end;
+
+  // TActionResolvedEvent helper
+  _actionResolvedEvent = record helper for TActionResolvedEvent
+    function AsFields: TLogFields;
+  end;
 
   // TSimEvent
   _simEvent = record helper for TSimEvent
+    function AsFields: TLogFields;
+  end;
+
+  // TPopulationSummary
+  _populationSummary = record helper for TPopulationSummary
     function AsFields: TLogFields;
   end;
 
@@ -248,7 +262,7 @@ begin
   Result.Clear;
   Result.Add('A', AgentId.AsText);
   Result.Add('L', Cell.AsText);
-  Result.Add('E',  Summary.EnergyLevel.AsText);
+  Result.Add('E',  Summary.Reserves.AsText);
   Result.Add('AC', ResolvedAction.AsText);
 
   case ResolvedAction of
@@ -267,6 +281,37 @@ begin
   end;
 end;
 
+  // TAgentMovedEvent field helper
+function _agentMovedEvent.AsFields: TLogFields;
+begin
+  Result.Add('A', AgentId.AsText);
+  Result.Add('F', FromCell.AsText);
+  Result.Add('T', ToCell.AsText);
+  Result.Add('C', MoveCost.AsText);
+
+end;
+
+
+// TActionResolvedEvent helper
+function _actionResolvedEvent.AsFields: TLogFields;
+begin
+  Result.Add('A', AgentId.AsText);
+  Result.Add('RQ', RequestedAction.AsText + '(' + RequestedTarget.AsText + ')');
+  Result.Add('RS', ResolvedAction.AsText + '(' + ResolvedTarget.AsText + ')');
+  Result.Add('E', Reserves.AsText);
+  Result.Add('GP', GestationProgress.AsText);
+
+(*
+    AgentId: TAgentId;
+    RequestedAction: TAgentAction;
+    RequestedTarget: TTarget;
+    ResolvedAction: TAgentAction;
+    ResolvedTarget: TTarget;
+    Reserves: Single;
+    GestationProgress: Integer;
+
+*)
+end;
 
 
 { _simEvent }
@@ -279,14 +324,19 @@ begin
     [Header.Sequence, Header.DayNumber, Header.DayTick]));
 
   case Header.Kind of
-    sekActionResolved: ;
+    sekActionResolved:
+      begin
+        Result.AddFields(ActionResolved.AsFields);
+      end;
     sekDecisionTrace:
       begin
         Result.AddFields(DecisionTrace.AsFields);
-
       end;
     sekAgentBorn: ;
-    sekAgentMoved: ;
+    sekAgentMoved:
+      begin
+        Result.AddFields(AgentMoved.AsFields);
+      end;
     sekDeltaConsumed: ;
     sekAgentDied: ;
     sekResourceSampled: ;
@@ -294,6 +344,17 @@ begin
 
 end;
 
+{ _populationSummary }
 
+function _populationSummary.AsFields: TLogFields;
+begin
+  Result.Clear;
+  Result.Add('live',         Self.LiveCount.AsText);
+  Result.Add('dead',         Self.DeadCount.AsText);
+  Result.Add('total',        Self.TotalSlots.AsText);
+  Result.Add('maxAge',       Self.MaxAge.AsText);
+  Result.Add('maxReserves',  Self.MaxReserves.AsText);
+  Result.Add('meanReserves', Self.MeanReserves.AsText);
+end;
 
 end.

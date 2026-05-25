@@ -55,9 +55,6 @@ procedure TSessionComposer.Compose(aRuntime: TSimRuntime);
       RandSeed := fParams.Seed;
   end;
 begin
-  if not Assigned(aRuntime) then
-    raise EArgumentNilException.Create('Runtime is required.');
-
   ApplySeedPolicy;
   aRuntime.ConfigureRuntime(BuildRuntimeConfig(fParams));
 

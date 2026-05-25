@@ -304,32 +304,9 @@ begin
     end;
   end;
 
-  // Fallback to the farthest corner so move resolution always gets a valid cell.
-  var corners: array[0..3] of Integer;
-  corners[0] := 0;
-  corners[1] := width - 1;
-  corners[2] := (height - 1) * width;
-  corners[3] := (height * width) - 1;
-
-  var bestCell := corners[0];
-  var bestDistance := -1;
-  for var i := Low(corners) to High(corners) do
-  begin
-    var cornerX := corners[i] mod width;
-    var cornerY := corners[i] div width;
-
-    var distance := Abs(cornerX - originX);
-    if Abs(cornerY - originY) > distance then
-      distance := Abs(cornerY - originY);
-
-    if distance > bestDistance then
-    begin
-      bestDistance := distance;
-      bestCell := corners[i];
-    end;
-  end;
-
-  CellIndex := bestCell;
+  // Fallback to the center of the environment — predictable and author-controllable,
+  // unlike a random corner which varies with agent position.
+  CellIndex := ((height div 2) * width) + (width div 2);
   UsedFallback := True;
   Result := True;
 end;

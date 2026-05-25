@@ -1,4 +1,4 @@
-unit u_Serialization;
+﻿unit u_Serialization;
 
 interface
 
@@ -205,12 +205,7 @@ begin
     begin
       if item is TJSONObject then
       begin
-        // check biome marker before creating a biome - remove after save tested to not write biome 0
         var arrObj := TJSONObject(item);
-        var marker: TBiomeMarker;
-        if arrObj.TryGetValue(KEY_MARKER, marker) and (marker = 0) then
-          Continue;
-
         var biome := TBiome.Create;
         try
           biome.AsJSON := arrObj;
@@ -236,6 +231,10 @@ begin
       end;
     end;
   end;
+
+  // Ensure marker-0 Ground biome exists — creates default if not present in file
+  // (handles fresh libraries and files saved before Ground was authored).
+  EnsureGroundBiome;
 end;
 
 procedure TLibraryHelper.LoadFoods(const JSON: TJSONObject);
@@ -275,8 +274,15 @@ begin
         var seed := TSeed.Create;
         try
           seed.AsJSON := TJSONObject(item);
-          seed.OnChange := ChildChanged;
-          AddSeed(seed);
+          // Value = 0 is the built-in 'Random' seed — skip it if already present
+          // to avoid duplicates from files saved before this guard was added.
+          if seed.Value <> 0 then
+          begin
+            seed.OnChange := ChildChanged;
+            AddSeed(seed);
+          end
+          else
+            seed.Free;
         except
           seed.Free;
           raise;
@@ -378,10 +384,7 @@ var
 begin
   arr := TJSONArray.Create;
   for var biome in _biomeList do
-  begin
-    if biome.Marker > 0 then
-      arr.Add(biome.AsJSON);
-  end;
+    arr.Add(biome.AsJSON);
   JSON.AddPair(KEY_BIOMES, arr);
 end;
 
@@ -404,7 +407,10 @@ begin
   arr := TJSONArray.Create;
   for var seed in _seedList do
   begin
-    arr.Add(seed.AsJSON);
+    // Value = 0 is the built-in 'Random' seed — added in code, not authored.
+    // Skip it so it doesn't accumulate in the file on each save/load cycle.
+    if seed.Value <> 0 then
+      arr.Add(seed.AsJSON);
   end;
   JSON.AddPair(KEY_SEEDS, arr);
 end;

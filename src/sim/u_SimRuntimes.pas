@@ -677,6 +677,12 @@ begin
       var isWanderMove := Requested.Evaluations[acMove].Target.TType = ttWander;
       var moveDestination := Requested.RequestedTarget.Cell;
 
+      // Commit the wander target before attempting the move so it persists even
+      // if the move is blocked. Without this, a blocked step would leave
+      // WanderTarget at -1 and the brain would pick a new hint next tick.
+      if isWanderMove then
+        State.WanderTarget := Requested.RequestedTarget.Cell;
+
       // Decompose remote intent into a legal one-step move while preserving the
       // original destination as the action target for continuity across ticks.
       var width := fEnvironment.Dimensions.cx;
@@ -726,9 +732,6 @@ begin
         var oldCell := State.Location;
         State.Location := moveReply.NewCell;
         fPopulation.NotifyLocationChanged(AgentIndex, oldCell, State.Location);
-
-        if isWanderMove then
-          State.WanderTarget := Requested.RequestedTarget.Cell;
 
         if (State.WanderTarget >= 0) and (State.Location = State.WanderTarget) then
           State.WanderTarget := -1;

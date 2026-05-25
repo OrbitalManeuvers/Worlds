@@ -49,6 +49,10 @@ type
     MobilityEditor: TRatingEditorFrame;
     GrowthEditor: TRatingEditorFrame;
     DensityEditor: TRatingEditorFrame;
+    bvDelta: TBevel;
+    lblDelta: TLabel;
+    lblDeltaInfo: TLabel;
+    DeltaEditor: TRatingEditorFrame;
     procedure BiomeListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
     procedure pbPresetsPaint(Sender: TObject);
@@ -65,6 +69,7 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure NameChanged(Sender: TObject);
     procedure DescriptionChanged(Sender: TObject);
+    procedure DeltaClick(Sender: TObject);
   private
     Biome: TBiome; // the one being edited
     procedure EditBiome(aBiome: TBiome);
@@ -121,6 +126,15 @@ const
    'Over-Stocked',
    'Everywhere'
   );
+  DeltaCaptions: TRatingNames = (
+   'None',
+   'Crumbs',
+   'Spots',
+   'Pockets',
+   'Present',
+   'Riches',
+   'Carpetous'
+  );
 
 // GrowthRate Rating: from below sim avg to above sim avg
 
@@ -145,6 +159,8 @@ begin
   GrowthEditor.RatingNames := GrowthCaptions;
   DensityEditor.OnChange := DensityClick;
   DensityEditor.RatingNames := DensityCaptions;
+  DeltaEditor.OnChange := DeltaClick;
+  DeltaEditor.RatingNames := DeltaCaptions;
 
   UpdateControls;
 end;
@@ -186,11 +202,8 @@ end;
 
 procedure TBiomeEditor.btnNewBiomeClick(Sender: TObject);
 begin
-  var b := TBiome.Create;
-  b.Name := 'Untitled01';
-  WorldLibrary.AddBiome(b);
+  WorldLibrary.CreateNewBiome;
   BiomeList.ItemCount := WorldLibrary.BiomeCount;
-
 end;
 
 procedure TBiomeEditor.cbFoodActiveClick(Sender: TObject);
@@ -233,12 +246,9 @@ begin
     SunlightEditor.Rating := Biome.Sunlight;
     MobilityEditor.Rating := Biome.Mobility;
     DensityEditor.Rating := Biome.Density;
+    DeltaEditor.Rating := Biome.DeltaDensity;
 
-    if Biome.Marker = 0 then
-      FoodList.ItemCount := 0
-    else
-      FoodList.ItemCount := WorldLibrary.FoodCount;
-
+    FoodList.ItemCount := WorldLibrary.FoodCount;
     FoodList.Invalidate;
   end
   else
@@ -299,10 +309,11 @@ begin
 
   edtName.Enabled := Biome.Marker <> 0;
   edtDescription.Enabled := Biome.Marker <> 0;
-  SunlightEditor.IsReadOnly := Biome.Marker = 0;
-  MobilityEditor.IsReadOnly := Biome.Marker = 0;
-  DensityEditor.IsReadOnly := Biome.Marker = 0;
-  GrowthEditor.IsReadOnly := Biome.Marker = 0;
+//  SunlightEditor.IsReadOnly := Biome.Marker = 0;
+//  MobilityEditor.IsReadOnly := Biome.Marker = 0;
+//  DensityEditor.IsReadOnly := Biome.Marker = 0;
+//  DeltaEditor.IsReadOnly := Biome.Marker = 0;   // hmmmm ... a sim param for ground?
+//  GrowthEditor.IsReadOnly := Biome.Marker = 0;
 end;
 
 procedure TBiomeEditor.ItemChanged;
@@ -317,6 +328,12 @@ end;
 
 
 {$region 'Rating Clicks'}
+procedure TBiomeEditor.DeltaClick(Sender: TObject);
+begin
+  if Assigned(Biome) then
+    Biome.DeltaDensity := DeltaEditor.Rating;
+end;
+
 procedure TBiomeEditor.DensityClick(Sender: TObject);
 begin
   if Assigned(Biome) then

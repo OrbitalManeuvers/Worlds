@@ -89,11 +89,12 @@ type
 function ModulateColor(const BaseColor: TColor; const Luma: Byte): TColor;
 begin
   var temp := ColorToRGB(BaseColor);
-  Result := RGB(
-    (GetRValue(temp) * Luma) div 255,
-    (GetGValue(temp) * Luma) div 255,
-    (GetBValue(temp) * Luma) div 255
-  );
+  // COLORREF is $00BBGGRR but pf32bit DIB scanline pixels are $00RRGGBB,
+  // so swap R and B when building the pixel value.
+  var r := (GetRValue(temp) * Luma) div 255;
+  var g := (GetGValue(temp) * Luma) div 255;
+  var b := (GetBValue(temp) * Luma) div 255;
+  Result := TColor((r shl 16) or (g shl 8) or b);
 end;
 
 function ZoomPixelsPerCellFromLevel(const Zoom: TVisualizerZoom): Integer;
@@ -209,7 +210,7 @@ begin
 
   var ColorLUT: array[0..255] of Integer;
   for var i := 0 to 255 do
-    ColorLUT[i] := Integer(ColorToRGB(ModulateColor(ABaseColor, Byte(i))));
+    ColorLUT[i] := Integer(ModulateColor(ABaseColor, Byte(i)));
 
   for var y := fullRect.Top to fullRect.Bottom - 1 do
   begin

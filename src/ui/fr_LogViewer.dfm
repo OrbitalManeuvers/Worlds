@@ -4,51 +4,38 @@ object LogViewer: TLogViewer
   Width = 699
   Height = 401
   TabOrder = 0
-  DesignSize = (
-    699
-    401)
   object pnlViewTools: TPanel
     Left = 0
     Top = 0
     Width = 699
-    Height = 41
+    Height = 81
     Align = alTop
     TabOrder = 0
-    object btnIncDT: TSpeedButton
-      Left = 8
-      Top = 8
-      Width = 25
-      Height = 25
-      AllowAllUp = True
-      GroupIndex = 1
-      Caption = 'DT'
-      OnClick = FilterChanged
-    end
     object btnExport: TSpeedButton
-      Left = 416
-      Top = 8
-      Width = 65
+      Left = 560
+      Top = 48
+      Width = 121
       Height = 25
-      Caption = 'Export'
+      Caption = 'Export Selected'
       OnClick = btnExportClick
     end
-    object btnIncAR: TSpeedButton
-      Left = 40
+    object lbEventTypes: TCheckListBox
+      Left = 6
       Top = 8
-      Width = 25
-      Height = 25
-      AllowAllUp = True
-      GroupIndex = 2
-      Caption = 'AR'
-      OnClick = FilterChanged
+      Width = 355
+      Height = 65
+      Columns = 2
+      ItemHeight = 17
+      TabOrder = 0
+      OnClickCheck = lbEventTypesClickCheck
     end
   end
   object DetailsView: TControlList
-    Left = 8
-    Top = 297
-    Width = 679
+    Left = 0
+    Top = 304
+    Width = 699
     Height = 97
-    Anchors = [akLeft, akRight, akBottom]
+    Align = alBottom
     ItemHeight = 20
     ItemMargins.Left = 0
     ItemMargins.Top = 0
@@ -57,12 +44,15 @@ object LogViewer: TLogViewer
     ParentColor = False
     TabOrder = 1
     OnBeforeDrawItem = DetailsViewBeforeDrawItem
+    ExplicitLeft = 8
+    ExplicitTop = 297
+    ExplicitWidth = 679
     object lblDetails: TLabel
       AlignWithMargins = True
       Left = 4
       Top = 3
-      Width = -7
-      Height = -6
+      Width = 688
+      Height = 14
       Margins.Left = 4
       Align = alClient
       Caption = 'lblDetails'
@@ -74,15 +64,19 @@ object LogViewer: TLogViewer
       ParentFont = False
       StyleElements = [seClient, seBorder]
       ExplicitWidth = 70
-      ExplicitHeight = 14
     end
   end
   object EventList: TControlList
-    Left = 8
-    Top = 49
-    Width = 684
-    Height = 240
-    Anchors = [akLeft, akTop, akRight, akBottom]
+    AlignWithMargins = True
+    Left = 0
+    Top = 81
+    Width = 699
+    Height = 219
+    Margins.Left = 0
+    Margins.Top = 0
+    Margins.Right = 0
+    Margins.Bottom = 4
+    Align = alClient
     Font.Charset = ANSI_CHARSET
     Font.Color = clWindowText
     Font.Height = -12
@@ -99,12 +93,16 @@ object LogViewer: TLogViewer
     TabOrder = 2
     OnBeforeDrawItem = EventListBeforeDrawItem
     OnItemClick = EventListItemClick
+    ExplicitLeft = 8
+    ExplicitTop = 96
+    ExplicitWidth = 684
+    ExplicitHeight = 193
     object lblEventTime: TLabel
       AlignWithMargins = True
       Left = 3
       Top = 3
       Width = 84
-      Height = -6
+      Height = 14
       Align = alLeft
       Caption = 'lblEventTime'
       Font.Charset = ANSI_CHARSET
@@ -115,16 +113,13 @@ object LogViewer: TLogViewer
       ParentFont = False
       Layout = tlCenter
       StyleElements = [seClient, seBorder]
-      ExplicitLeft = 14
-      ExplicitTop = 8
-      ExplicitHeight = 14
     end
     object lblEventContent: TLabel
       AlignWithMargins = True
       Left = 96
       Top = 3
-      Width = 105
-      Height = -6
+      Width = 596
+      Height = 14
       Margins.Left = 6
       Align = alClient
       Caption = 'lblEventContent'
@@ -138,7 +133,7 @@ object LogViewer: TLogViewer
       ParentFont = False
       Layout = tlCenter
       StyleElements = [seClient, seBorder]
-      ExplicitHeight = 14
+      ExplicitWidth = 105
     end
   end
 end

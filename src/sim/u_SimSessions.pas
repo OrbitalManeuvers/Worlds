@@ -239,32 +239,16 @@ end;
 
 procedure TSimSession.SetRecording(const Value: Boolean);
 begin
+  // if there's no change do nothing
   if Value <> fRecording then
-  begin
-    fRecording := Value;
-    var nextEvent := ScratchEventCount();
+    Exit;
 
-    // if there's already an entry and we haven't moved, don't add a dupe
-    var lastIndex := fRecordingBoundaries.Count - 1;
-    if (lastIndex >= 0) and (fRecordingBoundaries[lastIndex].EventNumber = nextEvent) then
-    begin
-      var event := fRecordingBoundaries[lastIndex];
-      event.Active := Value;
-      fRecordingBoundaries[lastIndex] := event;
-
-      // If a same-tick flip rewrites this boundary to match the previous one,
-      // the current boundary is a no-op and can be removed.
-      if (lastIndex > 0) and (fRecordingBoundaries[lastIndex - 1].Active = fRecordingBoundaries[lastIndex].Active) then
-        fRecordingBoundaries.Delete(lastIndex);
-    end
-    else
-    begin
-      var event: TRecordingMarker;
-      event.Active := Value;
-      event.EventNumber := nextEvent;
-      fRecordingBoundaries.Add(event);
-    end;
-  end;
+  var nextEvent := ScratchEventCount();
+  var marker: TRecordingMarker;
+  marker.Active := Value;
+  marker.EventNumber := nextEvent;
+  fRecordingBoundaries.Add(marker);
+  fRecording := Value;
 end;
 
 end.

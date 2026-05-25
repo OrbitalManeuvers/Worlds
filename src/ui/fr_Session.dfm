@@ -90,7 +90,7 @@ inherited SessionFrame: TSessionFrame
         MaxValue = 0
         MinValue = 0
         TabOrder = 1
-        Value = 0
+        Value = 4
       end
       object SeedList: TControlList
         Left = 400

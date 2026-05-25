@@ -8,19 +8,18 @@ uses
   Vcl.Buttons, Vcl.Grids,
   Vcl.ControlList,
 
-  u_SimEventTypes, u_DiagnosticsHelpers, u_LogTypes, Vcl.StdCtrls;
+  u_SimEventTypes, u_DiagnosticsHelpers, u_LogTypes, Vcl.StdCtrls, Vcl.CheckLst;
 
 type
   TLogViewer = class(TFrame)
     pnlViewTools: TPanel;
-    btnIncDT: TSpeedButton;
     btnExport: TSpeedButton;
-    btnIncAR: TSpeedButton;
     DetailsView: TControlList;
     lblDetails: TLabel;
     EventList: TControlList;
     lblEventTime: TLabel;
     lblEventContent: TLabel;
+    lbEventTypes: TCheckListBox;
     procedure FilterChanged(Sender: TObject);
     procedure btnExportClick(Sender: TObject);
     procedure EventListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
@@ -28,6 +27,7 @@ type
     procedure EventListItemClick(Sender: TObject);
     procedure DetailsViewBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
+    procedure lbEventTypesClickCheck(Sender: TObject);
   private
     ViewDef: TSimEventViewDef;
     EventView: IEventLogView;
@@ -45,6 +45,21 @@ uses System.IOUtils, Vcl.Themes;
 
 {$R *.dfm}
 
+type
+  TSupportedEventKind = record
+    name: string;
+    kind: TSimEventKind;
+  end;
+
+const
+  ar: TSupportedEventKind = (name:'Action Resolved'; kind: sekActionResolved);
+
+  SupportedEventKinds: array[0..2] of TSupportedEventKind = (
+    (name: 'Agent Moved'; kind: sekAgentMoved),
+    (name: 'Action Resolved'; kind: sekActionResolved),
+    (name: 'Decision Trace'; kind: sekDecisionTrace)
+
+  );
 
 //   not currently using per-node storage as node.index = view.events[index]
 //type
@@ -52,7 +67,6 @@ uses System.IOUtils, Vcl.Themes;
 //    EventType: TSimEventKind; //
 //    Conflict: string;
 //  end;
-
 
 type
   { _SimEventKinds helper for TSimEventKinds }
@@ -86,9 +100,13 @@ begin
   ViewDef.StartSequence := -1;
   ViewDef.StopSequence := -1;
 
-  // toggle buttons
-  btnIncDT.Tag := Ord(sekDecisionTrace);
-  btnIncAR.Tag := Ord(sekActionResolved);
+  lbEventTypes.Items.BeginUpdate;
+  try
+    for var eventKind in SupportedEventKinds do
+      lbEventTypes.Items.Add(eventKind.name);
+  finally
+    lbEventTypes.Items.EndUpdate;
+  end;
 
   SetLength(DetailRows, 0);
 end;
@@ -110,6 +128,8 @@ end;
 
 procedure TLogViewer.EventListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
   ARect: TRect; AState: TOwnerDrawState);
+const
+  agent_colors: array of TColor = [clWebWheat, clWebPink, clWebYellow, clWebLightBlue];
 begin
   if aIndex < EventView.Count then
   begin
@@ -125,10 +145,11 @@ begin
     if count > 1 then
     begin
       lblEventContent.Caption := eventFields.AsFieldText(1, eventFields.Count - 1);
-      if Odd(EventView.Events[AIndex].DecisionTrace.AgentId) then
-        lblEventContent.Font.Color := StyleServices.GetSystemColor(clWebIvory)
-      else
-        lblEventContent.Font.Color := StyleServices.GetSystemColor(clWebPaleTurquoise);
+
+      var id := EventView.Events[AIndex].DecisionTrace.AgentId;
+      var colorIndex := id mod Length(agent_colors);
+      lblEventContent.Font.Color := StyleServices.GetSystemColor(agent_colors[colorIndex]);
+
     end;
 
   end;
@@ -147,11 +168,11 @@ begin
       DetailRows[0] := event.DecisionTrace.Summary.AsFields;
       DetailRows[1] := event.DecisionTrace.AsEvaluationFields;
     end;
+
   end;
 
   DetailsView.ItemCount := Length(DetailRows);
   DetailsView.Invalidate;
-
 end;
 
 procedure TLogViewer.btnExportClick(Sender: TObject);
@@ -167,16 +188,28 @@ begin
       if EventList.Selected[i] then
       begin
         var event := EventView.Events[i];
+
+        var hdrFields := event.AsFields;
+        if hdrFields.Count > 1 then
+        begin
+          builder.AppendLine(hdrFields.Fields[0].Value + ' ' + hdrFields.AsFieldText(1, hdrFields.Count - 1));
+        end;
+
         case event.Header.Kind of
           sekDecisionTrace:
             begin
-              var hdrFields := event.AsFields;
-              if hdrFields.Count > 1 then
-              begin
-                builder.AppendLine(hdrFields.Fields[0].Value + ' ' + hdrFields.AsFieldText(1, hdrFields.Count - 1));
-                builder.AppendLine('  eval: ' + event.DecisionTrace.AsEvaluationFields.AsFieldText);
-                builder.AppendLine('  summ: ' + event.DecisionTrace.Summary.AsFields.AsFieldText);
-              end;
+              builder.AppendLine('  eval: ' + event.DecisionTrace.AsEvaluationFields.AsFieldText);
+              builder.AppendLine('  summ: ' + event.DecisionTrace.Summary.AsFields.AsFieldText);
+            end;
+
+          sekAgentMoved:
+            begin
+              builder.AppendLine('  move: ' + event.AgentMoved.AsFields.AsFieldText);
+            end;
+
+          sekActionResolved:
+            begin
+              builder.AppendLine(' acrsv: ' + event.ActionResolved.AsFields.AsFieldText);
             end;
         end;
       end;
@@ -201,32 +234,30 @@ begin
   end
   else
     EventList.ItemCount := 0;
+  EventList.Invalidate;
 end;
 
 procedure TLogViewer.FilterChanged(Sender: TObject);
 begin
   // transfer UI state into the working view definition
   // if a change warrants, call Refresh
-  if Sender is TSpeedButton then
+  var kinds: TSimEventKinds := [];
+  for var i := 0 to lbEventTypes.Items.Count - 1 do
+    if lbEventTypes.Checked[i] then
+      Include(kinds, SupportedEventKinds[i].kind);
+
+  // if there's a change, update
+  if kinds <> ViewDef.Kinds then
   begin
-    var btn := TSpeedButton(Sender);
-
-    // set the current values
-    var kinds := ViewDef.Kinds;
-    if btn = btnIncDT then
-      kinds.Toggle(sekDecisionTrace);
-    if btn = btnIncAR then
-      kinds.Toggle(sekActionResolved);
-
-    // if there's a change, update
-    if kinds <> ViewDef.Kinds then
-    begin
-      ViewDef.Kinds := kinds;
-      EventView.Define(ViewDef);
-      Refresh;
-    end;
-
+    ViewDef.Kinds := kinds;
+    EventView.Define(ViewDef);
+    Refresh;
   end;
+end;
+
+procedure TLogViewer.lbEventTypesClickCheck(Sender: TObject);
+begin
+  FilterChanged(Sender);
 end;
 
 procedure TLogViewer.Refresh;
@@ -236,6 +267,7 @@ begin
   EventView.Extend;
   EventList.ItemCount := EventView.Count;
   EventList.ItemIndex := EventList.ItemCount - 1;
+  EventList.Invalidate;
 end;
 
 end.

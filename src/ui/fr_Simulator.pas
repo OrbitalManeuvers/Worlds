@@ -10,7 +10,7 @@ uses
 
   u_SessionComposerIntf, u_SimSessions, u_SimEventTypes, u_EventLogViews,
   fr_SimController, fr_LogViewer, fr_ResourceVisualizer, u_SimVisualizer,
-  u_SessionParameters;
+  u_SessionParameters, Vcl.Grids, Vcl.ValEdit, Vcl.Buttons;
 
 (*
 
@@ -32,8 +32,10 @@ type
     bvBottom: TBevel;
     phResViewer: TShape;
     phDeltaViewer: TShape;
+    vlPopulationStats: TValueListEditor;
+    btnCopySummary: TSpeedButton;
     procedure btnCloseClick(Sender: TObject);
-    procedure mniExportClick(Sender: TObject);
+    procedure btnCopySummaryClick(Sender: TObject);
   private
     Session: TSimSession;
     EventLog: IEventLog;
@@ -49,10 +51,10 @@ type
     procedure HandleBeforeRun(Sender: TObject);
     procedure HandleAfterRun(Sender: TObject);
     procedure HandleSaveProgress(Sender: TObject; Progress: Integer);
-    procedure HandleRecordingChanged(Sender: TObject);
     procedure HandleResViewerPaint(Sender: TObject);
     procedure HandleDeltaViewerPaint(Sender: TObject);
 
+    procedure UpdatePopulationSummary;
   public
     procedure Init; override;
     procedure Done; override;
@@ -68,8 +70,8 @@ implementation
 
 {$R *.dfm}
 
-uses System.IOUtils, Vcl.Graphics, Vcl.Themes,
-  u_WorldsMessages, u_SessionManager;
+uses System.IOUtils, Vcl.Graphics, Vcl.Themes, Vcl.Clipbrd,
+  u_WorldsMessages, u_SessionManager, u_LogTypes, u_DiagnosticsHelpers;
 
 { TSimulatorFrame }
 
@@ -92,7 +94,6 @@ begin
   InitFrame(Controller, phController);
   Controller.OnBeforeRun := HandleBeforeRun;
   Controller.OnAfterRun := HandleAfterRun;
-  Controller.OnRecordingChange := HandleRecordingChanged;
 
   { UI for displaying scratch log events }
   LogViewer := TLogViewer.Create(Self);
@@ -120,15 +121,9 @@ begin
   inherited;
 end;
 
-procedure TSimulatorFrame.mniExportClick(Sender: TObject);
-begin
-  inherited;
-  //
-end;
-
 procedure TSimulatorFrame.HandleBeforeRun(Sender: TObject);
 begin
-  //
+  Session.Recording := Controller.Recording;
 end;
 
 procedure TSimulatorFrame.HandleDeltaViewerPaint(Sender: TObject);
@@ -145,11 +140,6 @@ begin
  end;
 end;
 
-procedure TSimulatorFrame.HandleRecordingChanged(Sender: TObject);
-begin
-  Session.Recording := Controller.Recording;
-end;
-
 procedure TSimulatorFrame.HandleResViewerPaint(Sender: TObject);
 begin
   if Assigned(Visualizer) then
@@ -160,14 +150,14 @@ begin
       Visualizer.ZoomLevel := TVisualizerZoom(view.ZoomFactor);
       Visualizer.SubstanceIndex := view.SubstanceIndex;
       Visualizer.AnchorCell := view.AnchorCell;
-      Visualizer.Paint(view.Canvas, StyleServices.GetSystemColor(clRed));
+      Visualizer.Paint(view.Canvas, clWebYellow);
     end;
   end;
 end;
 
 procedure TSimulatorFrame.HandleSaveProgress(Sender: TObject; Progress: Integer);
 begin
-  SaveProgress.Position := Progress + 1; // accomodate for 0-based event index
+  SaveProgress.Position := Progress + 1; // accommodate for 0-based event index
 end;
 
 procedure TSimulatorFrame.HandleAfterRun(Sender: TObject);
@@ -180,6 +170,23 @@ begin
     ResViewer.Invalidate;
   if Assigned(DeltaViewer) then
     DeltaViewer.Invalidate;
+
+  // population summary
+  UpdatePopulationSummary;
+end;
+
+procedure TSimulatorFrame.UpdatePopulationSummary;
+begin
+  var summary := Session.Simulator.Runtime.Population.Summarize;
+  var logFields := summary.AsFields;
+
+  var lines := TStringList.Create(dupIgnore, False, False);
+  try
+    logFields.GetPairs(lines);
+    vlPopulationStats.Strings.Assign(lines);
+  finally
+    lines.Free;
+  end;
 end;
 
 procedure TSimulatorFrame.DestroySession;
@@ -232,6 +239,12 @@ begin
     SessionManager.UpdateSessionStatus(ssCompleted, False, 0, 'Discard and close');
 
   PostMessage(Application.MainForm.Handle, WM_END_SIMULATION, 0, 0);
+end;
+
+procedure TSimulatorFrame.btnCopySummaryClick(Sender: TObject);
+begin
+  inherited;
+  Clipboard.AsText := vlPopulationStats.Strings.Text;
 end;
 
 procedure TSimulatorFrame.CreateSession(const aComposer: ISessionComposer;

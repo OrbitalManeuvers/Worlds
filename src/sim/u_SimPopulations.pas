@@ -1,10 +1,20 @@
-unit u_SimPopulations;
+﻿unit u_SimPopulations;
 
 interface
 
 uses u_AgentState, u_AgentBrain;
 
 type
+  TPopulationSummary = record
+    TotalSlots: Integer;    // all agent slots (live + dead)
+    LiveCount: Integer;     // reserves > 0
+    DeadCount: Integer;     // reserves <= 0
+    MaxAge: Integer;
+    MaxReserves: Single;
+    MeanReserves: Single;   // mean over live agents only
+    MaxGeneration: Integer; // placeholder — needs genome generation tracking
+  end;
+
   TSimPopulation = class
   private
     const INVALID_INDEX = -1;
@@ -41,6 +51,8 @@ type
     procedure StepAgent(aIndex: Integer; const Input: TBrainTickInput);
 
     procedure Tick(const Input: TBrainTickInput);
+
+    function Summarize: TPopulationSummary;
 
     property AgentCount: Integer read GetAgentCount write SetAgentCount;
     property Agents: TArray<TAgentState> read fAgents;
@@ -250,6 +262,33 @@ procedure TSimPopulation.Tick(const Input: TBrainTickInput);
 begin
   for var i := 0 to High(fAgents) do
     StepAgent(i, Input);
+end;
+
+function TSimPopulation.Summarize: TPopulationSummary;
+begin
+  Result := Default(TPopulationSummary);
+  Result.TotalSlots := Length(fAgents);
+
+  var reservesSum: Double := 0.0;
+
+  for var i := 0 to High(fAgents) do
+  begin
+    var state: PAgentState := @fAgents[i];
+    if state.Reserves > 0.0 then
+    begin
+      Inc(Result.LiveCount);
+      if state.Age > Result.MaxAge then
+        Result.MaxAge := state.Age;
+      if state.Reserves > Result.MaxReserves then
+        Result.MaxReserves := state.Reserves;
+      reservesSum := reservesSum + state.Reserves;
+    end
+    else
+      Inc(Result.DeadCount);
+  end;
+
+  if Result.LiveCount > 0 then
+    Result.MeanReserves := reservesSum / Result.LiveCount;
 end;
 
 end.

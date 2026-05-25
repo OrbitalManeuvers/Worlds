@@ -198,6 +198,8 @@ begin
   Result.TicksSinceForage := State.TicksSinceForage;
   Result.CurrentAction := Context.CurrentAction;
   Result.CurrentActionAge := Context.CurrentActionAge;
+  Result.IsNight := Context.IsNight;
+  Result.SolarFlux := Context.SolarFlux;
 
   // Suppress wander only when there's a remote smell signal worth chasing.
   // A local-only signal (distance 0) means the agent is already on the food;
@@ -217,6 +219,8 @@ begin
   Result.CurrentActionAge := Context.CurrentActionAge;
   Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
+  Result.IsNight := Context.IsNight;
+  Result.SolarFlux := Context.SolarFlux;
 end;
 
 function BuildReproduceEvalInput(const State: TAgentState; const Context: TDecisionContext;
@@ -323,7 +327,6 @@ end;
 class function TAgentBrain.Think(const State: TAgentState; const Input: TBrainTickInput; var Scratch: TAgentScratch): TBrainTickOutput;
 begin
   Scratch.BeginTick(State, Input);
-  var usesTemporaryWanderTarget := False;
 
   // remove this eventually, but for now make sure what we expect is here.
   // There should not be any unassigned genes (eventually), all should have a Basic implementation.
@@ -466,8 +469,8 @@ begin
         and (not hintWasFallback) then
         targetCell := State.Location;
 
-      if hintWasFallback then
-        usesTemporaryWanderTarget := True;
+      // Fallback corners are still valid stable destinations — commit them so the
+      // agent doesn't re-evaluate and pick a different corner every tick as it moves.
     end;
 
     Result.RequestedTarget.TType := ttCell;
@@ -475,9 +478,6 @@ begin
   end;
 
   Result.Evaluations := Scratch.ActionEvaluations;
-  if usesTemporaryWanderTarget then
-    Result.Evaluations[acMove].Target.TType := ttCell;
-
   Result.Trace := BuildTraceSummary(State, Scratch.DecisionContext, localAgentCount);
 end;
 

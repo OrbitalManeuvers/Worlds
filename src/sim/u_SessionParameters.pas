@@ -26,7 +26,8 @@ type
   end;
 
   // revisit this list for non-debugging value
-  TPopulationScheme = (psAtZero, psOnSingleResource, psOnMultiResource, psOnBarren, psOnBarrenNextToResource, psOnBarrenCloseToResource);
+  TPopulationScheme = (psAtZero, psOnSingleResource, psOnMultiResource, psOnBarren,
+    psOnBarrenNextToResource, psOnBarrenCloseToResource, psGrouped);
 
   TUpscalerParameters = record
     World: TWorld;    // the world to upscale
@@ -39,6 +40,7 @@ type
       Rules: array of TPopulationRule;
       Scheme: TPopulationScheme;
       AgentActivationTick: Integer;  // 0 = activate from tick 1 (default)
+      GroupRect: TRect;
     end;
 
     Environment: record

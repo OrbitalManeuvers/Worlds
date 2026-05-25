@@ -1,4 +1,4 @@
-unit u_EnvironmentLibraries;
+﻿unit u_EnvironmentLibraries;
 
 interface
 
@@ -48,6 +48,8 @@ type
     function GetWorldCount: Integer;
 
   protected
+    procedure AddBiome(aBiome: TBiome; aIndex: Integer = -1);
+
     // non property access for descendents/helpers
     property _foodList: TObjectList<TFood> read fFoods;
     property _seedList: TObjectList<TSeed> read fSeeds;
@@ -73,8 +75,10 @@ type
     property Seeds[I: Integer]: TSeed read GetSeed;
 
     // biomes
-    procedure AddBiome(aBiome: TBiome);
-    function FindBiome(aMarker: TBiomeMarker): TBiome;
+    function CreateNewBiome: TBiome;
+    procedure EnsureGroundBiome;
+    function FindBiome(aMarker: TBiomeMarker): TBiome; overload;
+    function FindBiome(const aName: string): TBiome; overload;
     property BiomeCount: Integer read GetBiomeCount;
     property Biomes[I: Integer]: TBiome read GetBiome;
 
@@ -142,24 +146,6 @@ begin
   fMoleculeRatings.Clear;
   fWorlds.Clear;
 
-  // there's always a default biome
-  var ground := TBiome.Create;
-  try
-    ground.Name := 'Ground';
-    ground.Description := 'Default surface, no foods here!';
-    ground.Marker := 0;
-    ground.Color := clBlack;
-    ground.Sunlight := Best;    // i.e. unmodified
-    ground.Mobility := Best;    // i.e. unmodified
-    ground.Density := Worst;   // doesn't really matter
-    ground.GrowthRate := Worst; // doesn't really matter
-    ground.DeltaDensity := Low(TRating);
-    AddBiome(ground);
-  except
-    ground.Free;
-    raise;
-  end;
-
   // there's always a random seed
   var seed := TSeed.Create;
   try
@@ -170,7 +156,66 @@ begin
     seed.Free;
     raise;
   end;
+end;
 
+function TEnvironmentLibrary.CreateNewBiome: TBiome;
+const
+  UNTILTILED_BIOME = 'Untitled';
+  INDEX_MASK = '%0.2d';
+begin
+  Result := TBiome.Create;
+  try
+    // set the marker
+    var nextMarker := Succ(Low(TBiomeMarker));
+    for var b in fBiomes do
+      if (b.Marker >= nextMarker) and (b.Marker < Pred(High(TBiomeMarker))) then
+        nextMarker := Succ(b.Marker);
+    Result.Marker := nextMarker;
+
+    // set the name
+    Result.Name := '';
+    for var index := 1 to 9 do
+    begin
+      var nextName := Format(UNTILTILED_BIOME + INDEX_MASK, [index]);
+      if FindBiome(nextName) = nil then
+      begin
+        Result.Name := nextName;
+        Break;
+      end;
+    end;
+
+    Assert(Result.Name <> '', 'Stoppit');
+    AddBiome(Result);
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
+procedure TEnvironmentLibrary.EnsureGroundBiome;
+begin
+  // Ground (marker 0) is the default surface biome. Create it with neutral
+  // defaults if no biome with marker 0 exists yet — e.g. on a fresh library
+  // or when loading a file that predates authored Ground support.
+  if FindBiome(0) <> nil then
+    Exit;
+
+  var ground := TBiome.Create;
+  try
+    ground.Marker := 0;
+    ground.Name := 'Ground';
+    ground.Description := 'Default surface, no foods here!';
+    ground.Color := clBlack;
+    ground.Sunlight := Best;
+    ground.Mobility := Best;
+    ground.Density := Worst;
+    ground.GrowthRate := Worst;
+    ground.DeltaDensity := Low(TRating);
+    AddBiome(ground, 0);
+  except
+    ground.Free;
+    raise;
+  end;
 end;
 
 procedure TEnvironmentLibrary.UpdateBiomeColorPalette(var aPalette: TBiomeColorPalette);
@@ -181,19 +226,17 @@ begin
     aPalette[biome.Marker] := biome.Color;
 end;
 
-procedure TEnvironmentLibrary.AddBiome(aBiome: TBiome);
+// protected, assumes that marker has already been set
+procedure TEnvironmentLibrary.AddBiome(aBiome: TBiome; aIndex: Integer);
 begin
   // revisit someday
   Assert(fBiomes.Count < High(TBiomeMarker));
 
-  var nextMarker := Low(TBiomeMarker);
-  for var b in fBiomes do
-    if (b.Marker >= nextMarker) and (b.Marker < Pred(High(TBiomeMarker))) then
-      nextMarker := Succ(b.Marker);
-
-  aBiome.Marker := nextMarker;
   aBiome.OnChange := ChildChanged;
-  fBiomes.Add(aBiome);
+  if aIndex = -1 then
+    fBiomes.Add(aBiome)
+  else
+    fBiomes.Insert(aIndex, aBiome);
   Changed;
 end;
 
@@ -237,6 +280,14 @@ begin
   Result := nil;
   for var biome in fBiomes do
     if biome.Marker = aMarker then
+      Exit(biome);
+end;
+
+function TEnvironmentLibrary.FindBiome(const aName: string): TBiome;
+begin
+  Result := nil;
+  for var biome in fBiomes do
+    if SameText(biome.name, aName) then
       Exit(biome);
 end;
 

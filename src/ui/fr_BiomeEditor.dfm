@@ -1,10 +1,10 @@
 inherited BiomeEditor: TBiomeEditor
-  Width = 912
-  Height = 614
+  Width = 1090
+  Height = 587
   Font.Height = -13
   ParentFont = False
-  ExplicitWidth = 912
-  ExplicitHeight = 614
+  ExplicitWidth = 1090
+  ExplicitHeight = 587
   object BiomeList: TControlList
     Left = 16
     Top = 32
@@ -40,7 +40,7 @@ inherited BiomeEditor: TBiomeEditor
   object BiomePages: TPageControl
     Left = 276
     Top = 32
-    Width = 581
+    Width = 797
     Height = 497
     ActivePage = tsSelection
     TabOrder = 1
@@ -110,7 +110,7 @@ inherited BiomeEditor: TBiomeEditor
       object PropertyPages: TPageControl
         Left = 8
         Top = 128
-        Width = 545
+        Width = 769
         Height = 345
         ActivePage = tsEnvironment
         TabOrder = 2
@@ -123,8 +123,8 @@ inherited BiomeEditor: TBiomeEditor
             Height = 137
           end
           object bvMobility: TBevel
-            Left = 280
-            Top = 16
+            Left = 142
+            Top = 162
             Width = 240
             Height = 137
           end
@@ -142,8 +142,8 @@ inherited BiomeEditor: TBiomeEditor
             ParentFont = False
           end
           object lblMobility: TLabel
-            Left = 369
-            Top = 18
+            Left = 231
+            Top = 164
             Width = 61
             Height = 21
             Caption = 'Mobility'
@@ -155,8 +155,8 @@ inherited BiomeEditor: TBiomeEditor
             ParentFont = False
           end
           object lblGrowthRate: TLabel
-            Left = 87
-            Top = 178
+            Left = 334
+            Top = 25
             Width = 91
             Height = 21
             Caption = 'Growth Rate'
@@ -168,20 +168,20 @@ inherited BiomeEditor: TBiomeEditor
             ParentFont = False
           end
           object bvGrowthRate: TBevel
-            Left = 16
-            Top = 168
+            Left = 263
+            Top = 16
             Width = 240
             Height = 137
           end
           object bvDensity: TBevel
-            Left = 280
-            Top = 168
+            Left = 511
+            Top = 16
             Width = 240
             Height = 137
           end
           object lblDensity: TLabel
-            Left = 367
-            Top = 178
+            Left = 598
+            Top = 28
             Width = 54
             Height = 21
             Caption = 'Density'
@@ -193,10 +193,11 @@ inherited BiomeEditor: TBiomeEditor
             ParentFont = False
           end
           object lblGrowthRateInfo: TLabel
-            Left = 25
-            Top = 255
+            Left = 272
+            Top = 102
             Width = 220
             Height = 42
+            Alignment = taCenter
             AutoSize = False
             Caption = 'Can anything grow here?'
             Enabled = False
@@ -207,6 +208,7 @@ inherited BiomeEditor: TBiomeEditor
             Top = 96
             Width = 220
             Height = 42
+            Alignment = taCenter
             AutoSize = False
             Caption = 'How far are you from California?'
             Color = clGrayText
@@ -215,22 +217,54 @@ inherited BiomeEditor: TBiomeEditor
             WordWrap = True
           end
           object lblMobilityInfo: TLabel
-            Left = 289
-            Top = 96
+            Left = 151
+            Top = 242
             Width = 220
             Height = 42
+            Alignment = taCenter
             AutoSize = False
             Caption = 'What'#39's it like moving through here?'
             Enabled = False
             WordWrap = True
           end
           object lblDensityInfo: TLabel
-            Left = 289
-            Top = 254
+            Left = 520
+            Top = 102
             Width = 220
             Height = 42
+            Alignment = taCenter
             AutoSize = False
             Caption = 'How easy is it to find food?'
+            Enabled = False
+            WordWrap = True
+          end
+          object bvDelta: TBevel
+            Left = 400
+            Top = 162
+            Width = 240
+            Height = 137
+          end
+          object lblDelta: TLabel
+            Left = 474
+            Top = 164
+            Width = 96
+            Height = 21
+            Caption = 'Delta Density'
+            Font.Charset = DEFAULT_CHARSET
+            Font.Color = clWindowText
+            Font.Height = -16
+            Font.Name = 'Segoe UI Semibold'
+            Font.Style = []
+            ParentFont = False
+          end
+          object lblDeltaInfo: TLabel
+            Left = 409
+            Top = 242
+            Width = 220
+            Height = 42
+            Alignment = taCenter
+            AutoSize = False
+            Caption = 'How much grows here? (at night)'
             Enabled = False
             WordWrap = True
           end
@@ -244,31 +278,41 @@ inherited BiomeEditor: TBiomeEditor
             ExplicitTop = 48
           end
           inline MobilityEditor: TRatingEditorFrame
-            Left = 304
-            Top = 40
+            Left = 166
+            Top = 186
             Width = 205
             Height = 46
             TabOrder = 1
-            ExplicitLeft = 304
-            ExplicitTop = 40
+            ExplicitLeft = 166
+            ExplicitTop = 186
           end
           inline GrowthEditor: TRatingEditorFrame
-            Left = 32
-            Top = 200
+            Left = 279
+            Top = 47
             Width = 205
             Height = 46
             TabOrder = 2
-            ExplicitLeft = 32
-            ExplicitTop = 200
+            ExplicitLeft = 279
+            ExplicitTop = 47
           end
           inline DensityEditor: TRatingEditorFrame
-            Left = 299
-            Top = 200
+            Left = 530
+            Top = 48
             Width = 205
             Height = 46
             TabOrder = 3
-            ExplicitLeft = 299
-            ExplicitTop = 200
+            ExplicitLeft = 530
+            ExplicitTop = 48
+          end
+          inline DeltaEditor: TRatingEditorFrame
+            Left = 424
+            Top = 186
+            Width = 205
+            Height = 46
+            TabOrder = 4
+            OnClick = DeltaClick
+            ExplicitLeft = 424
+            ExplicitTop = 186
           end
         end
         object tsFoods: TTabSheet

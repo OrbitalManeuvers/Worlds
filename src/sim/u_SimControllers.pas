@@ -6,9 +6,6 @@ uses System.Classes, System.Generics.Collections,
   u_MulticastEvents,
   u_SimClocks, u_SimEventTypes;
 
-// The TSimController will be created/owned by TSimSession and a property
-// of the session. Session.Step will go away eventually
-
 type
   TSimDate = record
     DayNumber: Integer;

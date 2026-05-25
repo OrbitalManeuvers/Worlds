@@ -2,13 +2,16 @@ unit u_SimPopulators;
 
 interface
 
-uses u_SessionParameters, u_SimPopulations, u_SimEnvironments, u_BiologyTypes;
+uses System.Types,
+  u_SessionParameters, u_SimPopulations, u_SimEnvironments, u_BiologyTypes;
 
 type
   TWorldPopulator = class
   private
     class function FindBarrenCell(aEnvironment: TSimEnvironment; aBarrenRadius: Integer): Integer;
     class function FindResourceCell(aEnvironment: TSimEnvironment; aMinResources: Integer): Integer;
+    class function FindGroupCell(aEnvironment: TSimEnvironment;
+      const aGroupRect: TRect; aFactor: Integer): Integer; static;
   public
     class procedure Populate(aPopulation: TSimPopulation; aEnvironment: TSimEnvironment; aParams: TUpscalerParameters);
   end;
@@ -21,7 +24,7 @@ type
 
 implementation
 
-uses
+uses System.Math,
   u_AgentState, u_AgentGenome, u_EnvironmentTypes;
 
 const
@@ -115,6 +118,42 @@ begin
 
 end;
 
+class function TWorldPopulator.FindGroupCell(aEnvironment: TSimEnvironment;
+  const aGroupRect: TRect; aFactor: Integer): Integer;
+begin
+  Result := 0;
+
+  if not Assigned(aEnvironment) then
+    Exit;
+
+  var width := aEnvironment.Dimensions.cx;
+  var height := aEnvironment.Dimensions.cy;
+  if (width <= 0) or (height <= 0) then
+    Exit;
+
+  var factor := Max(1, aFactor);
+
+  // Convert authored rect to sim coordinates.
+  var simLeft   := aGroupRect.Left   * factor;
+  var simTop    := aGroupRect.Top    * factor;
+  var simRight  := aGroupRect.Right  * factor - 1;
+  var simBottom := aGroupRect.Bottom * factor - 1;
+
+  // Clamp to valid sim bounds.
+  simLeft   := Max(0, Min(simLeft,   width  - 1));
+  simTop    := Max(0, Min(simTop,    height - 1));
+  simRight  := Max(0, Min(simRight,  width  - 1));
+  simBottom := Max(0, Min(simBottom, height - 1));
+
+  if (simRight < simLeft) or (simBottom < simTop) then
+    Exit;
+
+  // Pick a random cell within the sim-space rect.
+  var x := simLeft + Random(simRight - simLeft + 1);
+  var y := simTop  + Random(simBottom - simTop  + 1);
+  Result := (y * width) + x;
+end;
+
 class function TWorldPopulator.FindResourceCell(aEnvironment: TSimEnvironment; aMinResources: Integer): Integer;
 begin
   Result := 0;
@@ -165,7 +204,11 @@ begin
     state.AgentId := nextId;
     Inc(nextId);
 
-    state.Location := location;
+    if aParams.Population.Scheme = psGrouped then
+      state.Location := FindGroupCell(aEnvironment, aParams.Population.GroupRect, aParams.Factor)
+    else
+      state.Location := location;
+
     state.WanderTarget := -1;
 
     state.Reserves := 5.0;
@@ -176,9 +219,9 @@ begin
 
     // assign default smell and digestion profiles
     for var molecule := Low(TMolecule) to High(TMolecule) do
-      state.Genome.SmellRatings[molecule] := 1.0;
+      state.Genome.SmellRatings[molecule] := SMELL_RATING_FACTOR[Normal];
     for var molecule := Low(TMolecule) to High(TMolecule) do
-      state.Genome.ConverterRatings[molecule] := 1.0;
+      state.Genome.ConverterRatings[molecule] := CONVERTER_RATING_FACTOR[Normal];
 
     var targetsApplied: TRuleTargets := [];
     for var rule in aParams.Population.Rules do
@@ -243,21 +286,21 @@ begin
   TGeneSequencer.Populate(state.Genome.GeneMap, sequence);
 
   // converter
-  for var molecule := Low(TMolecule) to High(TMolecule) do
+  for var convertMolecule := Low(TMolecule) to High(TMolecule) do
   begin
     var value: Single := CONVERTER_RATING_FACTOR[Normal];
     if Assigned(aConverterRatings) then
-      value := CONVERTER_RATING_FACTOR[aConverterRatings[molecule]];
-    state.Genome.ConverterRatings[molecule] := value;
+      value := CONVERTER_RATING_FACTOR[aConverterRatings[convertMolecule]];
+    state.Genome.ConverterRatings[convertMolecule] := value;
   end;
 
   // smell
-  for var molecule := Low(TMolecule) to High(TMolecule) do
+  for var smellMolecule := Low(TMolecule) to High(TMolecule) do
   begin
     var value: Single := SMELL_RATING_FACTOR[Normal];
     if Assigned(aSmellRatings) then
-      value := SMELL_RATING_FACTOR[aSmellRatings[molecule]];
-    state.Genome.SmellRatings[molecule] := value;
+      value := SMELL_RATING_FACTOR[aSmellRatings[smellMolecule]];
+    state.Genome.SmellRatings[smellMolecule] := value;
   end;
 
   ApplyDeltaGeneGates(state^);

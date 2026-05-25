@@ -175,8 +175,17 @@ begin
   if pcPages.ActivePage = tsStandard then
   begin
     fUpscalerParameters.World := WorldLibrary.Worlds[WorldList.ItemIndex];
-    fUpscalerParameters.Seed := -1;
     fUpscalerParameters.Factor := seScaleFactor.Value;
+
+    fUpscalerParameters.Seed := 0;      // leaves RandSeed untouched
+    if SeedList.ItemIndex >= 0 then
+      fUpscalerParameters.Seed := WorldLibrary.Seeds[SeedList.ItemIndex].Value;
+
+    // set up population
+    fUpscalerParameters.Population.AgentCount := seAgentCount.Value;
+    fUpscalerParameters.Population.Scheme := psGrouped;
+    fUpscalerParameters.Population.GroupRect := Rect(0, 0, 2, 2);
+    fUpscalerParameters.Population.AgentActivationTick := 7;
 
     SessionManager.SubmitStandardSession(BuildCommonParameters, fUpscalerParameters);
 

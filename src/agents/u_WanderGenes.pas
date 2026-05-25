@@ -29,6 +29,13 @@ const
   WANDER_FORAGE_PENALTY    = 0.04;
   WANDER_PERSISTENCE_BONUS = 0.015;
 
+  // When solar flux is zero and there's no smell signal, movement has no expected
+  // payoff — reduce wander urgency so shelter can compete.
+  // Penalty scales with reserve depletion to mirror the shelter bonus shape.
+  // Does not apply when already moving toward a committed wander target.
+  WANDER_NO_SOLAR_CEILING     = 8.0;
+  WANDER_NO_SOLAR_MAX_PENALTY = 0.06;
+
 { TWanderEvaluator }
 
 class function TWanderEvaluator.Evaluate(const Input: TWanderEvalInput; var Scratch: TWanderEvalScratch): TActionEvalResult;
@@ -69,6 +76,18 @@ begin
     acShelter: Result.Score := Result.Score - WANDER_SHELTER_PENALTY;
     acForage:  Result.Score := Result.Score - WANDER_FORAGE_PENALTY;
     acMove:    Result.Score := Result.Score + WANDER_PERSISTENCE_BONUS;
+  end;
+
+  // No solar income and no food signal: movement has no expected payoff.
+  // Penalty scales with reserve depletion — mirrors the shelter bonus shape so
+  // the two signals stay balanced as reserves fall.
+  // Does not apply when already moving toward a committed wander target.
+  if (Input.SolarFlux <= 0.0) and (Input.CurrentAction <> acMove) then
+  begin
+    var noSolarPressure := EnsureRange(
+      1.0 - (Input.Reserves / WANDER_NO_SOLAR_CEILING),
+      0.0, 1.0);
+    Result.Score := Result.Score - (noSolarPressure * WANDER_NO_SOLAR_MAX_PENALTY);
   end;
 
   Result.Score := EnsureRange(Result.Score, 0.0, WANDER_MAX_SCORE);

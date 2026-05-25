@@ -67,6 +67,8 @@ type
     CurrentActionAge: Integer;
     Reserves: Single;
     ReserveDelta: Single;  // per-tick change in reserves; negative = losing energy, positive = gaining
+    IsNight: Boolean;
+    SolarFlux: Single;     // 0.0 at night, rising through the day
   end;
 
   TReproduceEvalInput = record
@@ -88,6 +90,8 @@ type
     HasRemoteSmellSignal: Boolean;
     CurrentAction: TAgentAction;
     CurrentActionAge: Integer;
+    IsNight: Boolean;
+    SolarFlux: Single;     // 0.0 at night, rising through the day
   end;
 
   TConverterInput = record
