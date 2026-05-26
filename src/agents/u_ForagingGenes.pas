@@ -41,7 +41,7 @@ begin
 
     var targetSignal := 0.0;
     for var molecule := Low(TMolecule) to High(TMolecule) do
-      targetSignal := targetSignal + detail.MoleculeStrength[molecule];
+      targetSignal := targetSignal + detail.MoleculeStrength[molecule] * Input.MoleculeWeights[molecule];
 
     if targetSignal > Result.Score then
     begin

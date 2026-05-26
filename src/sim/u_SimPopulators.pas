@@ -217,11 +217,13 @@ begin
 
     state.Genome.SmellEdgeRetention := 0.25;
 
-    // assign default smell and digestion profiles
+    // assign default smell, digestion, and learning profiles
     for var molecule := Low(TMolecule) to High(TMolecule) do
+    begin
       state.Genome.SmellRatings[molecule] := SMELL_RATING_FACTOR[Normal];
-    for var molecule := Low(TMolecule) to High(TMolecule) do
       state.Genome.ConverterRatings[molecule] := CONVERTER_RATING_FACTOR[Normal];
+      state.ForageMoleculeWeights[molecule] := 1.0; // neutral
+    end;
 
     var targetsApplied: TRuleTargets := [];
     for var rule in aParams.Population.Rules do
@@ -285,22 +287,22 @@ begin
   sequence.AsText := aGeneSequence;
   TGeneSequencer.Populate(state.Genome.GeneMap, sequence);
 
-  // converter
-  for var convertMolecule := Low(TMolecule) to High(TMolecule) do
+  for var molecule := Low(TMolecule) to High(TMolecule) do
   begin
-    var value: Single := CONVERTER_RATING_FACTOR[Normal];
-    if Assigned(aConverterRatings) then
-      value := CONVERTER_RATING_FACTOR[aConverterRatings[convertMolecule]];
-    state.Genome.ConverterRatings[convertMolecule] := value;
-  end;
-
-  // smell
-  for var smellMolecule := Low(TMolecule) to High(TMolecule) do
-  begin
+    // smell
     var value: Single := SMELL_RATING_FACTOR[Normal];
     if Assigned(aSmellRatings) then
-      value := SMELL_RATING_FACTOR[aSmellRatings[smellMolecule]];
-    state.Genome.SmellRatings[smellMolecule] := value;
+      value := SMELL_RATING_FACTOR[aSmellRatings[molecule]];
+    state.Genome.SmellRatings[molecule] := value;
+
+    // converter
+    value := CONVERTER_RATING_FACTOR[Normal];
+    if Assigned(aConverterRatings) then
+      value := CONVERTER_RATING_FACTOR[aConverterRatings[molecule]];
+    state.Genome.ConverterRatings[molecule] := value;
+
+    // learning init
+    state.ForageMoleculeWeights[molecule] := 1.0; // neutral
   end;
 
   ApplyDeltaGeneGates(state^);

@@ -4,7 +4,7 @@ interface
 
 uses System.Types,
   u_AgentState, u_SimEventTypes, u_SimEnvironments, u_SimPopulations, u_SimClocks, u_SimQueriesIntf,
-  u_SimCommandsIntf, u_AgentBrain, u_AgentTypes, u_SimPhases, u_AgentGenome;
+  u_SimCommandsIntf, u_AgentBrain, u_AgentTypes, u_SimTypes, u_AgentGenome;
 
 const
   AGENT_BITE_SIZE = 0.1;  // temporary. move to sim params/genome
@@ -102,7 +102,7 @@ type
     function NextAgentId: Integer;
     function ApplyAgentUpkeep(var State: TAgentState): Boolean;
     function ResolveRequestedStep(AgentIndex: Integer; var State: TAgentState; const Requested: TBrainTickOutput;
-      out ForageConsumed, ForageGain: Single): TBrainTickOutput;
+       out ForageOutcome: TForageOutcome): TBrainTickOutput;
     procedure ProcessAgentTick(aIndex: Integer; const Input: TBrainTickInput);
     procedure NotifyPhase(const Phase: TSimTickPhase);
     procedure SetDayTick(const Value: TDayTick);
@@ -129,8 +129,8 @@ type
 
 implementation
 
-uses System.Math, System.SysUtils, u_SimQueriesImpl,
-  u_SimCommandsImpl;
+uses System.Math, System.SysUtils,
+  u_EnvironmentTypes, u_SimQueriesImpl, u_SimCommandsImpl;
 
 { TSimRuntime }
 
@@ -563,6 +563,10 @@ begin
   Result.WanderTarget := -1;
   Result.Genome := ParentState.Genome;
   FillChar(Result.DecisionWeights, SizeOf(Result.DecisionWeights), 0);
+
+  // Offspring start with neutral molecule preferences — no inherited bias.
+  for var molecule := Low(TMolecule) to High(TMolecule) do
+    Result.ForageMoleculeWeights[molecule] := 1.0;
 end;
 
 function TSimRuntime.NextAgentId: Integer;
@@ -591,12 +595,11 @@ begin
 end;
 
 function TSimRuntime.ResolveRequestedStep(AgentIndex: Integer; var State: TAgentState;
-  const Requested: TBrainTickOutput; out ForageConsumed, ForageGain: Single): TBrainTickOutput;
+  const Requested: TBrainTickOutput; out ForageOutcome: TForageOutcome): TBrainTickOutput;
 begin
   // Runtime resolution hook: adjust or reject requested actions based on world rules.
   Result := Requested;
-  ForageConsumed := 0.0;
-  ForageGain := 0.0;
+  ForageOutcome := Default(TForageOutcome);
 
   if (State.Action = acReproduce) and (State.GestationProgress > 0) then
   begin
@@ -812,13 +815,14 @@ begin
 
       if forageCommand.TryConsumeCache(request, reply) then
       begin
-        ForageConsumed := reply.ConsumedAmount;
-        ForageGain := CalculateForageGain(State, reply);
-        State.Reserves := State.Reserves + ForageGain;
+        ForageOutcome.Consumed := reply.ConsumedAmount;
+        ForageOutcome.Gain := CalculateForageGain(State, reply);
+        ForageOutcome.Substance := reply.Substance;
+        State.Reserves := State.Reserves + ForageOutcome.Gain;
         State.TicksSinceForage := 0;
 
         if cacheRef.Kind = ckDelta then
-          EmitDeltaConsumed(State, cacheRef, ForageConsumed, ForageGain);
+          EmitDeltaConsumed(State, cacheRef, ForageOutcome.Consumed, ForageOutcome.Gain);
       end
       else
       begin
@@ -866,23 +870,21 @@ begin
   end;
 
   var requested := fPopulation.Think(aIndex, Input);
-  var forageConsumed: Single := 0.0;
-  var forageGain: Single := 0.0;
+  var forageOutcome := Default(TForageOutcome);
   var stateBeforeResolution := state^;
-  var resolved := ResolveRequestedStep(aIndex, state^, requested, forageConsumed, forageGain);
+  var resolved := ResolveRequestedStep(aIndex, state^, requested, forageOutcome);
   state.ReserveDelta := state.Reserves - reservesAtTickStart;
 
   var reflectInput: TBrainReflectInput;
   reflectInput.ResolvedAction := resolved.RequestedAction;
   reflectInput.ResolvedTarget := resolved.RequestedTarget;
-  reflectInput.ForageConsumed := forageConsumed;
-  reflectInput.ForageGain := forageGain;
+  reflectInput.ForageOutcome := forageOutcome;
   reflectInput.GridWidth := fEnvironment.Dimensions.cx;
   reflectInput.PreviousLocation := stateBeforeResolution.Location;
   reflectInput.CurrentLocation := state.Location;
   fPopulation.Reflect(aIndex, requested, reflectInput);
 
-  CaptureDecisionTrace(aIndex, state^, Input, requested, resolved, forageConsumed, forageGain);
+  CaptureDecisionTrace(aIndex, state^, Input, requested, resolved, forageOutcome.Consumed, forageOutcome.Gain);
   EmitActionResolved(stateBeforeResolution, state^, requested, resolved);
   if (aIndex >= 0) and (aIndex < Length(fLastDecisionTraces)) and fHasDecisionTrace[aIndex] then
     EmitDecisionTrace(state^, fLastDecisionTraces[aIndex]);

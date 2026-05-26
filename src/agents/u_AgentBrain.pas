@@ -1,8 +1,9 @@
-unit u_AgentBrain;
+﻿unit u_AgentBrain;
 
 interface
 
-uses u_AgentTypes, u_AgentState, u_AgentGenome, u_SimQueriesIntf;
+uses u_AgentTypes, u_AgentState, u_AgentGenome, u_SimQueriesIntf,
+  u_SimEnvironments;
 
 type
   TBrainTraceSummary = record
@@ -45,8 +46,9 @@ type
   TBrainReflectInput = record
     ResolvedAction: TAgentAction;
     ResolvedTarget: TTarget;
-    ForageConsumed: Single;
-    ForageGain: Single;
+    ForageOutcome: TForageOutcome;
+//    ForageGain: Single;
+//    ForageSubstance: TSubstance;
     GridWidth: Integer;
     PreviousLocation: Integer;
     CurrentLocation: Integer;
@@ -77,6 +79,7 @@ uses System.SysUtils, System.Math, u_EnvironmentTypes;
 const
   FOOD_SIGNAL_STRONG_THRESHOLD = 1.0;
   DECISION_WEIGHT_LEARNING_RATE = 0.20;
+  MOLECULE_WEIGHT_LEARNING_RATE = 0.20;
 
 function CalculateStrongestSmellSignal(const Report: TSmellReport): Single;
 begin
@@ -180,6 +183,7 @@ begin
   Result.CurrentAction := Context.CurrentAction;
   Result.CurrentActionAge := Context.CurrentActionAge;
   Result.Smell := Context.Smell;
+  Result.MoleculeWeights := State.ForageMoleculeWeights;
 end;
 
 function BuildMoveEvalInput(const State: TAgentState; const Context: TDecisionContext): TMoveEvalInput;
@@ -270,8 +274,9 @@ begin
   Result.ResolvedTarget := Input.ResolvedTarget;
   Result.Evaluations := Decision.Evaluations;
   Result.ReserveDelta := State.ReserveDelta;
-  Result.ForageConsumed := Input.ForageConsumed;
-  Result.ForageGain := Input.ForageGain;
+  Result.ForageOutcome := Input.ForageOutcome;
+//  Result.ForageGain := Input.ForageGain;
+//  Result.ForageSubstance := Input.ForageSubstance;
   Result.GridWidth := Input.GridWidth;
   Result.PreviousLocation := Input.PreviousLocation;
   Result.CurrentLocation := Input.CurrentLocation;
@@ -296,6 +301,20 @@ begin
     Buckets.FoodSignal,
     Buckets.DayPhase
   ] := expectedOutcome + (DECISION_WEIGHT_LEARNING_RATE * predictionError);
+end;
+
+procedure ApplyMoleculeWeightUpdate(var State: TAgentState;
+  const Reflection: TCognitionReflectionOutput);
+begin
+  for var molecule := Low(TMolecule) to High(TMolecule) do
+  begin
+    if Reflection.MoleculeOutcomes[molecule] = 0.0 then
+      Continue;
+
+    var expected := State.ForageMoleculeWeights[molecule];
+    var error := Reflection.MoleculeOutcomes[molecule] - expected;
+    State.ForageMoleculeWeights[molecule] := expected + (MOLECULE_WEIGHT_LEARNING_RATE * error);
+  end;
 end;
 
 { TAgentScratch }
@@ -493,6 +512,9 @@ begin
 
   if reflectionOutput.HasWeightUpdate then
     ApplyDecisionWeightUpdate(State, Decision.DecisionBuckets, reflectionOutput);
+
+  if reflectionOutput.HasMoleculeUpdate then
+    ApplyMoleculeWeightUpdate(State, reflectionOutput);
 end;
 
 end.

@@ -8,7 +8,7 @@ uses
   Vcl.ImgList, PngImageList, PngSpeedButton, Vcl.Buttons, Vcl.ExtCtrls,
   Vcl.StdCtrls,
 
-  u_SimControllers;
+  u_SimControllers, u_SimTypes;
 
 type
   TControllerFrame = class(TFrame)
@@ -23,39 +23,54 @@ type
     Shape1: TShape;
     Shape2: TShape;
     Shape3: TShape;
+    Label1: TLabel;
+    cbPlaylists: TComboBox;
+    btnPlay: TPngSpeedButton;
+    btnScratch: TSpeedButton;
     procedure btnStepClick(Sender: TObject);
     procedure btnRun5Click(Sender: TObject);
     procedure btnRun10Click(Sender: TObject);
     procedure btnSunsetClick(Sender: TObject);
     procedure btnSunriseClick(Sender: TObject);
     procedure btnRecordClick(Sender: TObject);
+    procedure btnPlayClick(Sender: TObject);
+    procedure btnScratchClick(Sender: TObject);
   private
     fOnBeforeRun: TNotifyEvent;
     fOnAfterRun: TNotifyEvent;
     fOnRecordingChange: TNotifyEvent;
   private
     fController: TSimController;
+    fOnScratchChange: TNotifyEvent;
     procedure SetController(const Value: TSimController);
     procedure UpdateClockDisplay;
     procedure RunToDate(aDate: TSimDate);
     procedure OnAfterAdvance(Sender: TObject);
     function GetRecording: Boolean;
+    function GetScratchEnabled: Boolean;
+    procedure SetScratchEnabled(const Value: Boolean);
   public
     property Controller: TSimController read fController write SetController;
     property Recording: Boolean read GetRecording;
+    property ScratchEnabled: Boolean read GetScratchEnabled write SetScratchEnabled;
 
     property OnBeforeRun: TNotifyEvent read fOnBeforeRun write fOnBeforeRun;
     property OnAfterRun: TNotifyEvent read fOnAfterRun write fOnAfterRun;
-    property OnRecordingChange: TNotifyEvent read fOnRecordingChange write fOnRecordingChange;
+    property OnScratchChange: TNotifyEvent read fOnScratchChange write fOnScratchChange;
   end;
 
 implementation
 
 {$R *.dfm}
 
-uses u_SimClocks;
+uses u_SimClocks, u_Playlists;
 
 { TControllerFrame }
+
+procedure TControllerFrame.btnPlayClick(Sender: TObject);
+begin
+  //
+end;
 
 procedure TControllerFrame.btnRecordClick(Sender: TObject);
 begin
@@ -71,6 +86,12 @@ end;
 procedure TControllerFrame.btnRun5Click(Sender: TObject);
 begin
   RunToDate(fController.CurrentDate.AddTicks(5));
+end;
+
+procedure TControllerFrame.btnScratchClick(Sender: TObject);
+begin
+  if Assigned(fOnScratchChange) then
+    fOnScratchChange(Self);
 end;
 
 procedure TControllerFrame.btnStepClick(Sender: TObject);
@@ -91,6 +112,11 @@ end;
 function TControllerFrame.GetRecording: Boolean;
 begin
   Result := btnRecord.Down;
+end;
+
+function TControllerFrame.GetScratchEnabled: Boolean;
+begin
+  Result := btnScratch.Down;
 end;
 
 procedure TControllerFrame.RunToDate(aDate: TSimDate);
@@ -130,7 +156,13 @@ begin
   begin
     fController.AfterAdvance.Subscribe(OnAfterAdvance);
     UpdateClockDisplay;
+
   end;
+end;
+
+procedure TControllerFrame.SetScratchEnabled(const Value: Boolean);
+begin
+  btnScratch.Down := Value;
 end;
 
 procedure TControllerFrame.OnAfterAdvance(Sender: TObject);

@@ -2,7 +2,7 @@ unit u_Simulators;
 
 interface
 
-uses u_SimClocks, u_SimEventTypes, u_SimRuntimes;
+uses u_SimTypes, u_SimClocks, u_SimEventTypes, u_SimRuntimes;
 
 type
   TSimulator = class

@@ -1,4 +1,4 @@
-unit u_CognitionGenes;
+﻿unit u_CognitionGenes;
 
 interface
 
@@ -256,15 +256,36 @@ begin
   if Input.ResolvedAction <> acForage then
   begin
     Result.HasWeightUpdate := False;
+    Result.HasMoleculeUpdate := False;
     Exit;
   end;
 
-  // Positive outcome when forage produced a gain; negative when it produced nothing.
+  // Decision weight update: positive outcome when forage produced a gain.
   Result.HasWeightUpdate := True;
-  if Input.ForageGain > 0.0 then
+  if Input.ForageOutcome.Gain > 0.0 then
     Result.Outcome := FORAGE_REFLECT_GAIN_OUTCOME
   else
     Result.Outcome := FORAGE_REFLECT_NO_GAIN_OUTCOME;
+
+  // Molecule weight update: attribute conversion efficiency to each molecule present.
+  // Efficiency = energy gained per unit consumed. Each molecule gets the overall
+  // efficiency as its outcome — the share weighting happens naturally because molecules
+  // absent from the substance get skipped (their percentage is 0).
+  if (Input.ForageOutcome.Consumed > 0.0) and (Input.ForageOutcome.Gain > 0.0) then
+  begin
+    Result.HasMoleculeUpdate := True;
+    var efficiency := Input.ForageOutcome.Gain / Input.ForageOutcome.Consumed;
+
+    for var molecule := Low(TMolecule) to High(TMolecule) do
+    begin
+      if Input.ForageOutcome.Substance[molecule] > 0 then
+        Result.MoleculeOutcomes[molecule] := efficiency
+      else
+        Result.MoleculeOutcomes[molecule] := 0.0;
+    end;
+  end
+  else
+    Result.HasMoleculeUpdate := False;
 end;
 
 class function TLearningCognition.MoveReflection(

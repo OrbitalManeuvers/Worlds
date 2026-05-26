@@ -4,20 +4,9 @@ interface
 
 uses
   System.Classes, System.Generics.Collections,
-  u_MulticastEvents;
-
-const
-  CLOCK_TICKS_PER_DAY = 120;
-  NIGHT_TICKS_DENOMINATOR = 3;
-  NIGHT_TICKS_NUMERATOR = 1;
-
-  NIGHT_TICKS_PER_DAY = (CLOCK_TICKS_PER_DAY * NIGHT_TICKS_NUMERATOR) div NIGHT_TICKS_DENOMINATOR;
-  DAYLIGHT_TICKS_PER_DAY = CLOCK_TICKS_PER_DAY - NIGHT_TICKS_PER_DAY;
+  u_MulticastEvents, u_SimTypes;
 
 type
-  TDayTick = 0 .. (CLOCK_TICKS_PER_DAY - 1);           // time "today"
-  TDaylightTicks = 0 .. (DAYLIGHT_TICKS_PER_DAY - 1);
-
   TClockInfo = record
     GlobalTick: Integer;
     DayNumber: Integer;
@@ -64,7 +53,7 @@ begin
   inherited Create;
   fTickEvent := TMulticastEvent<TClockTickEvent>.Create;
   fOnControl := aController;
-  FTick := 0;
+  FTick := CLOCK_TICKS_PER_DAY; // clock starts
 end;
 
 destructor TSimClock.Destroy;

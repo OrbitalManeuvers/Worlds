@@ -11,7 +11,8 @@ type
 
 implementation
 
-uses System.Math, u_SimClocks;
+uses System.Math,
+  u_SimTypes, u_SimClocks;
 
 const
   WANDER_MAX_SCORE = 0.30;

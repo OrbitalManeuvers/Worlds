@@ -3,7 +3,7 @@ unit u_SimSessions;
 interface
 
 uses System.Classes, System.Types, System.Generics.Collections,
- u_Simulators, u_SimWatches, u_SimPhases,
+ u_Simulators, u_SimWatches, u_SimTypes,
  u_SimDiagnostics, u_SimEventTypes,
  u_SimControllers,
  u_SessionParameters, u_SessionTOC;
@@ -28,7 +28,9 @@ type
     fController: TSimController;
     fRecordingBoundaries: TList<TRecordingMarker>;
     fRecording: Boolean;
+    fScratchLogEnabled: Boolean;
     procedure SetRecording(const Value: Boolean);
+    procedure SetScratchLogEnabled(const Value: Boolean);
 
   public
     constructor Create(const aCommonParams: TCommonSessionParameters);
@@ -50,6 +52,7 @@ type
     property Diagnostics: TSimDiagnosticsHub read fDiagnostics;
 
     property Recording: Boolean read fRecording write SetRecording;
+    property ScratchLogEnabled: Boolean read fScratchLogEnabled write SetScratchLogEnabled;
   end;
 
 implementation
@@ -84,6 +87,7 @@ begin
     TFile.Delete(fScratchFileName);
   fMappedFileSink := TMappedFileSink.Create(fScratchFileName);
   fMappedFileSubscriptionId := fDiagnostics.Subscribe(fMappedFileSink);
+  fScratchLogEnabled := True;
   fMappedFileLog := TMappedFileLog.Create(fScratchFileName);
 end;
 
@@ -120,6 +124,29 @@ begin
   // close the session's log file
 
 
+end;
+
+procedure TSimSession.SetScratchLogEnabled(const Value: Boolean);
+begin
+  if Value = fScratchLogEnabled then
+    Exit;
+  fScratchLogEnabled := Value;
+
+  if Value then
+  begin
+    // Re-subscribe the sink
+    if fMappedFileSubscriptionId = 0 then
+      fMappedFileSubscriptionId := fDiagnostics.Subscribe(fMappedFileSink);
+  end
+  else
+  begin
+    // Unsubscribe — events no longer reach the file
+    if fMappedFileSubscriptionId <> 0 then
+    begin
+      fDiagnostics.Unsubscribe(fMappedFileSubscriptionId);
+      fMappedFileSubscriptionId := 0;
+    end;
+  end;
 end;
 
 procedure TSimSession.AssertScratchLogReadable;

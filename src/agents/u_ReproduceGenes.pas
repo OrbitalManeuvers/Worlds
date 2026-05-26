@@ -13,7 +13,8 @@ type
 
 implementation
 
-uses System.Math, u_SimClocks;
+uses System.Math,
+  u_SimTypes, u_SimClocks;
 
 const
   REPRO_MAX_SCORE = 0.25;

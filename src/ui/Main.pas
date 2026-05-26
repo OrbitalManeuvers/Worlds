@@ -70,8 +70,7 @@ uses System.IOUtils, System.UITypes, Vcl.GraphUtil, Vcl.Themes,
   u_SessionComposerIntf,
   u_DebugLibraries,
   u_SessionManager,
-  u_SessionParameters,
-  u_SimDebug;
+  u_SessionParameters;
 
 {$R *.dfm}
 
@@ -86,6 +85,9 @@ const
     TSimulatorFrame
   );
 
+const
+  SCENARIO_FOLDER = 'forage\';
+
 { Utility }
 function RuntimeFilePath(const aFileName: string): string;
 begin
@@ -94,12 +96,12 @@ end;
 
 function LibraryFileName: string;
 begin
-  Result := RuntimeFilePath('WorldsEnvironmentLibrary.json');
+  Result := RuntimeFilePath(SCENARIO_FOLDER + 'WorldsEnvironmentLibrary.json');
 end;
 
 function DebugLibraryFileName: string;
 begin
-  Result := RuntimeFilePath('WorldsDebugLibrary.json');
+  Result := RuntimeFilePath(SCENARIO_FOLDER + 'WorldsDebugLibrary.json');
 end;
 
 function SettingsFileName: string;

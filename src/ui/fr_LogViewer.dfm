@@ -12,7 +12,7 @@ object LogViewer: TLogViewer
     Align = alTop
     TabOrder = 0
     object btnExport: TSpeedButton
-      Left = 560
+      Left = 376
       Top = 48
       Width = 121
       Height = 25
@@ -44,9 +44,6 @@ object LogViewer: TLogViewer
     ParentColor = False
     TabOrder = 1
     OnBeforeDrawItem = DetailsViewBeforeDrawItem
-    ExplicitLeft = 8
-    ExplicitTop = 297
-    ExplicitWidth = 679
     object lblDetails: TLabel
       AlignWithMargins = True
       Left = 4
@@ -93,10 +90,6 @@ object LogViewer: TLogViewer
     TabOrder = 2
     OnBeforeDrawItem = EventListBeforeDrawItem
     OnItemClick = EventListItemClick
-    ExplicitLeft = 8
-    ExplicitTop = 96
-    ExplicitWidth = 684
-    ExplicitHeight = 193
     object lblEventTime: TLabel
       AlignWithMargins = True
       Left = 3

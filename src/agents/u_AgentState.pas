@@ -31,7 +31,7 @@ type
 
     // Learned state (decision weights)
     DecisionWeights: TDecisionWeights;
-    ForageMoleculeWeights: array[TMolecule] of Single;  // to-do
+    ForageMoleculeWeights: TMoleculeFactors;  // learned preference per molecule
 
     // Heritable traits (for reproduction + mutation)
     Genome: TAgentGenome;  // sensor ranges, metabolic params, etc.

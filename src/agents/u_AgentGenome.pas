@@ -52,6 +52,7 @@ type
     CurrentAction: TAgentAction;
     CurrentActionAge: Integer;
     Smell: TSmellReport;
+    MoleculeWeights: TMoleculeFactors;  // learned preference per molecule (initialized to 1.0)
   end;
 
   TMoveEvalInput = record
@@ -100,6 +101,12 @@ type
     Ratings: TMoleculeFactors;
   end;
 
+  TForageOutcome = record
+    Consumed: Single;
+    Gain: Single;
+    Substance: TSubstance;
+  end;
+
   TActionEvalResult = record
     Score: Single;
     Target: TTarget;
@@ -125,8 +132,9 @@ type
     ResolvedTarget: TTarget;
     Evaluations: TActionEvaluations;
     ReserveDelta: Single;
-    ForageConsumed: Single;
-    ForageGain: Single;
+    ForageOutcome: TForageOutcome;
+//    ForageGain: Single;
+//    ForageSubstance: TSubstance;
     GridWidth: Integer;
     PreviousLocation: Integer;
     CurrentLocation: Integer;
@@ -140,6 +148,8 @@ type
     ExpectedOutcome: Single;
     PredictionError: Single;
     HasWeightUpdate: Boolean;
+    HasMoleculeUpdate: Boolean;
+    MoleculeOutcomes: array[TMolecule] of Single;
   end;
 
   // Evaluators own their own workspace contract, even when empty for now.

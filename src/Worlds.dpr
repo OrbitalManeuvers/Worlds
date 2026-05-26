@@ -55,7 +55,6 @@ uses
   u_SimCommandsImpl in 'sim\u_SimCommandsImpl.pas',
   u_Seeds in 'common\u_Seeds.pas',
   u_ShelterGenes in 'agents\u_ShelterGenes.pas',
-  u_SimPhases in 'sim\u_SimPhases.pas',
   u_MovementGenes in 'agents\u_MovementGenes.pas',
   u_ConverterGenes in 'agents\u_ConverterGenes.pas',
   u_SimEventTypes in 'sim\u_SimEventTypes.pas',
@@ -66,7 +65,6 @@ uses
   u_SessionComposers in 'sim\u_SessionComposers.pas',
   u_DebugSessionComposers in 'sim\u_DebugSessionComposers.pas',
   u_SessionParameters in 'sim\u_SessionParameters.pas',
-  u_SimDebug in 'sim\u_SimDebug.pas',
   u_MulticastEvents in 'common\u_MulticastEvents.pas',
   u_WorldsMessages in 'common\u_WorldsMessages.pas',
   fr_Simulator in 'ui\fr_Simulator.pas' {SimulatorFrame: TFrame},
@@ -85,7 +83,9 @@ uses
   u_SessionManifest in 'common\u_SessionManifest.pas',
   u_SessionTOC in 'common\u_SessionTOC.pas',
   u_WanderGenes in 'agents\u_WanderGenes.pas',
-  u_LogTypes in 'common\u_LogTypes.pas';
+  u_LogTypes in 'common\u_LogTypes.pas',
+  u_SimTypes in 'sim\u_SimTypes.pas',
+  u_Playlists in 'sim\u_Playlists.pas';
 
 {$R *.res}
 

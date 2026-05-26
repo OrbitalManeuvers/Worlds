@@ -1,8 +1,8 @@
 object ControllerFrame: TControllerFrame
   Left = 0
   Top = 0
-  Width = 494
-  Height = 138
+  Width = 490
+  Height = 145
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -13
@@ -14,23 +14,23 @@ object ControllerFrame: TControllerFrame
     Left = 3
     Top = 2
     Width = 89
-    Height = 120
+    Height = 133
     Brush.Style = bsClear
     Pen.Color = clGray
     Pen.Width = 2
   end
   object Shape2: TShape
-    Left = 147
-    Top = 2
-    Width = 89
-    Height = 28
+    Left = 99
+    Top = 89
+    Width = 381
+    Height = 46
     Brush.Style = bsClear
     Pen.Color = clGray
     Pen.Width = 2
   end
   object Shape3: TShape
-    Left = 104
-    Top = 40
+    Left = 99
+    Top = 2
     Width = 381
     Height = 81
     Brush.Style = bsClear
@@ -39,7 +39,7 @@ object ControllerFrame: TControllerFrame
   end
   object btnRecord: TPngSpeedButton
     Left = 12
-    Top = 48
+    Top = 36
     Width = 72
     Height = 65
     AllowAllUp = True
@@ -52,8 +52,8 @@ object ControllerFrame: TControllerFrame
     OnClick = btnRecordClick
   end
   object btnStep: TPngSpeedButton
-    Left = 112
-    Top = 48
+    Left = 107
+    Top = 10
     Width = 72
     Height = 65
     Caption = 'Step Once'
@@ -63,8 +63,8 @@ object ControllerFrame: TControllerFrame
     OnClick = btnStepClick
   end
   object btnRun5: TPngSpeedButton
-    Left = 186
-    Top = 48
+    Left = 181
+    Top = 10
     Width = 72
     Height = 65
     Caption = 'Run 5'
@@ -74,8 +74,8 @@ object ControllerFrame: TControllerFrame
     OnClick = btnRun5Click
   end
   object btnRun10: TPngSpeedButton
-    Left = 260
-    Top = 48
+    Left = 255
+    Top = 10
     Width = 72
     Height = 65
     Caption = 'Run 10'
@@ -85,8 +85,8 @@ object ControllerFrame: TControllerFrame
     OnClick = btnRun10Click
   end
   object btnSunset: TPngSpeedButton
-    Left = 334
-    Top = 48
+    Left = 329
+    Top = 10
     Width = 72
     Height = 65
     Caption = 'Sunset'
@@ -96,8 +96,8 @@ object ControllerFrame: TControllerFrame
     OnClick = btnSunsetClick
   end
   object btnSunrise: TPngSpeedButton
-    Left = 408
-    Top = 48
+    Left = 403
+    Top = 10
     Width = 72
     Height = 65
     Caption = 'Sunrise'
@@ -119,6 +119,40 @@ object ControllerFrame: TControllerFrame
     Font.Style = []
     ParentFont = False
     StyleElements = [seClient, seBorder]
+  end
+  object Label1: TLabel
+    Left = 112
+    Top = 104
+    Width = 42
+    Height = 17
+    Caption = 'Playlist:'
+  end
+  object btnPlay: TPngSpeedButton
+    Left = 422
+    Top = 94
+    Width = 36
+    Height = 36
+    ImageIndex = 7
+    Images = ilController
+    OnClick = btnPlayClick
+  end
+  object btnScratch: TSpeedButton
+    Left = 12
+    Top = 102
+    Width = 70
+    Height = 28
+    AllowAllUp = True
+    GroupIndex = 1
+    Caption = 'Scratch'
+    OnClick = btnScratchClick
+  end
+  object cbPlaylists: TComboBox
+    Left = 174
+    Top = 101
+    Width = 239
+    Height = 25
+    Style = csDropDownList
+    TabOrder = 0
   end
   object ilController: TPngImageList
     Height = 32
@@ -341,6 +375,21 @@ object ControllerFrame: TControllerFrame
           0318B181E935753A1D9E001E22E98F8439990DF612701BB8AA9199D3081C6841
           B7A137A13F92A8E2A9D9AE9A22302B9939815F3A641F5D9CFC078D0000000049
           454E44AE426082}
+      end
+      item
+        Background = clWindow
+        Name = 'ctrl-run-playlist'
+        PngImage.Data = {
+          89504E470D0A1A0A0000000D4948445200000020000000200806000000737A7A
+          F4000001074944415478DAED973D0F0151104547ED3FF86F7A9F8D8F061D092D
+          4A3AD442AD448B4EB551A150D088E04E9E6945C1DCC64D4E36D9DD64CFEEECCE
+          BC8D0939B1BFC0BB83C94B34C6260FB6DFBC682F9EF858E081CD153441039C19
+          02960814C0882560998114D8B0043437D0063570620858F6A00CFAE0CE10B0CC
+          41162C5902F27A02FA248AE0C810B0E83B51015D09EF8ABB8065053212BE1A8A
+          806520A17FEC58021AEDA075D00257868045674A160253A6400E02136F012D81
+          0E331D6AEE25184AE80D91EDF0125883B4103E436D4455D011E74664ADB8040E
+          EF4EFC85C04242D7731F4687D71DF7C5791C6B6DB5C65A6BF705C94C484B32DA
+          A294BA2CE7FE9878E42FF004779DA621878139740000000049454E44AE426082}
       end>
     Left = 488
     Top = 40

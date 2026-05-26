@@ -9,19 +9,18 @@ inherited SimulatorFrame: TSimulatorFrame
     Left = 16
     Top = 16
     Width = 513
-    Height = 161
+    Height = 148
     Brush.Color = clGray
     Visible = False
   end
   object phLogViewer: TShape
     Left = 16
-    Top = 200
+    Top = 170
     Width = 604
-    Height = 546
+    Height = 576
     Anchors = [akLeft, akTop, akRight, akBottom]
     Brush.Color = clGray
     Visible = False
-    ExplicitHeight = 305
   end
   object bvBottom: TBevel
     Left = 16
@@ -35,7 +34,7 @@ inherited SimulatorFrame: TSimulatorFrame
   end
   object phResViewer: TShape
     Left = 640
-    Top = 200
+    Top = 170
     Width = 300
     Height = 330
     Anchors = [akTop, akRight]
@@ -43,7 +42,7 @@ inherited SimulatorFrame: TSimulatorFrame
   end
   object phDeltaViewer: TShape
     Left = 946
-    Top = 200
+    Top = 170
     Width = 300
     Height = 330
     Anchors = [akTop, akRight]

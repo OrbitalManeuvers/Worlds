@@ -2,9 +2,9 @@ unit u_SimEnvironments;
 
 interface
 
-uses System.Types, u_SimClocks,
+uses System.Types,
 
-  u_EnvironmentTypes;
+  u_SimTypes, u_SimClocks, u_EnvironmentTypes;
 
 type
   // something that can be found on the ground

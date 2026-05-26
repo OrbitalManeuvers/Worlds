@@ -53,6 +53,7 @@ type
     procedure HandleSaveProgress(Sender: TObject; Progress: Integer);
     procedure HandleResViewerPaint(Sender: TObject);
     procedure HandleDeltaViewerPaint(Sender: TObject);
+    procedure HandleScratchChange(Sender: TObject);
 
     procedure UpdatePopulationSummary;
   public
@@ -94,6 +95,7 @@ begin
   InitFrame(Controller, phController);
   Controller.OnBeforeRun := HandleBeforeRun;
   Controller.OnAfterRun := HandleAfterRun;
+  Controller.OnScratchChange := HandleScratchChange;
 
   { UI for displaying scratch log events }
   LogViewer := TLogViewer.Create(Self);
@@ -158,6 +160,11 @@ end;
 procedure TSimulatorFrame.HandleSaveProgress(Sender: TObject; Progress: Integer);
 begin
   SaveProgress.Position := Progress + 1; // accommodate for 0-based event index
+end;
+
+procedure TSimulatorFrame.HandleScratchChange(Sender: TObject);
+begin
+  Session.ScratchLogEnabled := Controller.ScratchEnabled;
 end;
 
 procedure TSimulatorFrame.HandleAfterRun(Sender: TObject);
@@ -262,7 +269,7 @@ begin
     Session.BeginSession;
     Session.AssertScratchLogReadable;
     Controller.Controller := Session.Controller;
-
+    Controller.ScratchEnabled := Session.ScratchLogEnabled;
 
     Visualizer.Simulator := Session.Simulator;
     DeltaVisualizer.Simulator := Session.Simulator;

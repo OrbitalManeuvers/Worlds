@@ -220,7 +220,6 @@
         <DCCReference Include="sim\u_SimCommandsImpl.pas"/>
         <DCCReference Include="common\u_Seeds.pas"/>
         <DCCReference Include="agents\u_ShelterGenes.pas"/>
-        <DCCReference Include="sim\u_SimPhases.pas"/>
         <DCCReference Include="agents\u_MovementGenes.pas"/>
         <DCCReference Include="agents\u_ConverterGenes.pas"/>
         <DCCReference Include="sim\u_SimEventTypes.pas"/>
@@ -231,7 +230,6 @@
         <DCCReference Include="sim\u_SessionComposers.pas"/>
         <DCCReference Include="sim\u_DebugSessionComposers.pas"/>
         <DCCReference Include="sim\u_SessionParameters.pas"/>
-        <DCCReference Include="sim\u_SimDebug.pas"/>
         <DCCReference Include="common\u_MulticastEvents.pas"/>
         <DCCReference Include="common\u_WorldsMessages.pas"/>
         <DCCReference Include="ui\fr_Simulator.pas">
@@ -262,6 +260,8 @@
         <DCCReference Include="common\u_SessionTOC.pas"/>
         <DCCReference Include="agents\u_WanderGenes.pas"/>
         <DCCReference Include="common\u_LogTypes.pas"/>
+        <DCCReference Include="sim\u_SimTypes.pas"/>
+        <DCCReference Include="sim\u_Playlists.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

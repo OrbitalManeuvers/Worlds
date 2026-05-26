@@ -3,7 +3,7 @@ unit u_SimEventTypes;
 interface
 
 uses System.Types,
-  u_AgentTypes, u_AgentBrain, u_AgentGenome, u_SimClocks, u_SimPhases;
+  u_AgentTypes, u_AgentBrain, u_AgentGenome, u_SimClocks, u_SimTypes;
 
 type
   TSimEventKind = (

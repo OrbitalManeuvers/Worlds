@@ -4,28 +4,11 @@ interface
 
 uses System.Classes, System.Generics.Collections,
   u_MulticastEvents,
-  u_SimClocks, u_SimEventTypes;
+  u_SimClocks, u_SimEventTypes, u_SimTypes, u_Playlists;
 
 type
-  TSimDate = record
-    DayNumber: Integer;
-    DayTick: TDayTick;
-
-    function NextSunrise: TSimDate;
-    function NextSunset: TSimDate;
-    function AddTicks(aCount: Integer): TSimDate;
-  end;
-
   TSimStopPredicate = reference to procedure (const Date: TSimDate; var CanContinue: Boolean);
 
-  TSegment = record
-    StartTime: TSimDate;
-    EndTime: TSimDate;
-    EndEvents: TSimEventKinds;  // empty = time-only end condition
-    Recording: Boolean;
-  end;
-
-  TPlaylist = TList<TSegment>;
 
   TSimController = class
   private
@@ -186,38 +169,5 @@ begin
   NotifyAfterAdvance;
 end;
 
-{ TSimDate }
-
-function TSimDate.AddTicks(aCount: Integer): TSimDate;
-var
-  totalTick: Integer;
-begin
-  totalTick := DayNumber * CLOCK_TICKS_PER_DAY + DayTick + aCount;
-  Result.DayNumber := Integer(totalTick div CLOCK_TICKS_PER_DAY);
-  Result.DayTick   := TDayTick(totalTick mod CLOCK_TICKS_PER_DAY);
-end;
-
-function TSimDate.NextSunrise: TSimDate;
-begin
-  // Sunrise is tick 0 of the next day
-  Result.DayNumber := DayNumber + 1;
-  Result.DayTick   := 0;
-end;
-
-function TSimDate.NextSunset: TSimDate;
-begin
-  // Sunset is the first night tick (DAYLIGHT_TICKS_PER_DAY) of the current day.
-  // If we're already at or past sunset, advance to the next day's sunset.
-  if DayTick < DAYLIGHT_TICKS_PER_DAY then
-  begin
-    Result.DayNumber := DayNumber;
-    Result.DayTick   := DAYLIGHT_TICKS_PER_DAY;
-  end
-  else
-  begin
-    Result.DayNumber := DayNumber + 1;
-    Result.DayTick   := DAYLIGHT_TICKS_PER_DAY;
-  end;
-end;
 
 end.

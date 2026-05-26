@@ -2,7 +2,7 @@
 
 interface
 
-uses u_AgentState, u_AgentBrain;
+uses u_AgentTypes, u_AgentGenome, u_AgentState, u_AgentBrain;
 
 type
   TPopulationSummary = record
@@ -13,6 +13,16 @@ type
     MaxReserves: Single;
     MeanReserves: Single;   // mean over live agents only
     MaxGeneration: Integer; // placeholder — needs genome generation tracking
+  end;
+
+  TMetabolicState = record
+    Age: Integer;
+    Reserves: Single;
+    ReserveDelta: Single;
+    GeneSequence: TGeneSequence;
+    MoleculeFactors: TMoleculeFactors;
+    ForageMoleculeWeights: TMoleculeFactors;
+    DecisionWeights: TDecisionWeights;
   end;
 
   TSimPopulation = class
@@ -53,6 +63,7 @@ type
     procedure Tick(const Input: TBrainTickInput);
 
     function Summarize: TPopulationSummary;
+    function GetMetabolicState(aAgentId: TAgentId): TMetabolicState;
 
     property AgentCount: Integer read GetAgentCount write SetAgentCount;
     property Agents: TArray<TAgentState> read fAgents;
@@ -290,5 +301,26 @@ begin
   if Result.LiveCount > 0 then
     Result.MeanReserves := reservesSum / Result.LiveCount;
 end;
+
+function TSimPopulation.GetMetabolicState(aAgentId: TAgentId): TMetabolicState;
+begin
+  Result := Default(TMetabolicState);
+
+  for var i := 0 to High(fAgents) do
+  begin
+    if fAgents[i].AgentId <> aAgentId then
+      Continue;
+
+    Result.Age := fAgents[i].Age;
+    Result.Reserves := fAgents[i].Reserves;
+    Result.ReserveDelta := fAgents[i].ReserveDelta;
+    Result.GeneSequence := TGeneSequencer.GetSequence(fAgents[i].Genome.GeneMap);
+    Result.MoleculeFactors := fAgents[i].Genome.ConverterRatings;
+    Result.ForageMoleculeWeights := fAgents[i].ForageMoleculeWeights;
+    Result.DecisionWeights := fAgents[i].DecisionWeights;
+    Exit;
+  end;
+end;
+
 
 end.

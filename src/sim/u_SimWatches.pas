@@ -3,7 +3,7 @@ unit u_SimWatches;
 interface
 
 uses System.Math,
-  u_AgentState, u_AgentTypes, u_Simulators, u_SimPhases;
+   u_SimTypes, u_AgentState, u_AgentTypes, u_Simulators;
 
 type
   TSimWatch = class;
