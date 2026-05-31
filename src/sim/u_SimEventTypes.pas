@@ -13,10 +13,86 @@ type
     sekAgentMoved,
     sekDeltaConsumed,
     sekAgentDied,
-    sekResourceSampled
+    sekResourceSampled,
+    sekPopulationState
+
   );
 
   TSimEventKinds = set of TSimEventKind;
+
+
+// ======== May Logging
+
+  TSimEventKind2 = (
+    sek2PopulationStatus,
+    sek2PopulationEvent,
+    sek2PopulationRecap
+  );
+
+  TLifespan = record
+    AgentId: TAgentId;
+    Age: Integer;
+  end;
+  TReservespan = record
+    AgentId: TAgentId;
+    Reserves: Single;
+  end;
+  TTravelspan = record
+    AgentId: TAgentId;
+    Distance: Integer;
+  end;
+
+  // the state of the population at the start of the tick
+  TPopulationState = record
+    Alive: Integer;
+    Dead: Integer;
+    Births: Integer;
+    LongestLife: TLifespan;
+    ShortestLife: TLifespan;
+    MaxReserves: TReservespan;
+    MaxTravel: TTravelspan; // from state.Birthplace
+    MaxLiving: Integer;
+  end;
+
+  // a recap of what happened during the tick
+  TPopulationRecap = record
+    Deaths: Integer;
+    Births: Integer;
+    Mutations: Integer;
+    MeanReserves: Single;
+  end;
+
+  // births and deaths that occur during the tick
+  TPopulationEventKind = (pekBirth, pekDeath);
+  TPopulationEvent = record
+    Kind: TPopulationEventKind;
+    AgentId: TAgentId;
+    Age: Integer;
+    InitialReserves: Single;
+    ParentAgentId: TAgentId;  // from state.ParentId
+    Birthplace: TCellIndex;
+    Mutation: TGeneSequence;  // check what Default(TGeneSequence) does, use as mutation flag (#0 probably)
+  end;
+
+  TSimulatorEventHeader = record
+    Sequence: Integer;
+    DayNumber: Integer;
+    DayTick: TDayTick;
+    Kind: TSimEventKind2;
+  end;
+
+  // this is emit from the runtime for the General timeline event log
+  TSimulatorSummaryEvent = record
+    Header: TSimulatorEventHeader;
+    PreState: TPopulationState;
+    PopEvent: TPopulationEvent;
+    PostRecap: TPopulationRecap;
+  end;
+
+// ======== 2026-05-28 Log Ideas End ============
+
+
+
 
   TSimEventHeader = record
     Sequence: Integer;
@@ -43,9 +119,7 @@ type
     RequestedTarget: TTarget;
     ResolvedAction: TAgentAction;
     ResolvedTarget: TTarget;
-    ForageConsumed: Single;
-    ForageGain: Single;
-    ForageEfficiency: Single;
+    ForageOutcome: TForageOutcome;
     Evaluations: TActionEvaluations;
     Summary: TBrainTraceSummary;
   end;
@@ -60,7 +134,7 @@ type
 
   TAgentBornEvent = record
     AgentId: TAgentId;
-    ParentAgentId: Integer;
+    ParentAgentId: TAgentId;
     Cell: TCellIndex;
     InitialReserves: Single;
   end;
@@ -95,6 +169,7 @@ type
     DeltaConsumed: TDeltaConsumedEvent;
     AgentDied: TAgentDiedEvent;
     ResourceSampled: TResourceSampledEvent;
+    PopulationState: TPopulationState;
   end;
 
 //  TSimEventFilter = record

@@ -46,9 +46,7 @@ type
     RequestedTarget: TTarget;
     ResolvedAction: TAgentAction;
     ResolvedTarget: TTarget;
-    ForageConsumed: Single;
-    ForageGain: Single;
-    ForageEfficiency: Single;
+    ForageOutcome: TForageOutcome;
     Evaluations: TActionEvaluations;
     Summary: TBrainTraceSummary;
   end;
@@ -81,6 +79,11 @@ type
     fDeltaPlacementCycleIndex: Integer;
     fLastDeltaSpawnCount: Integer;
     fDeltaCleanupGraceTicksRemaining: Integer;
+
+    // May
+    fPopulationState: TPopulationState;
+    fPostRecap: TPopulationRecap;
+
     function BuildEventHeader(aKind: TSimEventKind; const aPhase: TSimTickPhase): TSimEventHeader;
     function BuildDeltaSpawnPlan: TArray<Integer>;
     procedure InjectDeltaAtNightfall;
@@ -92,9 +95,12 @@ type
     procedure EmitAgentMoved(const State: TAgentState; const FromCell, ToCell: Integer; const MoveCost: Single);
     procedure EmitDeltaConsumed(const State: TAgentState; const Cache: TCacheRef; const ConsumedAmount, GainAmount: Single);
     procedure EmitResourceSampled;
+
+    procedure EmitPopulationState;
+
     procedure CaptureDecisionTrace(AgentIndex: Integer; const State: TAgentState; const Input: TBrainTickInput;
       const Requested, Resolved: TBrainTickOutput;
-      const ForageConsumed, ForageGain: Single);
+      const ForageOutcome: TForageOutcome);
     function CalculateAgentTickCost(const State: TAgentState): Single;
     function CalculateMoveCost(FromCell, ToCell: Integer): Single;
     function CalculateForageGain(const State: TAgentState; const Reply: TConsumeCacheReply): Single;
@@ -147,6 +153,18 @@ begin
   fPopulation := TSimPopulation.Create;
   fSimQuery := TSimQuery.Create(fEnvironment, fPopulation);
   fSimCommand := TSimCommand.Create(fEnvironment, fPopulation);
+
+  fPopulationState := Default(TPopulationState);
+  fPostRecap := Default(TPopulationRecap);
+end;
+
+destructor TSimRuntime.Destroy;
+begin
+  fSimQuery := nil;
+  fSimCommand := nil;
+  fEnvironment.Free;
+  fPopulation.Free;
+  inherited;
 end;
 
 procedure TSimRuntime.ConfigureRuntime(const aConfig: TRuntimeConfig);
@@ -270,17 +288,8 @@ begin
   fLastDeltaSpawnCount := 0;
 end;
 
-destructor TSimRuntime.Destroy;
-begin
-  fSimQuery := nil;
-  fSimCommand := nil;
-  fEnvironment.Free;
-  fPopulation.Free;
-  inherited;
-end;
-
 procedure TSimRuntime.CaptureDecisionTrace(AgentIndex: Integer; const State: TAgentState; const Input: TBrainTickInput;
-  const Requested, Resolved: TBrainTickOutput; const ForageConsumed, ForageGain: Single);
+  const Requested, Resolved: TBrainTickOutput; const ForageOutcome: TForageOutcome);
 begin
   if (AgentIndex < 0) or (AgentIndex >= Length(fLastDecisionTraces)) then
     Exit;
@@ -294,12 +303,7 @@ begin
   fLastDecisionTraces[AgentIndex].RequestedTarget := Requested.RequestedTarget;
   fLastDecisionTraces[AgentIndex].ResolvedAction := Resolved.RequestedAction;
   fLastDecisionTraces[AgentIndex].ResolvedTarget := Resolved.RequestedTarget;
-  fLastDecisionTraces[AgentIndex].ForageConsumed := ForageConsumed;
-  fLastDecisionTraces[AgentIndex].ForageGain := ForageGain;
-  if ForageConsumed > 0.0 then
-    fLastDecisionTraces[AgentIndex].ForageEfficiency := ForageGain / ForageConsumed
-  else
-    fLastDecisionTraces[AgentIndex].ForageEfficiency := 0.0;
+  fLastDecisionTraces[AgentIndex].ForageOutcome := ForageOutcome;
   fLastDecisionTraces[AgentIndex].Evaluations := Requested.Evaluations;
   fLastDecisionTraces[AgentIndex].Summary := Requested.Trace;
 end;
@@ -446,9 +450,7 @@ begin
   event.DecisionTrace.RequestedTarget := Trace.RequestedTarget;
   event.DecisionTrace.ResolvedAction := Trace.ResolvedAction;
   event.DecisionTrace.ResolvedTarget := Trace.ResolvedTarget;
-  event.DecisionTrace.ForageConsumed := Trace.ForageConsumed;
-  event.DecisionTrace.ForageGain := Trace.ForageGain;
-  event.DecisionTrace.ForageEfficiency := Trace.ForageEfficiency;
+  event.DecisionTrace.ForageOutcome := Trace.ForageOutcome;
   event.DecisionTrace.Evaluations := Trace.Evaluations;
   event.DecisionTrace.Summary := Trace.Summary;
   fDiagnostics.Emit(event);
@@ -531,6 +533,16 @@ begin
   fDiagnostics.Emit(event);
 end;
 
+procedure TSimRuntime.EmitPopulationState;
+begin
+  if not Assigned(fDiagnostics) then
+    Exit;
+  var event := Default(TSimEvent);
+  event.Header := BuildEventHeader(sekPopulationState, stpPostEnvironment);
+  event.PopulationState := fPopulationState;
+  fDiagnostics.Emit(event);
+end;
+
 function TSimRuntime.CalculateForageGain(const State: TAgentState; const Reply: TConsumeCacheReply): Single;
 begin
   var converter := State.Genome.GeneMap.Converter;
@@ -551,6 +563,9 @@ function TSimRuntime.BuildOffspringState(const ParentState: TAgentState;
 begin
   Result := Default(TAgentState);
   Result.AgentId := OffspringId;
+  Result.ParentId := ParentState.AgentId;
+  Result.Generation := ParentState.Generation + 1;
+  Result.Birthplace := ParentState.Location;
   Result.Location := ParentState.Location;
   Result.Age := 0;
   Result.Reserves := REPRODUCTION_CHILD_START_RESERVES;
@@ -562,11 +577,13 @@ begin
   Result.ActionTarget.Cell := ParentState.Location;
   Result.WanderTarget := -1;
   Result.Genome := ParentState.Genome;
+
+  // !! inheritance
   FillChar(Result.DecisionWeights, SizeOf(Result.DecisionWeights), 0);
 
-  // Offspring start with neutral molecule preferences — no inherited bias.
-  for var molecule := Low(TMolecule) to High(TMolecule) do
-    Result.ForageMoleculeWeights[molecule] := 1.0;
+  // Offspring inherit parent's learned molecule preferences — same genome means
+  // same conversion chemistry, so parent's experience is the best prior.
+  Result.ForageMoleculeWeights := ParentState.ForageMoleculeWeights;
 end;
 
 function TSimRuntime.NextAgentId: Integer;
@@ -606,10 +623,7 @@ begin
     Result.RequestedTarget.TType := ttCell;
     Result.RequestedTarget.Cell := State.Location;
 
-    if State.GestationProgress >= REPRODUCTION_DURATION_TICKS then
-      State.GestationProgress := REPRODUCTION_DURATION_TICKS - 1;
-
-    if State.GestationProgress >= (REPRODUCTION_DURATION_TICKS - 1) then
+    if State.GestationProgress > REPRODUCTION_DURATION_TICKS then
     begin
       var offspringState := BuildOffspringState(State, NextAgentId);
       State.Reserves := State.Reserves - REPRODUCTION_PARENT_COST;
@@ -852,6 +866,12 @@ begin
   Inc(state.TicksSinceReproduction);
   Inc(state.TicksSinceForage);
 
+  // Shelter resets the forage hunger clock — sleeping is a deliberate choice to not eat,
+  // not a failure to find food. Without this, agents wander immediately on waking because
+  // TicksSinceForage accumulated all night and triggers desperation pressure.
+  if state.Action = acShelter then
+    state.TicksSinceForage := 0;
+
   var reservesAtTickStart := state.Reserves;
   var reservesBeforeUpkeep := state.Reserves;
 
@@ -864,10 +884,29 @@ begin
     state.GestationProgress := 0;
     EmitAgentDied(state^, reservesBeforeUpkeep);
 
+    Inc(fPopulationState.Dead);
+    Inc(fPostRecap.Deaths);
+
     // Notify environment once at transition-to-death.
     fEnvironment.NotifyAgentDeath(state.Location, DEFAULT_DEATH_BIOMASS_AMOUNT);
     Exit;
   end;
+
+  // longest life
+  if state.Age > fPopulationState.LongestLife.Age then
+  begin
+    fPopulationState.LongestLife.AgentId := state.AgentId;
+    fPopulationState.LongestLife.Age := state.Age;
+  end;
+
+  // max reserves
+  if state.Reserves > fPopulationState.MaxReserves.Reserves then
+  begin
+    fPopulationState.MaxReserves.AgentId := state.AgentId;
+    fPopulationState.MaxReserves.Reserves := state.Reserves;
+  end;
+
+
 
   var requested := fPopulation.Think(aIndex, Input);
   var forageOutcome := Default(TForageOutcome);
@@ -884,7 +923,14 @@ begin
   reflectInput.CurrentLocation := state.Location;
   fPopulation.Reflect(aIndex, requested, reflectInput);
 
-  CaptureDecisionTrace(aIndex, state^, Input, requested, resolved, forageOutcome.Consumed, forageOutcome.Gain);
+  var distance := Abs(state.Location - state.Birthplace);
+  if distance > fPopulationState.MaxTravel.Distance then
+  begin
+    fPopulationState.MaxTravel.AgentId := state.AgentId;
+    fPopulationState.MaxTravel.Distance := distance;
+  end;
+
+  CaptureDecisionTrace(aIndex, state^, Input, requested, resolved, forageOutcome);
   EmitActionResolved(stateBeforeResolution, state^, requested, resolved);
   if (aIndex >= 0) and (aIndex < Length(fLastDecisionTraces)) and fHasDecisionTrace[aIndex] then
     EmitDecisionTrace(state^, fLastDecisionTraces[aIndex]);
@@ -920,6 +966,12 @@ begin
   EmitResourceSampled;
   NotifyPhase(stpPostEnvironment);
 
+  EmitPopulationState;
+
+  // reset each tick
+  fPostRecap := Default(TPopulationRecap);
+
+
   if Length(fLastDecisionTraces) <> fPopulation.AgentCount then
   begin
     SetLength(fLastDecisionTraces, fPopulation.AgentCount);
@@ -934,7 +986,7 @@ begin
   input.GestationDuration := REPRODUCTION_DURATION_TICKS;
 
   var agentCount := fPopulation.AgentCount;
-  if (agentCount > 0) and (fCurrentGlobalTick >= fRuntimeConfig.AgentActivationTick) then
+  if (agentCount > 0) and (fCurrentGlobalTick >= CLOCK_TICKS_PER_DAY + fRuntimeConfig.AgentActivationTick) then
   begin
     // Fairness pass: randomize both start index and traversal direction each tick.
     var startIndex := Random(agentCount);
@@ -951,6 +1003,8 @@ begin
       ProcessAgentTick(agentIndex, input);
     end;
   end;
+
+  // emit post population recap
 
   NotifyPhase(stpPostAgents);
 end;

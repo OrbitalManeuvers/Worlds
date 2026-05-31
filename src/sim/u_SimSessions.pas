@@ -5,8 +5,10 @@ interface
 uses System.Classes, System.Types, System.Generics.Collections,
  u_Simulators, u_SimWatches, u_SimTypes,
  u_SimDiagnostics, u_SimEventTypes,
- u_SimControllers,
+ u_SimControllers, u_LocalEventLogs,
  u_SessionParameters, u_SessionTOC;
+
+{.define mmf_scratch}
 
 type
   TSimSession = class
@@ -21,9 +23,16 @@ type
     fCommonParams: TCommonSessionParameters;
     fDiagnostics: TSimDiagnosticsHub;
     fScratchFileName: string;
-    fMappedFileSubscriptionId: Integer;
+    fDiagnosticSubscriptionId: Integer;
+
+{$ifdef mmf_scratch}
     fMappedFileSink: ISimEventConsumer;
     fMappedFileLog: IEventLog;
+{$else}
+    fEventConsumer: ISimEventConsumer;
+    fEventLog: IEventLog;
+{$endif}
+
     fSim: TSimulator;
     fController: TSimController;
     fRecordingBoundaries: TList<TRecordingMarker>;
@@ -47,7 +56,11 @@ type
     function SaveEventLog(aCallback: TSaveProgressEvent): Integer;
 
     property Controller: TSimController read fController;
+{$ifdef mmf_scratch}
     property EventLog: IEventLog read fMappedFileLog;
+{$else}
+    property EventLog: IEventLog read fEventLog;
+{$endif}
     property Simulator: TSimulator read fSim;
     property Diagnostics: TSimDiagnosticsHub read fDiagnostics;
 
@@ -74,7 +87,7 @@ begin
   fRecordingBoundaries := TList<TRecordingMarker>.Create;
 
   fDiagnostics := TSimDiagnosticsHub.Create;
-  fMappedFileSubscriptionId := 0;
+  fDiagnosticSubscriptionId := 0;
 
   fSim := TSimulator.Create(fDiagnostics as ISimDiagnosticsSink);
   fController := TSimController.Create(fSim.Clock);
@@ -85,22 +98,35 @@ begin
   fScratchFileName := TPath.Combine(fScratchFileName, SCRATCH_FILE_NAME);
   if TFile.Exists(fScratchFileName) then
     TFile.Delete(fScratchFileName);
+
+{$ifdef mmf_scratch}
   fMappedFileSink := TMappedFileSink.Create(fScratchFileName);
-  fMappedFileSubscriptionId := fDiagnostics.Subscribe(fMappedFileSink);
+  fDiagnosticSubscriptionId := fDiagnostics.Subscribe(fMappedFileSink);
   fScratchLogEnabled := True;
   fMappedFileLog := TMappedFileLog.Create(fScratchFileName);
+{$else}
+  fEventConsumer := TLocalEventLog.Create as ISimEventConsumer;
+  fEventLog := fEventConsumer as IEventLog;
+  fDiagnosticSubscriptionId := fDiagnostics.Subscribe(fEventConsumer);
+{$endif}
+
 end;
 
 destructor TSimSession.Destroy;
 begin
-  if Assigned(fDiagnostics) and (fMappedFileSubscriptionId <> 0) then
+  if Assigned(fDiagnostics) and (fDiagnosticSubscriptionId <> 0) then
   begin
-    fDiagnostics.Unsubscribe(fMappedFileSubscriptionId);
-    fMappedFileSubscriptionId := 0;
+    fDiagnostics.Unsubscribe(fDiagnosticSubscriptionId);
+    fDiagnosticSubscriptionId := 0;
   end;
 
+{$ifdef mmf_scratch}
   fMappedFileLog := nil;
   fMappedFileSink := nil;
+{$else}
+  fEventConsumer := nil;
+  fEventLog := nil;
+{$endif}
 
   fController.Free;
   fController := nil;
@@ -135,22 +161,28 @@ begin
   if Value then
   begin
     // Re-subscribe the sink
-    if fMappedFileSubscriptionId = 0 then
-      fMappedFileSubscriptionId := fDiagnostics.Subscribe(fMappedFileSink);
+{$ifdef mmf_scratch}
+    if fDiagnosticSubscriptionId = 0 then
+      fDiagnosticSubscriptionId := fDiagnostics.Subscribe(fMappedFileSink);
+{$else}
+    if fDiagnosticSubscriptionId = 0 then
+      fDiagnosticSubscriptionId := fDiagnostics.Subscribe(fEventConsumer);
+{$endif}
   end
   else
   begin
     // Unsubscribe — events no longer reach the file
-    if fMappedFileSubscriptionId <> 0 then
+    if fDiagnosticSubscriptionId <> 0 then
     begin
-      fDiagnostics.Unsubscribe(fMappedFileSubscriptionId);
-      fMappedFileSubscriptionId := 0;
+      fDiagnostics.Unsubscribe(fDiagnosticSubscriptionId);
+      fDiagnosticSubscriptionId := 0;
     end;
   end;
 end;
 
 procedure TSimSession.AssertScratchLogReadable;
 begin
+{$ifdef mmf_scratch}
   Assert(Assigned(fMappedFileLog));
 
   var count := fMappedFileLog.Count;
@@ -164,6 +196,7 @@ begin
   var header := mappedLog.Header;
   Assert(header.Signature = EVENT_LOG_FILE_SIGNATURE);
   Assert(header.EventCount = count);
+{$endif}
 end;
 
 function TSimSession.SaveEventLog(aCallback: TSaveProgressEvent): Integer;
@@ -260,8 +293,12 @@ end;
 
 function TSimSession.ScratchEventCount: Integer;
 begin
+{$ifdef mmf_scratch}
   Assert(Assigned(fMappedFileLog));
   Result := fMappedFileLog.Count;
+{$else}
+  Result := fEventLog.Count;
+{$endif}
 end;
 
 procedure TSimSession.SetRecording(const Value: Boolean);

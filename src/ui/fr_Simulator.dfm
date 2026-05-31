@@ -49,13 +49,21 @@ inherited SimulatorFrame: TSimulatorFrame
     Brush.Color = clGray
   end
   object btnCopySummary: TSpeedButton
-    Left = 952
-    Top = 560
+    Left = 946
+    Top = 16
     Width = 49
     Height = 25
     Anchors = [akTop, akRight]
     Caption = 'Copy'
     OnClick = btnCopySummaryClick
+  end
+  object phAgentViewer: TShape
+    Left = 640
+    Top = 506
+    Width = 606
+    Height = 240
+    Anchors = [akTop, akRight, akBottom]
+    Brush.Color = clGray
   end
   object btnClose: TButton
     Left = 1129
@@ -79,19 +87,19 @@ inherited SimulatorFrame: TSimulatorFrame
     OnClick = btnCloseClick
   end
   object SaveProgress: TProgressBar
-    Left = 393
+    Left = 16
     Top = 778
-    Width = 584
+    Width = 961
     Height = 25
-    Anchors = [akRight, akBottom]
+    Anchors = [akLeft, akRight, akBottom]
     TabOrder = 2
     Visible = False
   end
   object vlPopulationStats: TValueListEditor
-    Left = 640
-    Top = 560
+    Left = 643
+    Top = 16
     Width = 297
-    Height = 185
+    Height = 148
     Anchors = [akTop, akRight]
     DisplayOptions = [doKeyColFixed]
     Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goEditing, goThumbTracking]

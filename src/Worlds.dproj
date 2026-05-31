@@ -225,7 +225,6 @@
         <DCCReference Include="sim\u_SimEventTypes.pas"/>
         <DCCReference Include="sim\u_SimDiagnostics.pas"/>
         <DCCReference Include="agents\u_ReproduceGenes.pas"/>
-        <DCCReference Include="sim\u_EventSinks.pas"/>
         <DCCReference Include="sim\u_SessionComposerIntf.pas"/>
         <DCCReference Include="sim\u_SessionComposers.pas"/>
         <DCCReference Include="sim\u_DebugSessionComposers.pas"/>
@@ -262,6 +261,27 @@
         <DCCReference Include="common\u_LogTypes.pas"/>
         <DCCReference Include="sim\u_SimTypes.pas"/>
         <DCCReference Include="sim\u_Playlists.pas"/>
+        <DCCReference Include="ui\fr_AgentViewer.pas">
+            <Form>AgentViewerFrame</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
+        <DCCReference Include="ui\fr_PopulationViewer.pas">
+            <Form>PopulationViewFrame</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
+        <DCCReference Include="ui\fr_AgentWatches.pas">
+            <Form>AgentWatchFrame</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
+        <DCCReference Include="sim\u_LocalEventLogs.pas"/>
+        <DCCReference Include="ui\fr_SimStats.pas">
+            <Form>SimStatsFrame</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

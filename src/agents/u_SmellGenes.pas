@@ -24,6 +24,7 @@ const
   MAX_SMELL_QUERY_RADIUS = 3.0;
   MOLECULE_PRESENT_EPSILON = 0.000001;
   SIGNAL_COMPARE_EPSILON = 0.000001;
+  SMELL_EDGE_RETENTION = 0.25;  // signal strength at max smell distance (distance falloff curve)
 
 function TotalSignal(const Detail: TSmellDetails): Single;
 begin
@@ -233,7 +234,7 @@ begin
       else
         Result.Details[i].Directions.Distance := distance;
 
-      var distanceFalloff := LinearDistanceFalloff(distance, effectiveRadius, Params.EdgeRetention);
+      var distanceFalloff := LinearDistanceFalloff(distance, effectiveRadius, SMELL_EDGE_RETENTION);
 
       Result.Details[i].Cache := Scratch.Buffer[i].Cache;
       Result.Details[i].CellIndex := Scratch.Buffer[i].CellIndex;

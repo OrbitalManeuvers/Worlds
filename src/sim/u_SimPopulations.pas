@@ -64,10 +64,10 @@ type
 
     function Summarize: TPopulationSummary;
     function GetMetabolicState(aAgentId: TAgentId): TMetabolicState;
+    function AgentPtr(aIndex: Integer): PAgentState;
 
     property AgentCount: Integer read GetAgentCount write SetAgentCount;
     property Agents: TArray<TAgentState> read fAgents;
-
   end;
 
 implementation
@@ -322,5 +322,9 @@ begin
   end;
 end;
 
+function TSimPopulation.AgentPtr(aIndex: Integer): PAgentState;
+begin
+  Result := @fAgents[aIndex];
+end;
 
 end.

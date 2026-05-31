@@ -20,6 +20,7 @@ const
   FORAGE_PERSISTENCE_BONUS = 0.03;      // already foraging — continue eating
   FORAGE_SEEKING_BONUS = 0.02;          // was moving/wandering toward food — reward the find
   FORAGE_SHELTER_PENALTY = 0.05;        // resting agent resists being pulled out by weak signals
+  FORAGE_WEIGHT_EPSILON = 0.01;         // weights below this are treated as zero (learning asymptote)
 
 { TForagingGene }
 
@@ -41,7 +42,12 @@ begin
 
     var targetSignal := 0.0;
     for var molecule := Low(TMolecule) to High(TMolecule) do
-      targetSignal := targetSignal + detail.MoleculeStrength[molecule] * Input.MoleculeWeights[molecule];
+    begin
+      var weight := Input.MoleculeWeights[molecule];
+      if weight < FORAGE_WEIGHT_EPSILON then
+        weight := 0.0;
+      targetSignal := targetSignal + detail.MoleculeStrength[molecule] * weight;
+    end;
 
     if targetSignal > Result.Score then
     begin
@@ -61,11 +67,10 @@ begin
   var discount := 1.0 - (reserveRatio * (1.0 - FORAGE_HIGH_RESERVE_DISCOUNT));
   Result.Score := Result.Score * discount;
 
-  // Action context shapes entry friction.
-  // Already foraging: small persistence bonus — don't interrupt a meal.
-  // Moving or wandering: small bonus — the agent was seeking food, reward the find.
-  // Sheltering: penalty — a resting agent should resist weak signals pulling it out.
-  // Reproducing, idle: no modifier — forage competes on its own merits.
+  // Action context shapes entry friction — but only when there's a viable target.
+  // Without a target, bonuses would create phantom forage scores that the cognition
+  // gene's fallback targeting would latch onto.
+  if Result.Target.TType <> ttNone then
   case Input.CurrentAction of
     acForage:   Result.Score := Result.Score + FORAGE_PERSISTENCE_BONUS;
     acMove:     Result.Score := Result.Score + FORAGE_SEEKING_BONUS;

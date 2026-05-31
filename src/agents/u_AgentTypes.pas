@@ -77,9 +77,7 @@ type
 
     EnergyLevel: TEnergyLevel;
     Smell: TSmellReport;
-    Sight: TSightReport;
-
-    // evaluator scores
+//    Sight: TSightReport;
 
     CurrentAction: TAgentAction;
     CurrentActionAge: Integer;

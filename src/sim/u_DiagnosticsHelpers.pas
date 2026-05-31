@@ -4,7 +4,7 @@ interface
 
 uses System.Types, System.SysUtils, System.TypInfo,
   u_SimEventTypes, u_AgentTypes, u_AgentBrain,
-  u_AgentGenome, u_LogTypes, u_SimPopulations;
+  u_AgentGenome, u_LogTypes, u_SimPopulations, u_EnvironmentTypes;
 
 (*
 
@@ -23,6 +23,7 @@ type
   _decisionTraceEvent = record helper for TDecisionTraceEvent
     function AsFields: TLogFields;
     function AsEvaluationFields: TLogFields;
+    function AsNarrative: string;
   end;
 
   // TAgentMovedEvent field helper
@@ -45,6 +46,23 @@ type
     function AsFields: TLogFields;
   end;
 
+  // TMetabolicState
+  _metabolicState = record helper for TMetabolicState
+    function AsFields: TLogFields;
+    function AsMoleculeFactors: TLogFields;
+  end;
+
+  _molecule = record helper for TMolecule
+    function AsText: string;
+  end;
+
+  _single = record helper for Single
+    function AsText: string;
+  end;
+
+  _cellIndex = record helper for TCellIndex
+    function AsText: string;
+  end;
 
 
 implementation
@@ -83,10 +101,6 @@ type
     function AsText: string;
   end;
 
-  _single = record helper for Single
-    function AsText: string;
-  end;
-
   _integer = record helper for Integer
     function AsText: string; overload;
     function AsText(Padding: Integer): string; overload;
@@ -97,10 +111,6 @@ type
   end;
 
   _agentId = record helper for TAgentId
-    function AsText: string;
-  end;
-
-  _cellIndex = record helper for TCellIndex
     function AsText: string;
   end;
 
@@ -211,16 +221,12 @@ begin
   Result := energyLevelStrs[Self];
 end;
 
-
+{ _actionEvalResult }
 function _ActionEvalResult.AsFields: TLogFields;
 begin
   Result.Add('score', Score.AsText);
   Result.Add('tg', Self.Target.AsText);
 end;
-
-//    Score: Single;
-//    Target: TTarget;
-//  end;
 
 
 
@@ -241,6 +247,7 @@ begin
 
 end;
 
+{ _decisionTraceEvent }
 function _decisionTraceEvent.AsEvaluationFields: TLogFields;
 begin
   Result.Clear;
@@ -256,6 +263,19 @@ begin
   end;
 
 end;
+
+function _decisionTraceEvent.AsNarrative: string;
+begin
+
+  var action := ResolvedAction.AsText;
+
+
+  Result := Format('%s: decided to %s ', [
+    AgentId.AsText, action
+  ]);
+
+end;
+
 
 function _decisionTraceEvent.AsFields: TLogFields;
 begin
@@ -274,9 +294,10 @@ begin
     acForage:
       begin
         Result.Add('t', ResolvedTarget.AsText);
-        Result.Add('con', ForageConsumed.AsText);
-        Result.Add('gain', ForageGain.AsText);
-        Result.Add('eff', ForageEfficiency.AsText);
+        Result.Add('con', ForageOutcome.Consumed.AsText);
+        Result.Add('gain', ForageOutcome.Gain.AsText);
+        var eff: Single := ForageOutcome.Gain / ForageOutcome.Consumed;
+        Result.Add('eff', eff.AsText);
       end;
   end;
 end;
@@ -355,6 +376,47 @@ begin
   Result.Add('maxAge',       Self.MaxAge.AsText);
   Result.Add('maxReserves',  Self.MaxReserves.AsText);
   Result.Add('meanReserves', Self.MeanReserves.AsText);
+end;
+
+{ _metabolicState }
+function _metabolicState.AsFields: TLogFields;
+begin
+  Result.Clear;
+  Result.Add('age', Age.AsText);
+  Result.Add('rsrv', Self.Reserves.AsText);
+  Result.Add('rsvD', Self.ReserveDelta.AsText);
+  Result.Add('gene', Self.GeneSequence.AsText);
+  Result.Add('mw', Self.AsMoleculeFactors.AsFieldText);
+
+//  Self.MoleculeFactors
+
+(*
+    Age: Integer;
+    Reserves: Single;
+    ReserveDelta: Single;
+    GeneSequence: TGeneSequence;
+    MoleculeFactors: TMoleculeFactors;
+    ForageMoleculeWeights: TMoleculeFactors;
+    DecisionWeights: TDecisionWeights;
+
+*)
+
+end;
+
+function _metabolicState.AsMoleculeFactors: TLogFields;
+begin
+  Result.Clear;
+  for var molecule := Low(TMolecule) to High(TMolecule) do
+    Result.Add(molecule.AsText, Self.ForageMoleculeWeights[molecule].AsText);
+end;
+
+{ _molecule }
+
+function _molecule.AsText: string;
+const
+  short_codes: array[TMolecule] of string = ('A', 'B', 'G', 'D');
+begin
+  Result := short_codes[Self];
 end;
 
 end.

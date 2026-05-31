@@ -20,7 +20,7 @@ type
     SolarFlux: Single;
     SolarFluxDelta: Single;
     HadSmellTarget: Boolean;
-    HadSightTarget: Boolean;
+//    HadSightTarget: Boolean;
     Reserves: Single;
   end;
 
@@ -47,8 +47,6 @@ type
     ResolvedAction: TAgentAction;
     ResolvedTarget: TTarget;
     ForageOutcome: TForageOutcome;
-//    ForageGain: Single;
-//    ForageSubstance: TSubstance;
     GridWidth: Integer;
     PreviousLocation: Integer;
     CurrentLocation: Integer;
@@ -164,7 +162,7 @@ begin
   Result.SolarFlux := Context.SolarFlux;
   Result.SolarFluxDelta := Context.SolarFluxDelta;
   Result.HadSmellTarget := Context.Smell.Count > 0;
-  Result.HadSightTarget := Context.Sight.Count > 0;
+//  Result.HadSightTarget := Context.Sight.Count > 0;
 
   // Smell details are sorted by the smell gene; detail[0] is the chosen/most salient candidate.
   if Length(Context.Smell.Details) > 0 then
@@ -193,6 +191,7 @@ begin
   Result.CurrentAction := Context.CurrentAction;
   Result.CurrentActionAge := Context.CurrentActionAge;
   Result.Smell := Context.Smell;
+  Result.MoleculeWeights := State.ForageMoleculeWeights;
 end;
 
 function BuildWanderEvalInput(const State: TAgentState; const Context: TDecisionContext): TWanderEvalInput;
@@ -225,6 +224,14 @@ begin
   Result.ReserveDelta := State.ReserveDelta;
   Result.IsNight := Context.IsNight;
   Result.SolarFlux := Context.SolarFlux;
+
+  Result.HasLocalFoodSignal := False;
+  for var detail in Context.Smell.Details do
+    if detail.Directions.Distance = 0 then
+    begin
+      Result.HasLocalFoodSignal := True;
+      Break;
+    end;
 end;
 
 function BuildReproduceEvalInput(const State: TAgentState; const Context: TDecisionContext;
@@ -239,6 +246,7 @@ begin
   Result.LocalAgentCount := LocalAgentCount;
   Result.TicksRemainingInGestation := Max(0, GestationDuration - State.GestationProgress);
   Result.GestationDuration := GestationDuration;
+  Result.DeltaWeight := State.ForageMoleculeWeights[Delta];
 end;
 
 function BuildEnergyInput(const State: TAgentState): TEnergyInput;
@@ -275,8 +283,6 @@ begin
   Result.Evaluations := Decision.Evaluations;
   Result.ReserveDelta := State.ReserveDelta;
   Result.ForageOutcome := Input.ForageOutcome;
-//  Result.ForageGain := Input.ForageGain;
-//  Result.ForageSubstance := Input.ForageSubstance;
   Result.GridWidth := Input.GridWidth;
   Result.PreviousLocation := Input.PreviousLocation;
   Result.CurrentLocation := Input.CurrentLocation;
@@ -308,7 +314,7 @@ procedure ApplyMoleculeWeightUpdate(var State: TAgentState;
 begin
   for var molecule := Low(TMolecule) to High(TMolecule) do
   begin
-    if Reflection.MoleculeOutcomes[molecule] = 0.0 then
+    if not (molecule in Reflection.MoleculesPresent) then
       Continue;
 
     var expected := State.ForageMoleculeWeights[molecule];
@@ -367,7 +373,6 @@ begin
   // 2. Smell
   // allow parameters to adjust the gene's operation
   var smellParams: TSmellParams;
-  smellParams.EdgeRetention := State.Genome.SmellEdgeRetention;
   smellParams.Ratings := State.Genome.SmellRatings;
 
   // activate the gene and save its reply
@@ -377,13 +382,16 @@ begin
   Scratch.DecisionContext.Smell := smellReport;
 
   // 3. Sight
-  if Assigned(State.Genome.GeneMap.Sight) then
-  begin
-    var sightGene := State.Genome.GeneMap.Sight;
-    var sightReport := sightGene.Scan(State.Location, State.Genome.SightRange, Input.Query, Scratch.SensorScratch.Sight);
+//  if Assigned(State.Genome.GeneMap.Sight) then
+//  begin
+    // for now, sight is being mothballed. for *lack of vision*
+    // it may return someday so for now we leave it in the framework, but ignore it
 
-    Scratch.DecisionContext.Sight := sightReport;
-  end;
+//    var sightGene := State.Genome.GeneMap.Sight;
+//    var sightReport := sightGene.Scan(State.Location, State.Genome.SightRange, Input.Query, Scratch.SensorScratch.Sight);
+
+//    Scratch.DecisionContext.Sight := Default(TSightReport);
+//  end;
 
   Result.DecisionBuckets := BuildDecisionBuckets(Scratch.DecisionContext);
 

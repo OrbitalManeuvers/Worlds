@@ -14,22 +14,27 @@ type
 implementation
 
 uses System.Math,
-  u_SimTypes, u_SimClocks;
+  u_SimTypes, u_SimClocks, u_EnvironmentTypes;
 
 const
   REPRO_MAX_SCORE = 0.25;
   REPRO_RESERVE_DELTA_RANGE = 0.15;
-  REPRO_RECENT_COOLDOWN_TICKS = CLOCK_TICKS_PER_DAY;
+  REPRO_RECENT_COOLDOWN_TICKS = CLOCK_TICKS_PER_DAY * 7;
   REPRO_SETTLED_COOLDOWN_TICKS = 90;
   REPRO_LIGHT_CROWDING_PENALTY = 0.02;
   REPRO_MODERATE_CROWDING_PENALTY = 0.05;
   REPRO_HEAVY_CROWDING_PENALTY = 0.09;
-  REPRO_MIN_AGE_TICKS = CLOCK_TICKS_PER_DAY * 3;
+  REPRO_MIN_AGE_TICKS = CLOCK_TICKS_PER_DAY * 5;
 
   // Persistence bonus ramps with commitment: more ticks remaining = stronger hold.
   // At max remaining ticks the agent is deeply committed; near zero it's almost done anyway.
   REPRO_PERSISTENCE_MIN_BONUS = 0.02;  // bonus when nearly complete (low ticks remaining)
   REPRO_PERSISTENCE_MAX_BONUS = 0.10;  // bonus when just started (high ticks remaining)
+
+  // Nocturnal selfishness: agents that have learned to rely on delta become less
+  // willing to invest energy in reproduction. Scales with how far above neutral (1.0)
+  // the delta weight has drifted.
+  REPRO_DELTA_SELFISHNESS_SCALE = 0.06;
 
 { TReproduceEvaluator }
 
@@ -83,6 +88,12 @@ begin
     else
       Result.Score := Result.Score - REPRO_HEAVY_CROWDING_PENALTY;
   end;
+
+  // Nocturnal selfishness: agents that have learned to rely on delta
+  // become less willing to invest energy in reproduction.
+  var deltaExcess := Max(0.0, Input.DeltaWeight - 1.0);
+  var selfishnessPenalty := EnsureRange(deltaExcess * REPRO_DELTA_SELFISHNESS_SCALE, 0.0, REPRO_DELTA_SELFISHNESS_SCALE);
+  Result.Score := Result.Score - selfishnessPenalty;
 
   if Input.CurrentAction = acReproduce then
   begin

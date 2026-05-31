@@ -37,6 +37,12 @@ const
   WANDER_NO_SOLAR_CEILING     = 8.0;
   WANDER_NO_SOLAR_MAX_PENALTY = 0.06;
 
+  // Recently-fed suppression: if the agent ate within this many ticks, wander is
+  // heavily penalized. The food source is likely still here and will regrow — don't
+  // walk away from a known resource just because the cache is momentarily depleted.
+  WANDER_RECENT_FORAGE_TICKS = 3;
+  WANDER_RECENT_FORAGE_PENALTY = 0.20;
+
 { TWanderEvaluator }
 
 class function TWanderEvaluator.Evaluate(const Input: TWanderEvalInput; var Scratch: TWanderEvalScratch): TActionEvalResult;
@@ -90,6 +96,11 @@ begin
       0.0, 1.0);
     Result.Score := Result.Score - (noSolarPressure * WANDER_NO_SOLAR_MAX_PENALTY);
   end;
+
+  // Recently-fed suppression: don't wander away from a food source that just fed you.
+  // The cache will likely regrow within a few ticks — stay put.
+  if Input.TicksSinceForage <= WANDER_RECENT_FORAGE_TICKS then
+    Result.Score := Result.Score - WANDER_RECENT_FORAGE_PENALTY;
 
   Result.Score := EnsureRange(Result.Score, 0.0, WANDER_MAX_SCORE);
 

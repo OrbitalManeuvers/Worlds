@@ -1,0 +1,133 @@
+unit fr_PopulationViewer;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
+  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ControlList,
+  Vcl.StdCtrls,
+
+  u_SimPopulations, u_SimEventTypes;
+
+type
+  TPopulationViewFrame = class(TFrame, ISimEventConsumer)
+    PopulationList: TControlList;
+    lblDetail: TLabel;
+    Label2: TLabel;
+    lblCount: TLabel;
+    lblPopulationCount: TLabel;
+    lblReserves: TLabel;
+    lblMoleculeWeights: TLabel;
+    cbLivingOnly: TCheckBox;
+    procedure PopulationListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
+      ARect: TRect; AState: TOwnerDrawState);
+    procedure cbLivingOnlyClick(Sender: TObject);
+    procedure Consume(const aEvent: TSimEvent);
+  private
+    DisplayList: TArray<Integer>;
+    Population: TSimPopulation;
+    procedure BuildDisplayList;
+  public
+    procedure Step;
+    procedure Connect(aPopulation: TSimPopulation);
+  end;
+
+implementation
+
+{$R *.dfm}
+
+uses System.Types,
+  u_AgentTypes, u_EnvironmentTypes, u_DiagnosticsHelpers;
+
+{ TPopulationViewFrame }
+procedure TPopulationViewFrame.cbLivingOnlyClick(Sender: TObject);
+begin
+  BuildDisplayList;
+end;
+
+procedure TPopulationViewFrame.Connect(aPopulation: TSimPopulation);
+begin
+  Population := aPopulation;
+  BuildDisplayList;
+end;
+
+procedure TPopulationViewFrame.BuildDisplayList;
+begin
+  if Length(DisplayList) <> Population.AgentCount then
+    SetLength(DisplayList, Population.AgentCount);
+
+  var count := 0;
+  for var index := 0 to Population.AgentCount - 1 do
+  begin
+    var state := Population.AgentPtr(index);
+    if (not cbLivingOnly.Checked) or (state.Reserves > 0.0) then
+    begin
+      DisplayList[count] := index;
+      Inc(count);
+    end;
+  end;
+
+  SetLength(DisplayList, count);
+  PopulationList.ItemCount := count;
+  PopulationList.Invalidate;
+
+  lblPopulationCount.Caption := Format('%.04d', [count]);
+end;
+
+procedure TPopulationViewFrame.Consume(const aEvent: TSimEvent);
+begin
+  // on death/birth, rebuild list
+  if aEvent.Header.Kind in [sekAgentBorn, sekAgentDied] then
+    BuildDisplayList;
+end;
+
+procedure TPopulationViewFrame.PopulationListBeforeDrawItem(AIndex: Integer;
+  ACanvas: TCanvas; ARect: TRect; AState: TOwnerDrawState);
+begin
+  if not Assigned(Population) then
+    Exit;
+
+  var state := Population.AgentPtr(AIndex); // no data moves, just a pointer
+
+  if state.Reserves <= 0.0 then
+  begin
+    lblDetail.Font.Color := clGrayText;
+    lblReserves.Font.Color := clGrayText;
+    lblMoleculeWeights.Font.Color := clGrayText;
+  end
+  else
+  begin
+    lblDetail.Font.Color := clWhite;
+    if state.ReserveDelta < 0.0 then
+      lblReserves.Font.Color := clWebCoral
+    else
+      lblReserves.Font.Color := clWebLightGreen;
+    lblMoleculeWeights.Font.Color := clWebCornFlowerBlue;
+  end;
+
+  lblDetail.Caption := Format('%.03d %.04d %s', [
+    state.AgentId,
+    state.Age,
+    state.Location.AsText
+  ]);
+
+  lblReserves.Caption := state.Reserves.AsText;
+  lblMoleculeWeights.Caption := Format(
+    'A:%s B:%s G:%s D:%s',
+    [state.ForageMoleculeWeights[Alpha].AsText,
+    state.ForageMoleculeWeights[Beta].AsText,
+    state.ForageMoleculeWeights[Gamma].AsText,
+    state.ForageMoleculeWeights[Delta].AsText]
+  );
+
+end;
+
+procedure TPopulationViewFrame.Step;
+begin
+  if Assigned(Population) then
+  begin
+    PopulationList.Invalidate;
+  end;
+end;
+
+end.

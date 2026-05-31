@@ -6,11 +6,13 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, fr_ContentFrames, Vcl.StdCtrls,
   System.Generics.Collections, Vcl.Menus,
-  Vcl.ExtCtrls, Vcl.ComCtrls,
+  Vcl.ExtCtrls, Vcl.ComCtrls, Vcl.Grids, Vcl.ValEdit, Vcl.Buttons,
 
   u_SessionComposerIntf, u_SimSessions, u_SimEventTypes, u_EventLogViews,
   fr_SimController, fr_LogViewer, fr_ResourceVisualizer, u_SimVisualizer,
-  u_SessionParameters, Vcl.Grids, Vcl.ValEdit, Vcl.Buttons;
+  fr_AgentViewer, u_AgentGenome, u_AgentTypes, u_SimPopulations,
+  fr_PopulationViewer,
+  u_SessionParameters;
 
 (*
 
@@ -34,18 +36,23 @@ type
     phDeltaViewer: TShape;
     vlPopulationStats: TValueListEditor;
     btnCopySummary: TSpeedButton;
+    phAgentViewer: TShape;
     procedure btnCloseClick(Sender: TObject);
     procedure btnCopySummaryClick(Sender: TObject);
   private
     Session: TSimSession;
-    EventLog: IEventLog;
-    EventLogView: IEventLogView;
+//    EventLog: IEventLog;
+//    EventLogView: IEventLogView;
     Controller: TControllerFrame;
-    LogViewer: TLogViewer;
+
+//    LogViewer: TLogViewer;
+
     ResViewer: TResViewFrame;
     DeltaViewer: TResViewFrame;
     Visualizer: TSubstanceVisualizer;
     DeltaVisualizer: TDeltaVisualizer;
+    AgentViewer: TAgentViewerFrame;
+    PopulationViewer: TPopulationViewFrame;
 
     procedure DestroySession;
     procedure HandleBeforeRun(Sender: TObject);
@@ -54,8 +61,10 @@ type
     procedure HandleResViewerPaint(Sender: TObject);
     procedure HandleDeltaViewerPaint(Sender: TObject);
     procedure HandleScratchChange(Sender: TObject);
+    procedure HandleAgentDataRequired(Sender: TObject; AgentId: TAgentId; out Found: Boolean; out Data: TMetabolicState);
 
     procedure UpdatePopulationSummary;
+    procedure UpdateMetabolicSummary;
   public
     procedure Init; override;
     procedure Done; override;
@@ -98,8 +107,8 @@ begin
   Controller.OnScratchChange := HandleScratchChange;
 
   { UI for displaying scratch log events }
-  LogViewer := TLogViewer.Create(Self);
-  InitFrame(LogViewer, phLogViewer);
+//  LogViewer := TLogViewer.Create(Self);
+//  InitFrame(LogViewer, phLogViewer);
 
   { UI for resource visualization }
   ResViewer := TResViewFrame.Create(Self);
@@ -115,6 +124,18 @@ begin
   { class to handle drawing resource visualizer frames }
   Visualizer := TSubstanceVisualizer.Create;
   DeltaVisualizer := TDeltaVisualizer.Create;
+
+  { agent viewer }
+//  AgentViewer := TAgentViewerFrame.Create(Self);
+//  AgentViewer.Name := 'agentViewer';
+//  AgentViewer.OnDataRequired := HandleAgentDataRequired;
+//  InitFrame(AgentViewer, phAgentViewer);
+
+  { Population Viewer }
+  PopulationViewer := TPopulationViewFrame.Create(Self);
+  PopulationViewer.Name := 'popViewer';
+  InitFrame(PopulationViewer, phAgentViewer);
+
 end;
 
 procedure TSimulatorFrame.Done;
@@ -137,12 +158,14 @@ begin
    begin
      DeltaVisualizer.ZoomLevel := TVisualizerZoom(view.ZoomFactor);
      DeltaVisualizer.AnchorCell := view.AnchorCell;
-     DeltaVisualizer.Paint(view.Canvas, clWebOrange);
+     DeltaVisualizer.Paint(view.Canvas, clWebRoyalBlue);
    end;
  end;
 end;
 
 procedure TSimulatorFrame.HandleResViewerPaint(Sender: TObject);
+const
+  substance_colors: array[0..3] of TColor = (clWebOrange, clWebGreen, clWebBrown, clWebPurple);
 begin
   if Assigned(Visualizer) then
   begin
@@ -152,7 +175,10 @@ begin
       Visualizer.ZoomLevel := TVisualizerZoom(view.ZoomFactor);
       Visualizer.SubstanceIndex := view.SubstanceIndex;
       Visualizer.AnchorCell := view.AnchorCell;
-      Visualizer.Paint(view.Canvas, clWebYellow);
+
+      var colorIndex := view.SubstanceIndex mod Length(substance_colors);
+
+      Visualizer.Paint(view.Canvas, substance_colors[colorIndex]);
     end;
   end;
 end;
@@ -171,7 +197,7 @@ procedure TSimulatorFrame.HandleAfterRun(Sender: TObject);
 begin
   if Assigned(Session) then
     Session.AssertScratchLogReadable;
-  LogViewer.Refresh;
+//  LogViewer.Refresh;
 
   if Assigned(ResViewer) then
     ResViewer.Invalidate;
@@ -180,6 +206,24 @@ begin
 
   // population summary
   UpdatePopulationSummary;
+  UpdateMetabolicSummary;
+end;
+
+procedure TSimulatorFrame.HandleAgentDataRequired(Sender: TObject;
+  AgentId: TAgentId; out Found: Boolean; out Data: TMetabolicState);
+begin
+  Data := Session.Simulator.Runtime.Population.GetMetabolicState(AgentId);
+  Found := Data.Age <> 0;
+
+end;
+
+procedure TSimulatorFrame.UpdateMetabolicSummary;
+begin
+  if Assigned(AgentViewer) then
+    AgentViewer.UpdateDisplay;
+  if Assigned(PopulationViewer) then
+    PopulationViewer.Step;
+
 end;
 
 procedure TSimulatorFrame.UpdatePopulationSummary;
@@ -203,9 +247,9 @@ begin
 
   Controller.Controller := nil;
 
-  LogViewer.Connect(nil);
-  EventLogView := nil;
-  EventLog := nil;
+//  LogViewer.Connect(nil);
+//  EventLogView := nil;
+//  EventLog := nil;
 
   Session.EndSession;
   Session.Free;
@@ -229,7 +273,7 @@ begin
   begin
     Session.AssertScratchLogReadable;
 
-    SaveProgress.Max := EventLog.Count;
+    SaveProgress.Max := Session.EventLog.Count;
     SaveProgress.Min := 0;
     SaveProgress.Position := 0;
     SaveProgress.Visible := True;
@@ -260,31 +304,39 @@ begin
   DestroySession;
 
   Session := TSimSession.Create(aCommonParams);
-  EventLog := Session.EventLog;
-  EventLogView := TEventLogView.Create(EventLog);
+//  EventLog := Session.EventLog;
+//  EventLogView := TEventLogView.Create(EventLog);
 
-  LogViewer.Connect(EventLogView);
-  try
-    aComposer.Compose(Session.Simulator.Runtime);
-    Session.BeginSession;
-    Session.AssertScratchLogReadable;
-    Controller.Controller := Session.Controller;
-    Controller.ScratchEnabled := Session.ScratchLogEnabled;
+//  LogViewer.Connect(EventLogView);
+//  try
 
-    Visualizer.Simulator := Session.Simulator;
-    DeltaVisualizer.Simulator := Session.Simulator;
+  aComposer.Compose(Session.Simulator.Runtime);
+  Session.BeginSession;
+  Session.AssertScratchLogReadable;
+  Controller.Controller := Session.Controller;
+  Controller.ScratchEnabled := Session.ScratchLogEnabled;
 
-    var env := Session.Simulator.Runtime.Environment;
-    var names: TArray<string>;
-    SetLength(names, Length(env.SubstanceEntries));
-    for var i := 0 to High(env.SubstanceEntries) do
-      names[i] := env.SubstanceEntries[i].Name;
-    ResViewer.ApplySubstanceNames(names);
+  Visualizer.Simulator := Session.Simulator;
+  DeltaVisualizer.Simulator := Session.Simulator;
 
-  except
-    DestroySession;
-    raise;
+  var env := Session.Simulator.Runtime.Environment;
+  var names: TArray<string>;
+  SetLength(names, Length(env.SubstanceEntries));
+  for var i := 0 to High(env.SubstanceEntries) do
+    names[i] := env.SubstanceEntries[i].Name;
+  ResViewer.ApplySubstanceNames(names);
+  DeltaViewer.ApplySubstanceNames(['Delta']);
+
+  if Assigned(PopulationViewer) then
+  begin
+    PopulationViewer.Connect(Session.Simulator.Runtime.Population);
+    Session.Diagnostics.Subscribe(PopulationViewer);
   end;
+
+//  except
+//    DestroySession;
+//    raise;
+//  end;
 end;
 
 procedure TSimulatorFrame.DeactivateContent;

@@ -1,4 +1,4 @@
-unit u_AgentGenome;
+﻿unit u_AgentGenome;
 
 interface
 
@@ -19,7 +19,6 @@ type
   TMoleculeFactors = array[TMolecule] of Single;
 
   TSmellParams = record
-    EdgeRetention: Single;
     Ratings: TMoleculeFactors;
   end;
 
@@ -61,6 +60,7 @@ type
     CurrentAction: TAgentAction;
     CurrentActionAge: Integer;
     Smell: TSmellReport;
+    MoleculeWeights: TMoleculeFactors;  // learned preference per molecule — used to judge local food value
   end;
 
   TShelterEvalInput = record
@@ -70,6 +70,7 @@ type
     ReserveDelta: Single;  // per-tick change in reserves; negative = losing energy, positive = gaining
     IsNight: Boolean;
     SolarFlux: Single;     // 0.0 at night, rising through the day
+    HasLocalFoodSignal: Boolean;  // food cache at distance 0
   end;
 
   TReproduceEvalInput = record
@@ -82,6 +83,7 @@ type
     LocalAgentCount: Integer;
     TicksRemainingInGestation: Integer; // ticks until birth; only meaningful when CurrentAction = acReproduce
     GestationDuration: Integer;         // total gestation ticks; used to normalize commitment ratio
+    DeltaWeight: Single;               // learned delta molecule preference; high values suppress reproduction
   end;
 
   TWanderEvalInput = record
@@ -133,8 +135,6 @@ type
     Evaluations: TActionEvaluations;
     ReserveDelta: Single;
     ForageOutcome: TForageOutcome;
-//    ForageGain: Single;
-//    ForageSubstance: TSubstance;
     GridWidth: Integer;
     PreviousLocation: Integer;
     CurrentLocation: Integer;
@@ -150,6 +150,7 @@ type
     HasWeightUpdate: Boolean;
     HasMoleculeUpdate: Boolean;
     MoleculeOutcomes: array[TMolecule] of Single;
+    MoleculesPresent: TMolecules;
   end;
 
   // Evaluators own their own workspace contract, even when empty for now.
@@ -312,6 +313,7 @@ type
   public
     procedure Init;
     property AsText: string read GetAsText write SetAsText;
+    property CognitionGen: Char read Cognition write Cognition;
   end;
 
   TGeneSequencer = class
@@ -340,7 +342,6 @@ type
     // Data parameters: continuous variation within a generation
     ConverterRatings: TMoleculeFactors;
     SmellRatings: TMoleculeFactors;
-    SmellEdgeRetention: Single;
     SightRange: Single;
   end;
 

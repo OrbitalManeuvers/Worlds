@@ -278,7 +278,7 @@ procedure TDebugUpscaler.SetCellResourceCount(aCellX, aCellY, aCount: Integer);
 begin
   var cellIndex := (aCellY * Environment.Dimensions.cx) + aCellX;
   Assert((cellIndex >= 0) and (cellIndex < Length(Environment.Cells)));
-  Assert(aCount <= Length(Environment.SubstanceEntries));
+//  Assert(aCount <= Length(Environment.SubstanceEntries));
 
   // can only do this once
   Assert(Environment.Cells[cellIndex].ResourceCount = 0);

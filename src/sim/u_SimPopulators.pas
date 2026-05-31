@@ -1,4 +1,4 @@
-unit u_SimPopulators;
+﻿unit u_SimPopulators;
 
 interface
 
@@ -186,6 +186,7 @@ begin
   nextId := 1;
 
   sequence.Init;
+  sequence.CognitionGen :='B';
 
   // for now, all agents go to the same location
   case aParams.Population.Scheme of
@@ -204,18 +205,19 @@ begin
     state.AgentId := nextId;
     Inc(nextId);
 
+    state.ParentId := 0;
+    state.Generation := 1;
     if aParams.Population.Scheme = psGrouped then
       state.Location := FindGroupCell(aEnvironment, aParams.Population.GroupRect, aParams.Factor)
     else
       state.Location := location;
+    state.Birthplace := state.Location;
 
     state.WanderTarget := -1;
 
     state.Reserves := 5.0;
     state.TicksSinceReproduction := INITIAL_TICKS_SINCE_REPRODUCTION;
     TGeneSequencer.Populate(state.Genome.GeneMap, sequence);
-
-    state.Genome.SmellEdgeRetention := 0.25;
 
     // assign default smell, digestion, and learning profiles
     for var molecule := Low(TMolecule) to High(TMolecule) do
@@ -283,7 +285,6 @@ begin
   state.Reserves := 5.0;
   state.TicksSinceReproduction := INITIAL_TICKS_SINCE_REPRODUCTION;
 
-  state.Genome.SmellEdgeRetention := 0.25;
   sequence.AsText := aGeneSequence;
   TGeneSequencer.Populate(state.Genome.GeneMap, sequence);
 
@@ -301,7 +302,6 @@ begin
       value := CONVERTER_RATING_FACTOR[aConverterRatings[molecule]];
     state.Genome.ConverterRatings[molecule] := value;
 
-    // learning init
     state.ForageMoleculeWeights[molecule] := 1.0; // neutral
   end;
 

@@ -60,7 +60,6 @@ uses
   u_SimEventTypes in 'sim\u_SimEventTypes.pas',
   u_SimDiagnostics in 'sim\u_SimDiagnostics.pas',
   u_ReproduceGenes in 'agents\u_ReproduceGenes.pas',
-  u_EventSinks in 'sim\u_EventSinks.pas',
   u_SessionComposerIntf in 'sim\u_SessionComposerIntf.pas',
   u_SessionComposers in 'sim\u_SessionComposers.pas',
   u_DebugSessionComposers in 'sim\u_DebugSessionComposers.pas',
@@ -85,7 +84,12 @@ uses
   u_WanderGenes in 'agents\u_WanderGenes.pas',
   u_LogTypes in 'common\u_LogTypes.pas',
   u_SimTypes in 'sim\u_SimTypes.pas',
-  u_Playlists in 'sim\u_Playlists.pas';
+  u_Playlists in 'sim\u_Playlists.pas',
+  fr_AgentViewer in 'ui\fr_AgentViewer.pas' {AgentViewerFrame: TFrame},
+  fr_PopulationViewer in 'ui\fr_PopulationViewer.pas' {PopulationViewFrame: TFrame},
+  fr_AgentWatches in 'ui\fr_AgentWatches.pas' {AgentWatchFrame: TFrame},
+  u_LocalEventLogs in 'sim\u_LocalEventLogs.pas',
+  fr_SimStats in 'ui\fr_SimStats.pas' {SimStatsFrame: TFrame};
 
 {$R *.res}
 

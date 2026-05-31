@@ -151,45 +151,48 @@ begin
     and (Input.Context.CurrentAction = acMove)
     and (Input.CurrentTarget.TType = ttCell)
     and (Result.RequestedTarget.TType = ttCell)
-    and (Input.CurrentTarget.Cell <> Input.Context.Location)
     and (Input.CurrentTarget.Cell <> Result.RequestedTarget.Cell) then
   begin
-    var currentSignal := SmellSignalForCell(Input.Context.Smell, Input.CurrentTarget.Cell);
-    if currentSignal > 0.0 then
+    // Two cases:
+    // 1. In transit (target ≠ location): keep heading to current target unless new is much better.
+    // 2. Just arrived (target = location): the agent chose to come here — require a strong
+    //    signal to leave immediately, using the local smell as the anchor.
+    var anchorSignal := SmellSignalForCell(Input.Context.Smell, Input.CurrentTarget.Cell);
+    if anchorSignal > 0.0 then
     begin
       var newSignal := Input.ActionEvaluations[acMove].Score;
-      var switchThreshold := Max(currentSignal * MOVE_TARGET_SWITCH_RATIO,
-        currentSignal + MOVE_TARGET_SWITCH_ABS_MARGIN);
+      var switchThreshold := Max(anchorSignal * MOVE_TARGET_SWITCH_RATIO,
+        anchorSignal + MOVE_TARGET_SWITCH_ABS_MARGIN);
 
       if newSignal < switchThreshold then
-        Result.RequestedTarget.Cell := Input.CurrentTarget.Cell;
+      begin
+        // In transit: keep the old target. At arrival: suppress movement entirely.
+        if Input.CurrentTarget.Cell <> Input.Context.Location then
+          Result.RequestedTarget.Cell := Input.CurrentTarget.Cell
+        else
+        begin
+          // Arrived but nothing strong enough to justify leaving — don't move.
+          Result.RequestedAction := acIdle;
+          Result.RequestedTarget.TType := ttCell;
+          Result.RequestedTarget.Cell := Input.Context.Location;
+        end;
+      end;
     end;
   end;
 
   // Minimal targeting hook for foraging when the evaluator does not emit a target.
   // Smell details are expected to arrive pre-sorted by the smell gene.
   // Forage execution is local-only: only distance-0 cache targets are actionable.
+  // Guard: only fire when the evaluator produced a real base score (target assigned).
+  // If the evaluator returned ttNone, it found nothing worth eating — learned
+  // decision weights alone should not override that by grabbing the first local cache.
   if (bestAction = acForage)
-    and (Result.RequestedTarget.TType = ttNone)
-    and (Input.Context.Smell.Count > 0)
-    and (Length(Input.Context.Smell.Details) > 0) then
+    and (Result.RequestedTarget.TType = ttNone) then
   begin
-    var foundLocal := False;
-    for var i := 0 to Length(Input.Context.Smell.Details) - 1 do
-      if Input.Context.Smell.Details[i].Directions.Distance = 0 then
-      begin
-        Result.RequestedTarget.TType := ttCache;
-        Result.RequestedTarget.Cache := Input.Context.Smell.Details[i].Cache;
-        foundLocal := True;
-        Break;
-      end;
-
-    if not foundLocal then
-    begin
-      Result.RequestedAction := acIdle;
-      Result.RequestedTarget.TType := ttCell;
-      Result.RequestedTarget.Cell := Input.Context.Location;
-    end;
+    // Evaluator didn't find viable food. Fall back to idle.
+    Result.RequestedAction := acIdle;
+    Result.RequestedTarget.TType := ttCell;
+    Result.RequestedTarget.Cell := Input.Context.Location;
   end;
 
   // Transitional fallback while evaluators are still wiring explicit targets.
@@ -271,15 +274,21 @@ begin
   // Efficiency = energy gained per unit consumed. Each molecule gets the overall
   // efficiency as its outcome — the share weighting happens naturally because molecules
   // absent from the substance get skipped (their percentage is 0).
-  if (Input.ForageOutcome.Consumed > 0.0) and (Input.ForageOutcome.Gain > 0.0) then
+  // Zero or near-zero gain still produces a valid (low) efficiency signal, teaching
+  // the agent that those molecules are poor food sources.
+  if Input.ForageOutcome.Consumed > 0.0 then
   begin
     Result.HasMoleculeUpdate := True;
+    Result.MoleculesPresent := [];
     var efficiency := Input.ForageOutcome.Gain / Input.ForageOutcome.Consumed;
 
     for var molecule := Low(TMolecule) to High(TMolecule) do
     begin
       if Input.ForageOutcome.Substance[molecule] > 0 then
-        Result.MoleculeOutcomes[molecule] := efficiency
+      begin
+        Include(Result.MoleculesPresent, molecule);
+        Result.MoleculeOutcomes[molecule] := efficiency;
+      end
       else
         Result.MoleculeOutcomes[molecule] := 0.0;
     end;

@@ -20,6 +20,7 @@ type
     lblEventTime: TLabel;
     lblEventContent: TLabel;
     lbEventTypes: TCheckListBox;
+    lblDetailBelow: TLabel;
     procedure FilterChanged(Sender: TObject);
     procedure btnExportClick(Sender: TObject);
     procedure EventListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
@@ -133,7 +134,8 @@ const
 begin
   if aIndex < EventView.Count then
   begin
-    var eventFields := EventView.Events[AIndex].AsFields;
+    var event := EventView.Events[AIndex];
+    var eventFields := event.AsFields;
     var count := Length(eventFields.Fields);
 
     // clock info
@@ -149,6 +151,8 @@ begin
       var id := EventView.Events[AIndex].DecisionTrace.AgentId;
       var colorIndex := id mod Length(agent_colors);
       lblEventContent.Font.Color := StyleServices.GetSystemColor(agent_colors[colorIndex]);
+      lblDetailBelow.Font.Color := lblEventContent.Font.Color;
+      lblDetailBelow.Caption := event.DecisionTrace.Summary.AsFields.AsFieldText();
 
     end;
 
@@ -182,7 +186,7 @@ begin
 
   var builder := TStringBuilder.Create;
   try
-    builder.AppendLine('Log created ' + FormatDateTime('yyyy-mm-dd hh:mm:ss', Now));
+    builder.AppendLine('Log created ' + FormatDateTime('yyyy-mm-dd hh:mm:ss:ms', Now));
     for var i := 0 to EventList.ItemCount - 1 do
     begin
       if EventList.Selected[i] then
@@ -198,8 +202,9 @@ begin
         case event.Header.Kind of
           sekDecisionTrace:
             begin
-              builder.AppendLine('  eval: ' + event.DecisionTrace.AsEvaluationFields.AsFieldText);
-              builder.AppendLine('  summ: ' + event.DecisionTrace.Summary.AsFields.AsFieldText);
+              builder.AppendLine('  eval: ' + event.DecisionTrace.AsEvaluationFields.AsFieldText)
+                .AppendLine('  summ: ' + event.DecisionTrace.Summary.AsFields.AsFieldText)
+                .AppendLine;
             end;
 
           sekAgentMoved:

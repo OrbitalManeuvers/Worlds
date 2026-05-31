@@ -184,7 +184,7 @@ begin
     // set up population
     fUpscalerParameters.Population.AgentCount := seAgentCount.Value;
     fUpscalerParameters.Population.Scheme := psGrouped;
-    fUpscalerParameters.Population.GroupRect := Rect(0, 0, 2, 2);
+    fUpscalerParameters.Population.GroupRect := Rect(0, 0, 24, 24);
     fUpscalerParameters.Population.AgentActivationTick := 7;
 
     SessionManager.SubmitStandardSession(BuildCommonParameters, fUpscalerParameters);

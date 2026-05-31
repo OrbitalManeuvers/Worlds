@@ -11,6 +11,10 @@ type
   TAgentState = record
     // Identity
     AgentId: TAgentId;
+    ParentId: TAgentId;
+    Generation: Integer;
+    Birthplace: TCellIndex;
+
     Location: TCellIndex;
 
     // Lifecycle
@@ -34,7 +38,7 @@ type
     ForageMoleculeWeights: TMoleculeFactors;  // learned preference per molecule
 
     // Heritable traits (for reproduction + mutation)
-    Genome: TAgentGenome;  // sensor ranges, metabolic params, etc.
+    Genome: TAgentGenome;
   end;
 
 

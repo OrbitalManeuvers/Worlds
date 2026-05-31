@@ -79,7 +79,7 @@ object LogViewer: TLogViewer
     Font.Height = -12
     Font.Name = 'Consolas'
     Font.Style = []
-    ItemHeight = 20
+    ItemHeight = 40
     ItemMargins.Left = 0
     ItemMargins.Top = 0
     ItemMargins.Right = 0
@@ -96,7 +96,6 @@ object LogViewer: TLogViewer
       Top = 3
       Width = 84
       Height = 14
-      Align = alLeft
       Caption = 'lblEventTime'
       Font.Charset = ANSI_CHARSET
       Font.Color = clSilver
@@ -111,10 +110,11 @@ object LogViewer: TLogViewer
       AlignWithMargins = True
       Left = 96
       Top = 3
-      Width = 596
+      Width = 585
       Height = 14
       Margins.Left = 6
-      Align = alClient
+      Anchors = [akLeft, akTop, akRight]
+      AutoSize = False
       Caption = 'lblEventContent'
       Color = clWindow
       Font.Charset = ANSI_CHARSET
@@ -126,7 +126,27 @@ object LogViewer: TLogViewer
       ParentFont = False
       Layout = tlCenter
       StyleElements = [seClient, seBorder]
-      ExplicitWidth = 105
+    end
+    object lblDetailBelow: TLabel
+      AlignWithMargins = True
+      Left = 96
+      Top = 19
+      Width = 585
+      Height = 14
+      Margins.Left = 6
+      Anchors = [akLeft, akTop, akRight]
+      AutoSize = False
+      Caption = 'lblEventContent'
+      Color = clWindow
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clWindow
+      Font.Height = -12
+      Font.Name = 'Consolas'
+      Font.Style = []
+      ParentColor = False
+      ParentFont = False
+      Layout = tlCenter
+      StyleElements = [seClient, seBorder]
     end
   end
 end
