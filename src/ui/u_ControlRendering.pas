@@ -6,7 +6,7 @@ uses
   Winapi.Windows, System.SysUtils, Vcl.Graphics,
   Vcl.Controls, Vcl.StdCtrls, Vcl.ExtCtrls,
 
-  u_EnvironmentTypes,
+  u_EnvironmentTypes, u_LogTypes,
   u_Foods;
 
 type
@@ -29,6 +29,8 @@ type
 
     procedure RenderColorPresets;
     function ColorAtPos(X, Y: Integer; out aColor: TColor): Boolean;
+
+    procedure Render(const LogFields: TLogFields; BkColor: TColor); overload;
   end;
 
 implementation
@@ -41,6 +43,12 @@ const
     '#D8BFA6','#B3D8A6','#D47349','#BE9974','#4F7CAC',
     '#87BE74','#99734D','#60994D','#6FA3A8','#C75538'
   );
+
+  FIELD_LABEL_COLOR: TStyleFont = sfButtonTextNormal;
+  FIELD_VALUE_COLOR: TColor = clWebAqua;
+  FIELD_FONT_NAME = 'Consolas';
+  FIELD_FONT_SIZE = 10;
+  FIELD_SPACING_PX = 10;
 
 
 { TPaintboxHelper }
@@ -306,6 +314,71 @@ begin
   end;
 
   Result := False;
+end;
+
+procedure TPaintboxHelper.Render(const LogFields: TLogFields; BkColor: TColor);
+begin
+  var bitmap := TBitmap.Create;
+  try
+    bitmap.Width := Max(10, Self.ClientWidth);
+    bitmap.Height := Max(10, self.ClientHeight);
+
+    // background
+    bitmap.canvas.Brush.Style := bsSolid;
+    bitmap.canvas.Brush.Color := StyleServices.GetSystemColor(BkColor);
+    bitmap.canvas.FillRect(Self.ClientRect);
+
+    if LogFields.Count > 0 then
+    begin
+      bitmap.Canvas.Font.Name := FIELD_FONT_NAME;
+      bitmap.Canvas.Font.Size := FIELD_FONT_SIZE;
+
+      var cellRect := ClientRect;
+      cellRect.Inflate(-1, -1);
+
+      for var fieldIndex := 0 to LogFields.Count - 1 do
+      begin
+        var nameStr := LogFields.Fields[fieldIndex].Name;
+        if nameStr.Length > 0 then
+          nameStr := nameStr + ':';
+        var valueStr := LogFields.Fields[fieldIndex].Value;
+
+        // take the hit of measuring each individually since we'll need it anyway
+        var nameExt := bitmap.Canvas.TextExtent(nameStr);
+        var valueExt := bitmap.Canvas.TextExtent(valueStr);
+
+        // if there's room
+        if cellRect.Left + nameExt.cx + valueExt.cx < bitmap.Width - 1 then
+        begin
+          var r := cellRect;
+
+          // draw field name
+          bitmap.Canvas.Font.Color := StyleServices.GetStyleFontColor(FIELD_LABEL_COLOR);
+          r.Right := r.Left + nameExt.cx;
+          bitmap.Canvas.TextRect(r, nameStr, [tfSingleLine,tfVerticalCenter]);
+
+          // draw field value
+          r.Left := r.Right + 1;
+          r.Right := r.Left + valueExt.cx;
+          bitmap.Canvas.Font.Color := StyleServices.GetSystemColor(FIELD_VALUE_COLOR);
+          bitmap.Canvas.TextRect(r, valueStr, [tfSingleLine,tfVerticalCenter]);
+
+          cellRect.Left := r.Right + FIELD_SPACING_PX;
+        end
+        else
+          Break;
+
+      end;
+
+    end;
+
+    // xfer to display surface
+    var r := Self.Canvas.ClipRect;
+    Self.Canvas.CopyRect(r, bitmap.Canvas, r);
+
+  finally
+    bitmap.Free;
+  end;
 end;
 
 procedure TPaintboxHelper.RenderColorPresets;

@@ -19,6 +19,8 @@ type
     lblReserves: TLabel;
     lblMoleculeWeights: TLabel;
     cbLivingOnly: TCheckBox;
+    lblPressures: TLabel;
+    lblAction: TLabel;
     procedure PopulationListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
     procedure cbLivingOnlyClick(Sender: TObject);
@@ -59,7 +61,7 @@ begin
   var count := 0;
   for var index := 0 to Population.AgentCount - 1 do
   begin
-    var state := Population.AgentPtr(index);
+    var state := Population.StatePtr(index);
     if (not cbLivingOnly.Checked) or (state.Reserves > 0.0) then
     begin
       DisplayList[count] := index;
@@ -77,8 +79,8 @@ end;
 procedure TPopulationViewFrame.Consume(const aEvent: TSimEvent);
 begin
   // on death/birth, rebuild list
-  if aEvent.Header.Kind in [sekAgentBorn, sekAgentDied] then
-    BuildDisplayList;
+//  if aEvent.Header.Kind in [sekAgentBorn, sekAgentDied] then
+//    BuildDisplayList;
 end;
 
 procedure TPopulationViewFrame.PopulationListBeforeDrawItem(AIndex: Integer;
@@ -87,13 +89,14 @@ begin
   if not Assigned(Population) then
     Exit;
 
-  var state := Population.AgentPtr(AIndex); // no data moves, just a pointer
+  var state := Population.StatePtr(AIndex); // no data moves, just a pointer
 
   if state.Reserves <= 0.0 then
   begin
     lblDetail.Font.Color := clGrayText;
     lblReserves.Font.Color := clGrayText;
     lblMoleculeWeights.Font.Color := clGrayText;
+    lblAction.Font.Color := clGrayText;
   end
   else
   begin
@@ -101,17 +104,18 @@ begin
     if state.ReserveDelta < 0.0 then
       lblReserves.Font.Color := clWebCoral
     else
-      lblReserves.Font.Color := clWebLightGreen;
-    lblMoleculeWeights.Font.Color := clWebCornFlowerBlue;
+      lblReserves.Font.Color := clWebLimeGreen;
+    lblMoleculeWeights.Font.Color := clWebLightBlue;
+    lblAction.Font.Color := clWebOrange;
   end;
 
-  lblDetail.Caption := Format('%.03d %.04d %s', [
+  lblDetail.Caption := Format('%.03d (%s) %.04d', [
     state.AgentId,
-    state.Age,
-    state.Location.AsText
+    state.Location.AsText,
+    state.Age
   ]);
 
-  lblReserves.Caption := state.Reserves.AsText;
+  lblReserves.Caption := state.Reserves.AsText + ' (' + state.ReserveDelta.AsText + ')';
   lblMoleculeWeights.Caption := Format(
     'A:%s B:%s G:%s D:%s',
     [state.ForageMoleculeWeights[Alpha].AsText,
@@ -120,14 +124,19 @@ begin
     state.ForageMoleculeWeights[Delta].AsText]
   );
 
+  lblPressures.Caption := Format('tsf:%.04d tsr:%.04d', [
+    state.TicksSinceForage,
+    state.TicksSinceReproduction
+  ]);
+
+  lblAction.Caption := state.Action.AsText;
+
 end;
 
 procedure TPopulationViewFrame.Step;
 begin
   if Assigned(Population) then
-  begin
-    PopulationList.Invalidate;
-  end;
+    BuildDisplayList;
 end;
 
 end.

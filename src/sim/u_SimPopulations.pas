@@ -5,26 +5,6 @@ interface
 uses u_AgentTypes, u_AgentGenome, u_AgentState, u_AgentBrain;
 
 type
-  TPopulationSummary = record
-    TotalSlots: Integer;    // all agent slots (live + dead)
-    LiveCount: Integer;     // reserves > 0
-    DeadCount: Integer;     // reserves <= 0
-    MaxAge: Integer;
-    MaxReserves: Single;
-    MeanReserves: Single;   // mean over live agents only
-    MaxGeneration: Integer; // placeholder — needs genome generation tracking
-  end;
-
-  TMetabolicState = record
-    Age: Integer;
-    Reserves: Single;
-    ReserveDelta: Single;
-    GeneSequence: TGeneSequence;
-    MoleculeFactors: TMoleculeFactors;
-    ForageMoleculeWeights: TMoleculeFactors;
-    DecisionWeights: TDecisionWeights;
-  end;
-
   TSimPopulation = class
   private
     const INVALID_INDEX = -1;
@@ -62,9 +42,9 @@ type
 
     procedure Tick(const Input: TBrainTickInput);
 
-    function Summarize: TPopulationSummary;
-    function GetMetabolicState(aAgentId: TAgentId): TMetabolicState;
-    function AgentPtr(aIndex: Integer): PAgentState;
+//    function Summarize: TPopulationSummary;
+//    function GetMetabolicState(aAgentId: TAgentId): TMetabolicState;
+    function StatePtr(aIndex: Integer): PAgentState;
 
     property AgentCount: Integer read GetAgentCount write SetAgentCount;
     property Agents: TArray<TAgentState> read fAgents;
@@ -275,54 +255,54 @@ begin
     StepAgent(i, Input);
 end;
 
-function TSimPopulation.Summarize: TPopulationSummary;
-begin
-  Result := Default(TPopulationSummary);
-  Result.TotalSlots := Length(fAgents);
+//function TSimPopulation.Summarize: TPopulationSummary;
+//begin
+//  Result := Default(TPopulationSummary);
+//  Result.TotalSlots := Length(fAgents);
+//
+//  var reservesSum: Double := 0.0;
+//
+//  for var i := 0 to High(fAgents) do
+//  begin
+//    var state: PAgentState := @fAgents[i];
+//    if state.Reserves > 0.0 then
+//    begin
+//      Inc(Result.LiveCount);
+//      if state.Age > Result.MaxAge then
+//        Result.MaxAge := state.Age;
+//      if state.Reserves > Result.MaxReserves then
+//        Result.MaxReserves := state.Reserves;
+//      reservesSum := reservesSum + state.Reserves;
+//    end
+//    else
+//      Inc(Result.DeadCount);
+//  end;
+//
+//  if Result.LiveCount > 0 then
+//    Result.MeanReserves := reservesSum / Result.LiveCount;
+//end;
+//
+//function TSimPopulation.GetMetabolicState(aAgentId: TAgentId): TMetabolicState;
+//begin
+//  Result := Default(TMetabolicState);
+//
+//  for var i := 0 to High(fAgents) do
+//  begin
+//    if fAgents[i].AgentId <> aAgentId then
+//      Continue;
+//
+//    Result.Age := fAgents[i].Age;
+//    Result.Reserves := fAgents[i].Reserves;
+//    Result.ReserveDelta := fAgents[i].ReserveDelta;
+//    Result.GeneSequence := TGeneSequencer.GetSequence(fAgents[i].Genome.GeneMap);
+//    Result.MoleculeFactors := fAgents[i].Genome.ConverterRatings;
+//    Result.ForageMoleculeWeights := fAgents[i].ForageMoleculeWeights;
+//    Result.DecisionWeights := fAgents[i].DecisionWeights;
+//    Exit;
+//  end;
+//end;
 
-  var reservesSum: Double := 0.0;
-
-  for var i := 0 to High(fAgents) do
-  begin
-    var state: PAgentState := @fAgents[i];
-    if state.Reserves > 0.0 then
-    begin
-      Inc(Result.LiveCount);
-      if state.Age > Result.MaxAge then
-        Result.MaxAge := state.Age;
-      if state.Reserves > Result.MaxReserves then
-        Result.MaxReserves := state.Reserves;
-      reservesSum := reservesSum + state.Reserves;
-    end
-    else
-      Inc(Result.DeadCount);
-  end;
-
-  if Result.LiveCount > 0 then
-    Result.MeanReserves := reservesSum / Result.LiveCount;
-end;
-
-function TSimPopulation.GetMetabolicState(aAgentId: TAgentId): TMetabolicState;
-begin
-  Result := Default(TMetabolicState);
-
-  for var i := 0 to High(fAgents) do
-  begin
-    if fAgents[i].AgentId <> aAgentId then
-      Continue;
-
-    Result.Age := fAgents[i].Age;
-    Result.Reserves := fAgents[i].Reserves;
-    Result.ReserveDelta := fAgents[i].ReserveDelta;
-    Result.GeneSequence := TGeneSequencer.GetSequence(fAgents[i].Genome.GeneMap);
-    Result.MoleculeFactors := fAgents[i].Genome.ConverterRatings;
-    Result.ForageMoleculeWeights := fAgents[i].ForageMoleculeWeights;
-    Result.DecisionWeights := fAgents[i].DecisionWeights;
-    Exit;
-  end;
-end;
-
-function TSimPopulation.AgentPtr(aIndex: Integer): PAgentState;
+function TSimPopulation.StatePtr(aIndex: Integer): PAgentState;
 begin
   Result := @fAgents[aIndex];
 end;

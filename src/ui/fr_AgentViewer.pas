@@ -8,7 +8,7 @@ uses
   Vcl.ExtCtrls, Vcl.Buttons, Vcl.ControlList,
   System.Generics.Collections,
 
-  u_AgentTypes, u_AgentGenome, u_SimPopulations;
+  u_AgentTypes, u_AgentGenome, u_SimEventTypes, u_SimPopulations;
 
 type
   TAgentViewerFrame = class(TFrame)

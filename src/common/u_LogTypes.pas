@@ -83,7 +83,10 @@ end;
 { TLogField }
 function TLogField.AsFieldText: string;
 begin
-  Result := Name + ':' + Value;
+  if Name <> '' then
+    Result := Name + ':' + Value
+  else
+    Result := Value;
 end;
 
 end.

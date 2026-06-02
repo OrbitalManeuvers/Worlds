@@ -3,7 +3,7 @@ object MainForm: TMainForm
   Top = 0
   Caption = 'Worlds'
   ClientHeight = 942
-  ClientWidth = 1315
+  ClientWidth = 1443
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -17,15 +17,16 @@ object MainForm: TMainForm
   object StatusBar: TStatusBar
     Left = 0
     Top = 923
-    Width = 1315
+    Width = 1443
     Height = 19
     Panels = <>
     SimplePanel = True
+    ExplicitWidth = 1315
   end
   object pnlTaskbar: TPanel
     Left = 0
     Top = 0
-    Width = 1315
+    Width = 1443
     Height = 57
     Align = alTop
     BevelEdges = [beBottom]
@@ -36,6 +37,7 @@ object MainForm: TMainForm
     Padding.Bottom = 2
     ShowCaption = False
     TabOrder = 1
+    ExplicitWidth = 1315
     object btnFood: TPngSpeedButton
       Left = 2
       Top = 2
@@ -104,13 +106,14 @@ object MainForm: TMainForm
     end
     object btnSave: TPngSpeedButton
       Tag = 4
-      Left = 1200
+      Left = 1328
       Top = 2
       Width = 113
       Height = 53
       Align = alRight
       Caption = 'Save Library'
       OnClick = btnSaveClick
+      ExplicitLeft = 1200
     end
     object btnBiology: TPngSpeedButton
       Tag = 3
@@ -128,7 +131,7 @@ object MainForm: TMainForm
     end
     object btnSettings: TPngSpeedButton
       Tag = 4
-      Left = 1096
+      Left = 1224
       Top = 2
       Width = 104
       Height = 53
@@ -136,6 +139,7 @@ object MainForm: TMainForm
       Caption = 'Settings'
       Images = MainToolImages
       OnClick = btnSettingsClick
+      ExplicitLeft = 1096
     end
   end
   object AppEvents: TApplicationEvents

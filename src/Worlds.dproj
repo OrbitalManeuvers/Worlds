@@ -207,7 +207,6 @@
         <DCCReference Include="ui\u_GraphicButtonBars.pas"/>
         <DCCReference Include="common\u_WorldLayouts.pas"/>
         <DCCReference Include="sim\u_SimSessions.pas"/>
-        <DCCReference Include="sim\u_SimWatches.pas"/>
         <DCCReference Include="ui\fr_ResourceVisualizer.pas">
             <Form>ResVisFrame</Form>
             <FormType>dfm</FormType>
@@ -241,8 +240,6 @@
             <FormType>dfm</FormType>
             <DesignClass>TFrame</DesignClass>
         </DCCReference>
-        <DCCReference Include="ui\u_LogFormatting.pas"/>
-        <DCCReference Include="ui\u_LogExport.pas"/>
         <DCCReference Include="sim\u_MappedFileSink.pas"/>
         <DCCReference Include="common\u_DebugLibraries.pas"/>
         <DCCReference Include="sim\u_SessionManager.pas"/>
@@ -253,7 +250,6 @@
             <DesignClass>TFrame</DesignClass>
         </DCCReference>
         <DCCReference Include="sim\u_EventLogViews.pas"/>
-        <DCCReference Include="sim\u_SimWatchManager.pas"/>
         <DCCReference Include="ui\u_ProgramSettings.pas"/>
         <DCCReference Include="common\u_SessionManifest.pas"/>
         <DCCReference Include="common\u_SessionTOC.pas"/>
@@ -277,8 +273,8 @@
             <DesignClass>TFrame</DesignClass>
         </DCCReference>
         <DCCReference Include="sim\u_LocalEventLogs.pas"/>
-        <DCCReference Include="ui\fr_SimStats.pas">
-            <Form>SimStatsFrame</Form>
+        <DCCReference Include="ui\fr_PopulationSummary.pas">
+            <Form>PopulationSummaryFrame</Form>
             <FormType>dfm</FormType>
             <DesignClass>TFrame</DesignClass>
         </DCCReference>

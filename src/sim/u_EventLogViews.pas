@@ -115,7 +115,6 @@ function TEventLogView.EventMatchesFilter(const aEvent: TSimEvent): Boolean;
       sekAgentMoved:      Result := [aEvent.AgentMoved.AgentId];
       sekDeltaConsumed: Result := [aEvent.DeltaConsumed.AgentId];
       sekAgentDied:       Result := [aEvent.AgentDied.AgentId];
-      sekResourceSampled: SetLength(Result, 0);
     end;
   end;
 

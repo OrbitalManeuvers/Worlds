@@ -9,7 +9,7 @@ uses
   Vcl.Samples.Spin, Vcl.ControlList, Vcl.ComCtrls, Vcl.Buttons, Vcl.Mask,
 
   u_EnvironmentLibraries, u_SimVisualizer, u_Simulators,
-  u_SimSessions, fr_ResourceVisualizer, u_SimWatches, u_SimRuntimes, u_SimTypes,
+  u_SimSessions, fr_ResourceVisualizer, {u_SimWatches,} u_SimRuntimes, u_SimTypes,
   u_SimUpscalers, u_SessionParameters, u_Worlds;
 
 type

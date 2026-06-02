@@ -170,7 +170,7 @@ begin
     begin
       SetLength(DetailRows, 2);
       DetailRows[0] := event.DecisionTrace.Summary.AsFields;
-      DetailRows[1] := event.DecisionTrace.AsEvaluationFields;
+      DetailRows[1] := event.DecisionTrace.AsEvaluations;
     end;
 
   end;
@@ -202,7 +202,7 @@ begin
         case event.Header.Kind of
           sekDecisionTrace:
             begin
-              builder.AppendLine('  eval: ' + event.DecisionTrace.AsEvaluationFields.AsFieldText)
+              builder.AppendLine('  eval: ' + event.DecisionTrace.AsEvaluations.AsFieldText)
                 .AppendLine('  summ: ' + event.DecisionTrace.Summary.AsFields.AsFieldText)
                 .AppendLine;
             end;

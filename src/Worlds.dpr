@@ -46,7 +46,6 @@ uses
   u_GraphicButtonBars in 'ui\u_GraphicButtonBars.pas',
   u_WorldLayouts in 'common\u_WorldLayouts.pas',
   u_SimSessions in 'sim\u_SimSessions.pas',
-  u_SimWatches in 'sim\u_SimWatches.pas',
   fr_ResourceVisualizer in 'ui\fr_ResourceVisualizer.pas' {ResVisFrame: TFrame},
   u_SimPopulators in 'sim\u_SimPopulators.pas',
   u_EnergyGenes in 'agents\u_EnergyGenes.pas',
@@ -69,15 +68,12 @@ uses
   fr_Simulator in 'ui\fr_Simulator.pas' {SimulatorFrame: TFrame},
   u_SimpleJSON in 'common\u_SimpleJSON.pas',
   fr_SimController in 'ui\fr_SimController.pas' {ControllerFrame: TFrame},
-  u_LogFormatting in 'ui\u_LogFormatting.pas',
-  u_LogExport in 'ui\u_LogExport.pas',
   u_MappedFileSink in 'sim\u_MappedFileSink.pas',
   u_DebugLibraries in 'common\u_DebugLibraries.pas',
   u_SessionManager in 'sim\u_SessionManager.pas',
   u_DiagnosticsHelpers in 'sim\u_DiagnosticsHelpers.pas',
   fr_LogViewer in 'ui\fr_LogViewer.pas' {LogViewer: TFrame},
   u_EventLogViews in 'sim\u_EventLogViews.pas',
-  u_SimWatchManager in 'sim\u_SimWatchManager.pas',
   u_ProgramSettings in 'ui\u_ProgramSettings.pas',
   u_SessionManifest in 'common\u_SessionManifest.pas',
   u_SessionTOC in 'common\u_SessionTOC.pas',
@@ -89,7 +85,7 @@ uses
   fr_PopulationViewer in 'ui\fr_PopulationViewer.pas' {PopulationViewFrame: TFrame},
   fr_AgentWatches in 'ui\fr_AgentWatches.pas' {AgentWatchFrame: TFrame},
   u_LocalEventLogs in 'sim\u_LocalEventLogs.pas',
-  fr_SimStats in 'ui\fr_SimStats.pas' {SimStatsFrame: TFrame};
+  fr_PopulationSummary in 'ui\fr_PopulationSummary.pas' {PopulationSummaryFrame: TFrame};
 
 {$R *.res}
 

@@ -1,9 +1,9 @@
 inherited SimulatorFrame: TSimulatorFrame
-  Width = 1259
+  Width = 1522
   Height = 819
   Font.Height = -13
   ParentFont = False
-  ExplicitWidth = 1259
+  ExplicitWidth = 1522
   ExplicitHeight = 819
   object phController: TShape
     Left = 16
@@ -13,11 +13,11 @@ inherited SimulatorFrame: TSimulatorFrame
     Brush.Color = clGray
     Visible = False
   end
-  object phLogViewer: TShape
+  object phAgentWatches: TShape
     Left = 16
-    Top = 170
-    Width = 604
-    Height = 576
+    Top = 271
+    Width = 729
+    Height = 475
     Anchors = [akLeft, akTop, akRight, akBottom]
     Brush.Color = clGray
     Visible = False
@@ -25,48 +25,57 @@ inherited SimulatorFrame: TSimulatorFrame
   object bvBottom: TBevel
     Left = 16
     Top = 761
-    Width = 1233
+    Width = 1496
     Height = 11
     Anchors = [akLeft, akRight, akBottom]
     Shape = bsBottomLine
     ExplicitTop = 520
     ExplicitWidth = 857
   end
-  object phResViewer: TShape
-    Left = 640
+  object phResViewer1: TShape
+    Left = 903
     Top = 170
     Width = 300
     Height = 330
     Anchors = [akTop, akRight]
     Brush.Color = clGray
+    ExplicitLeft = 640
   end
-  object phDeltaViewer: TShape
-    Left = 946
+  object phResViewer2: TShape
+    Left = 1209
     Top = 170
     Width = 300
     Height = 330
     Anchors = [akTop, akRight]
     Brush.Color = clGray
+    ExplicitLeft = 946
   end
   object btnCopySummary: TSpeedButton
-    Left = 946
-    Top = 16
+    Left = 545
+    Top = 224
     Width = 49
     Height = 25
-    Anchors = [akTop, akRight]
     Caption = 'Copy'
     OnClick = btnCopySummaryClick
   end
-  object phAgentViewer: TShape
-    Left = 640
+  object phPopulationViewer: TShape
+    Left = 751
     Top = 506
-    Width = 606
+    Width = 758
     Height = 240
     Anchors = [akTop, akRight, akBottom]
     Brush.Color = clGray
   end
+  object phPopulationSummary: TShape
+    Left = 16
+    Top = 170
+    Width = 513
+    Height = 95
+    Brush.Color = clGray
+    Visible = False
+  end
   object btnClose: TButton
-    Left = 1129
+    Left = 1392
     Top = 778
     Width = 125
     Height = 25
@@ -77,7 +86,7 @@ inherited SimulatorFrame: TSimulatorFrame
   end
   object btnSaveClose: TButton
     Tag = 1
-    Left = 993
+    Left = 1256
     Top = 778
     Width = 117
     Height = 25
@@ -89,27 +98,11 @@ inherited SimulatorFrame: TSimulatorFrame
   object SaveProgress: TProgressBar
     Left = 16
     Top = 778
-    Width = 961
+    Width = 1224
     Height = 25
     Anchors = [akLeft, akRight, akBottom]
     TabOrder = 2
     Visible = False
-  end
-  object vlPopulationStats: TValueListEditor
-    Left = 643
-    Top = 16
-    Width = 297
-    Height = 148
-    Anchors = [akTop, akRight]
-    DisplayOptions = [doKeyColFixed]
-    Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goEditing, goThumbTracking]
-    ScrollBars = ssVertical
-    Strings.Strings = (
-      '')
-    TabOrder = 3
-    ColWidths = (
-      150
-      141)
   end
   object ViewPopup: TPopupMenu
     Left = 592

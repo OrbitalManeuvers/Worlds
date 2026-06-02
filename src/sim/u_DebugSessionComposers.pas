@@ -135,7 +135,7 @@ begin
     Inc(totalAgentCount, agentDef.Count);
   population.AgentCount := totalAgentCount;
 
-  var nextId: Integer := 1;
+  var nextId: Integer := 0;
   var agentIndex := 0;
   for var i := 0 to High(scenario.Agents) do
   begin

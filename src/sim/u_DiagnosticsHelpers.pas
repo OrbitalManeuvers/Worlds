@@ -4,7 +4,8 @@ interface
 
 uses System.Types, System.SysUtils, System.TypInfo,
   u_SimEventTypes, u_AgentTypes, u_AgentBrain,
-  u_AgentGenome, u_LogTypes, u_SimPopulations, u_EnvironmentTypes;
+  u_AgentGenome, u_LogTypes, u_SimPopulations, u_EnvironmentTypes,
+  u_AgentState;
 
 (*
 
@@ -21,9 +22,9 @@ type
 
   // TDecisionTraceEvent field helper
   _decisionTraceEvent = record helper for TDecisionTraceEvent
-    function AsFields: TLogFields;
-    function AsEvaluationFields: TLogFields;
-    function AsNarrative: string;
+    function AsAction: TLogFields;
+    function AsEvaluations: TLogFields;
+    function AsHeader: TLogFields;
   end;
 
   // TAgentMovedEvent field helper
@@ -39,11 +40,13 @@ type
   // TSimEvent
   _simEvent = record helper for TSimEvent
     function AsFields: TLogFields;
+    function AsHeaderFields: TLogFields;
   end;
 
   // TPopulationSummary
   _populationSummary = record helper for TPopulationSummary
-    function AsFields: TLogFields;
+    function AsSummaryFields: TLogFields;
+    function AsMaxFields: TLogFields;
   end;
 
   // TMetabolicState
@@ -64,6 +67,26 @@ type
     function AsText: string;
   end;
 
+  _lifespan = record helper for TLifespan
+    function AsFields: TLogFields;
+  end;
+
+  _maxReserves = record helper for TReserveState
+    function AsFields: TLogFields;
+  end;
+
+  // TAgentAction = abbrev
+  _agentAction = record helper for TAgentAction
+    function AsText: string;
+  end;
+
+  _agentId = record helper for TAgentId
+    function AsText: string;
+  end;
+
+  _agentState = record helper for TAgentState
+    function AsMoleculeWeights: TLogFields;
+  end;
 
 implementation
 
@@ -84,10 +107,6 @@ type
     function AsText: string;
   end;
 
-  // TAgentAction = abbrev
-  _agentAction = record helper for TAgentAction
-    function AsText: string;
-  end;
 
   _energyLevel = record helper for TEnergyLevel
     function AsText: string;
@@ -110,10 +129,6 @@ type
     function AsText: string;
   end;
 
-  _agentId = record helper for TAgentId
-    function AsText: string;
-  end;
-
   _target = record helper for TTarget
     function AsText: string;
   end;
@@ -122,6 +137,7 @@ type
   _ActionEvalResult = record helper for TActionEvalResult
     function AsFields: TLogFields;
   end;
+
 
 
 // -----------
@@ -210,7 +226,7 @@ end;
 { _point }
 function _point.AsText: string;
 begin
-  Result := X.AsText + ',' + Y.AsText;
+  Result := X.AsText(3) + ',' + Y.AsText(3);
 end;
 
 { _energyLevel }
@@ -248,7 +264,8 @@ begin
 end;
 
 { _decisionTraceEvent }
-function _decisionTraceEvent.AsEvaluationFields: TLogFields;
+
+function _decisionTraceEvent.AsEvaluations: TLogFields;
 begin
   Result.Clear;
   for var action := Low(Self.Evaluations) to High(Self.Evaluations) do
@@ -259,36 +276,24 @@ begin
     if Self.Evaluations[action].Target.TType in [ttCell, ttCache] then
       fldName := fldName + '(' + Self.Evaluations[action].Target.AsText + ')';
     Result.Add(fldName, Self.Evaluations[action].Score.AsText);
-
   end;
-
 end;
 
-function _decisionTraceEvent.AsNarrative: string;
-begin
-
-  var action := ResolvedAction.AsText;
-
-
-  Result := Format('%s: decided to %s ', [
-    AgentId.AsText, action
-  ]);
-
-end;
-
-
-function _decisionTraceEvent.AsFields: TLogFields;
+function _decisionTraceEvent.AsAction: TLogFields;
 begin
   Result.Clear;
-  Result.Add('A', AgentId.AsText);
-  Result.Add('L', Cell.AsText);
-  Result.Add('E',  Summary.Reserves.AsText);
-  Result.Add('AC', ResolvedAction.AsText);
+  Result.Add('loc', Cell.AsText);
+  Result.Add('ac', ResolvedAction.AsText);
 
   case ResolvedAction of
     acMove:
       begin
-        Result.Add('t', ResolvedTarget.AsText);
+        Result.Add('to', ResolvedTarget.AsText);
+      end;
+
+    acShelter:
+      begin
+
       end;
 
     acForage:
@@ -302,7 +307,15 @@ begin
   end;
 end;
 
-  // TAgentMovedEvent field helper
+function _decisionTraceEvent.AsHeader: TLogFields;
+begin
+  Result.Clear;
+  Result.Add('a', Self.AgentId.AsText);
+  Result.Add('rsv', Self.Summary.Reserves.AsText);
+  Result.Add('rsvd', Self.Summary.ReserveDelta.AsText);
+end;
+
+// TAgentMovedEvent field helper
 function _agentMovedEvent.AsFields: TLogFields;
 begin
   Result.Add('A', AgentId.AsText);
@@ -321,21 +334,21 @@ begin
   Result.Add('RS', ResolvedAction.AsText + '(' + ResolvedTarget.AsText + ')');
   Result.Add('E', Reserves.AsText);
   Result.Add('GP', GestationProgress.AsText);
-
-(*
-    AgentId: TAgentId;
-    RequestedAction: TAgentAction;
-    RequestedTarget: TTarget;
-    ResolvedAction: TAgentAction;
-    ResolvedTarget: TTarget;
-    Reserves: Single;
-    GestationProgress: Integer;
-
-*)
 end;
 
 
 { _simEvent }
+function _simEvent.AsHeaderFields: TLogFields;
+begin
+  Result.Clear;
+
+  if Header.Kind = sekDecisionTrace then
+  begin
+//    Result := DecisionTrace.AsHeaderFields;
+  end;
+
+end;
+
 function _simEvent.AsFields: TLogFields;
 begin
   Result.Clear;
@@ -351,7 +364,7 @@ begin
       end;
     sekDecisionTrace:
       begin
-        Result.AddFields(DecisionTrace.AsFields);
+        Result.AddFields(DecisionTrace.AsAction);
       end;
     sekAgentBorn: ;
     sekAgentMoved:
@@ -360,23 +373,22 @@ begin
       end;
     sekDeltaConsumed: ;
     sekAgentDied: ;
-    sekResourceSampled: ;
   end;
 
 end;
 
 { _populationSummary }
 
-function _populationSummary.AsFields: TLogFields;
-begin
-  Result.Clear;
-  Result.Add('live',         Self.LiveCount.AsText);
-  Result.Add('dead',         Self.DeadCount.AsText);
-  Result.Add('total',        Self.TotalSlots.AsText);
-  Result.Add('maxAge',       Self.MaxAge.AsText);
-  Result.Add('maxReserves',  Self.MaxReserves.AsText);
-  Result.Add('meanReserves', Self.MeanReserves.AsText);
-end;
+//function _populationSummary.AsFields: TLogFields;
+//begin
+//  Result.Clear;
+//  Result.Add('live',         Self.Living.AsText);
+//  Result.Add('dead',         Self.TotalDeaths.AsText);
+//  Result.Add('total',        Self.TotalSlots.AsText);
+//  Result.Add('maxAge',       Self.MaxAge.AsText);
+//  Result.Add('maxReserves',  Self.MaxReserves.AsText);
+//  Result.Add('meanReserves', Self.MeanReserves.AsText);
+//end;
 
 { _metabolicState }
 function _metabolicState.AsFields: TLogFields;
@@ -417,6 +429,51 @@ const
   short_codes: array[TMolecule] of string = ('A', 'B', 'G', 'D');
 begin
   Result := short_codes[Self];
+end;
+
+{ _populationSummary }
+
+function _populationSummary.AsSummaryFields: TLogFields;
+begin
+  Result.Clear;
+  Result.Add('Living', Living.AsText);
+  Result.Add('Births', NewBirths.AsText);
+  Result.Add('Deaths', NewDeaths.AsText);
+  Result.Add('Avg Rsrv', Self.MeanReserves.AsText);
+end;
+
+function _populationSummary.AsMaxFields: TLogFields;
+begin
+  Result.Clear;
+  Result.Add('Longest', Self.LongestLife.AsFields.AsFieldText);
+  Result.Add('MaxRsrv', Self.MaxReserves.AsFields.AsFieldText);
+end;
+
+
+{ _lifespan }
+
+function _lifespan.AsFields: TLogFields;
+begin
+  Result.Clear;
+  Result.Add('', Format(
+    '%s (%s)', [AgentId.AsText, Age.AsText]));
+end;
+
+//  _maxReserves = record helper for TReserveState
+function _maxReserves.AsFields: TLogFields;
+begin
+  Result.Clear;
+  Result.Add('', Format(
+    '%s (%s)', [AgentId.AsText, Reserves.AsText]));
+end;
+
+
+{  _agentState }
+function _agentState.AsMoleculeWeights: TLogFields;
+begin
+  Result.Clear;
+  for var molecule := Low(TMolecule) to High(TMolecule) do
+    Result.Add(molecule.AsText, Self.ForageMoleculeWeights[molecule].AsText);
 end;
 
 end.

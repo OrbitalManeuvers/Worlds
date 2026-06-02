@@ -48,7 +48,7 @@ object LogViewer: TLogViewer
       AlignWithMargins = True
       Left = 4
       Top = 3
-      Width = 688
+      Width = 70
       Height = 14
       Margins.Left = 4
       Align = alClient
@@ -60,7 +60,6 @@ object LogViewer: TLogViewer
       Font.Style = []
       ParentFont = False
       StyleElements = [seClient, seBorder]
-      ExplicitWidth = 70
     end
   end
   object EventList: TControlList

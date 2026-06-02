@@ -10,9 +10,9 @@ uses
 
   u_SessionComposerIntf, u_SimSessions, u_SimEventTypes, u_EventLogViews,
   fr_SimController, fr_LogViewer, fr_ResourceVisualizer, u_SimVisualizer,
-  fr_AgentViewer, u_AgentGenome, u_AgentTypes, u_SimPopulations,
-  fr_PopulationViewer,
-  u_SessionParameters;
+  u_AgentGenome, u_AgentTypes, u_SimPopulations,
+  fr_PopulationViewer, fr_PopulationSummary,
+  u_SessionParameters, fr_AgentWatches;
 
 (*
 
@@ -28,43 +28,35 @@ type
     ViewPopup: TPopupMenu;
     mniExport: TMenuItem;
     phController: TShape;
-    phLogViewer: TShape;
+    phAgentWatches: TShape;
     btnSaveClose: TButton;
     SaveProgress: TProgressBar;
     bvBottom: TBevel;
-    phResViewer: TShape;
-    phDeltaViewer: TShape;
-    vlPopulationStats: TValueListEditor;
+    phResViewer1: TShape;
+    phResViewer2: TShape;
     btnCopySummary: TSpeedButton;
-    phAgentViewer: TShape;
+    phPopulationViewer: TShape;
+    phPopulationSummary: TShape;
     procedure btnCloseClick(Sender: TObject);
     procedure btnCopySummaryClick(Sender: TObject);
   private
     Session: TSimSession;
-//    EventLog: IEventLog;
-//    EventLogView: IEventLogView;
     Controller: TControllerFrame;
 
-//    LogViewer: TLogViewer;
-
-    ResViewer: TResViewFrame;
-    DeltaViewer: TResViewFrame;
+    ResViewer1: TResViewFrame;
+    ResViewer2: TResViewFrame;
     Visualizer: TSubstanceVisualizer;
     DeltaVisualizer: TDeltaVisualizer;
-    AgentViewer: TAgentViewerFrame;
     PopulationViewer: TPopulationViewFrame;
+    PopulationSummary: TPopulationSummaryFrame;
+    AgentWatches: TAgentWatchFrame;
 
     procedure DestroySession;
     procedure HandleBeforeRun(Sender: TObject);
     procedure HandleAfterRun(Sender: TObject);
     procedure HandleSaveProgress(Sender: TObject; Progress: Integer);
     procedure HandleResViewerPaint(Sender: TObject);
-    procedure HandleDeltaViewerPaint(Sender: TObject);
     procedure HandleScratchChange(Sender: TObject);
-    procedure HandleAgentDataRequired(Sender: TObject; AgentId: TAgentId; out Found: Boolean; out Data: TMetabolicState);
-
-    procedure UpdatePopulationSummary;
-    procedure UpdateMetabolicSummary;
   public
     procedure Init; override;
     procedure Done; override;
@@ -106,35 +98,36 @@ begin
   Controller.OnAfterRun := HandleAfterRun;
   Controller.OnScratchChange := HandleScratchChange;
 
-  { UI for displaying scratch log events }
-//  LogViewer := TLogViewer.Create(Self);
-//  InitFrame(LogViewer, phLogViewer);
+  { population summary }
+  PopulationSummary := TPopulationSummaryFrame.Create(Self);
+  PopulationSummary.Name := 'popSummary';
+  InitFrame(PopulationSummary, phPopulationSummary);
 
   { UI for resource visualization }
-  ResViewer := TResViewFrame.Create(Self);
-  ResViewer.Name := 'rezViewer';
-  ResViewer.OnPaint := HandleResViewerPaint;
-  InitFrame(ResViewer, phResViewer);
+  ResViewer1 := TResViewFrame.Create(Self);
+  ResViewer1.Name := 'resViewer1';
+  ResViewer1.OnPaint := HandleResViewerPaint;
+  InitFrame(ResViewer1, phResViewer1);
 
-  DeltaViewer := TResViewFrame.Create(Self);
-  DeltaViewer.Name := 'deltaViewer';
-  DeltaViewer.OnPaint := HandleDeltaViewerPaint;
-  InitFrame(DeltaViewer, phDeltaViewer);
+  ResViewer2 := TResViewFrame.Create(Self);
+  ResViewer2.Name := 'resViewer2';
+  ResViewer2.OnPaint := HandleResViewerPaint;
+  InitFrame(ResViewer2, phResViewer2);
+
 
   { class to handle drawing resource visualizer frames }
   Visualizer := TSubstanceVisualizer.Create;
   DeltaVisualizer := TDeltaVisualizer.Create;
 
-  { agent viewer }
-//  AgentViewer := TAgentViewerFrame.Create(Self);
-//  AgentViewer.Name := 'agentViewer';
-//  AgentViewer.OnDataRequired := HandleAgentDataRequired;
-//  InitFrame(AgentViewer, phAgentViewer);
-
   { Population Viewer }
   PopulationViewer := TPopulationViewFrame.Create(Self);
   PopulationViewer.Name := 'popViewer';
-  InitFrame(PopulationViewer, phAgentViewer);
+  InitFrame(PopulationViewer, phPopulationViewer);
+
+  { agent watches }
+  AgentWatches := TAgentWatchFrame.Create(Self);
+  AgentWatches.Name := 'agentWatches';
+  InitFrame(AgentWatches, phAgentWatches);
 
 end;
 
@@ -149,36 +142,32 @@ begin
   Session.Recording := Controller.Recording;
 end;
 
-procedure TSimulatorFrame.HandleDeltaViewerPaint(Sender: TObject);
-begin
- if Assigned(DeltaVisualizer) then
- begin
-   var view := Sender as TResViewFrame;
-   if Assigned(view) then
-   begin
-     DeltaVisualizer.ZoomLevel := TVisualizerZoom(view.ZoomFactor);
-     DeltaVisualizer.AnchorCell := view.AnchorCell;
-     DeltaVisualizer.Paint(view.Canvas, clWebRoyalBlue);
-   end;
- end;
-end;
-
 procedure TSimulatorFrame.HandleResViewerPaint(Sender: TObject);
 const
   substance_colors: array[0..3] of TColor = (clWebOrange, clWebGreen, clWebBrown, clWebPurple);
 begin
-  if Assigned(Visualizer) then
+  if Assigned(Visualizer) and Assigned(DeltaVisualizer) then
   begin
     var view := Sender as TResViewFrame;
     if Assigned(view) then
     begin
-      Visualizer.ZoomLevel := TVisualizerZoom(view.ZoomFactor);
-      Visualizer.SubstanceIndex := view.SubstanceIndex;
-      Visualizer.AnchorCell := view.AnchorCell;
+      // if the view's substance index is beyond the regular resource list, show delta
+      var resourceCount := Length(Self.Session.Simulator.Runtime.Environment.SubstanceEntries);
 
-      var colorIndex := view.SubstanceIndex mod Length(substance_colors);
-
-      Visualizer.Paint(view.Canvas, substance_colors[colorIndex]);
+      if view.SubstanceIndex < resourceCount then
+      begin
+        Visualizer.ZoomLevel := TVisualizerZoom(view.ZoomFactor);
+        Visualizer.SubstanceIndex := view.SubstanceIndex;
+        Visualizer.AnchorCell := view.AnchorCell;
+        var colorIndex := view.SubstanceIndex mod Length(substance_colors);
+        Visualizer.Paint(view.Canvas, substance_colors[colorIndex]);
+      end
+      else
+      begin
+        DeltaVisualizer.ZoomLevel := TVisualizerZoom(view.ZoomFactor);
+        DeltaVisualizer.AnchorCell := view.AnchorCell;
+        DeltaVisualizer.Paint(view.Canvas, clWebRoyalBlue);
+      end;
     end;
   end;
 end;
@@ -197,59 +186,27 @@ procedure TSimulatorFrame.HandleAfterRun(Sender: TObject);
 begin
   if Assigned(Session) then
     Session.AssertScratchLogReadable;
-//  LogViewer.Refresh;
 
-  if Assigned(ResViewer) then
-    ResViewer.Invalidate;
-  if Assigned(DeltaViewer) then
-    DeltaViewer.Invalidate;
-
-  // population summary
-  UpdatePopulationSummary;
-  UpdateMetabolicSummary;
-end;
-
-procedure TSimulatorFrame.HandleAgentDataRequired(Sender: TObject;
-  AgentId: TAgentId; out Found: Boolean; out Data: TMetabolicState);
-begin
-  Data := Session.Simulator.Runtime.Population.GetMetabolicState(AgentId);
-  Found := Data.Age <> 0;
-
-end;
-
-procedure TSimulatorFrame.UpdateMetabolicSummary;
-begin
-  if Assigned(AgentViewer) then
-    AgentViewer.UpdateDisplay;
   if Assigned(PopulationViewer) then
     PopulationViewer.Step;
 
+  // agent watches
+  if Assigned(AgentWatches) then
+    AgentWatches.Step;
+
+  if Assigned(ResViewer1) then
+    ResViewer1.Invalidate;
+  if Assigned(ResViewer2) then
+    ResViewer2.Invalidate;
 end;
 
-procedure TSimulatorFrame.UpdatePopulationSummary;
-begin
-  var summary := Session.Simulator.Runtime.Population.Summarize;
-  var logFields := summary.AsFields;
 
-  var lines := TStringList.Create(dupIgnore, False, False);
-  try
-    logFields.GetPairs(lines);
-    vlPopulationStats.Strings.Assign(lines);
-  finally
-    lines.Free;
-  end;
-end;
 
 procedure TSimulatorFrame.DestroySession;
 begin
   if not Assigned(Session) then
     Exit;
-
   Controller.Controller := nil;
-
-//  LogViewer.Connect(nil);
-//  EventLogView := nil;
-//  EventLog := nil;
 
   Session.EndSession;
   Session.Free;
@@ -295,7 +252,7 @@ end;
 procedure TSimulatorFrame.btnCopySummaryClick(Sender: TObject);
 begin
   inherited;
-  Clipboard.AsText := vlPopulationStats.Strings.Text;
+//  Clipboard.AsText := vlPopulationStats.Strings.Text;
 end;
 
 procedure TSimulatorFrame.CreateSession(const aComposer: ISessionComposer;
@@ -321,11 +278,23 @@ begin
 
   var env := Session.Simulator.Runtime.Environment;
   var names: TArray<string>;
-  SetLength(names, Length(env.SubstanceEntries));
+
+  // over-allocate whatever is needed by 1 to add Delta
+  SetLength(names, Length(env.SubstanceEntries) + 1);
+
+  // fill in regular resources
   for var i := 0 to High(env.SubstanceEntries) do
     names[i] := env.SubstanceEntries[i].Name;
-  ResViewer.ApplySubstanceNames(names);
-  DeltaViewer.ApplySubstanceNames(['Delta']);
+
+  // add delta unconditionally as the last item
+  names[Length(names) - 1] := 'Delta';
+  ResViewer1.ApplySubstanceNames(names);
+  ResViewer2.ApplySubstanceNames(names);
+
+  if Assigned(PopulationSummary) then
+  begin
+    Session.Diagnostics.Subscribe(PopulationSummary);
+  end;
 
   if Assigned(PopulationViewer) then
   begin
@@ -333,10 +302,13 @@ begin
     Session.Diagnostics.Subscribe(PopulationViewer);
   end;
 
-//  except
-//    DestroySession;
-//    raise;
-//  end;
+  if Assigned(AgentWatches) then
+  begin
+    Session.Diagnostics.Subscribe(AgentWatches);
+    AgentWatches.Connect(Session.Simulator.Runtime.Population);
+
+  end;
+
 end;
 
 procedure TSimulatorFrame.DeactivateContent;

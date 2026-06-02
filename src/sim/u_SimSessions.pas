@@ -3,7 +3,7 @@ unit u_SimSessions;
 interface
 
 uses System.Classes, System.Types, System.Generics.Collections,
- u_Simulators, u_SimWatches, u_SimTypes,
+ u_Simulators, {u_SimWatches,} u_SimTypes,
  u_SimDiagnostics, u_SimEventTypes,
  u_SimControllers, u_LocalEventLogs,
  u_SessionParameters, u_SessionTOC;

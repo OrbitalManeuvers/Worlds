@@ -1,4 +1,4 @@
-unit u_MovementGenes;
+﻿unit u_MovementGenes;
 
 interface
 
@@ -6,6 +6,12 @@ uses u_AgentTypes, u_AgentGenome;
 
 type
   TMoveEvaluator = class(TMoveEvalGene)
+    class function Evaluate(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TActionEvalResult; override;
+  end;
+
+  TLearningMoveEvaluator = class(TMoveEvalGene)
+  public
+    class function GetGenerationCode: Char; override;
     class function Evaluate(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TActionEvalResult; override;
   end;
 
@@ -142,8 +148,20 @@ begin
 
 end;
 
+{ TLearningMoveEvaluator }
+class function TLearningMoveEvaluator.Evaluate(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TActionEvalResult;
+begin
+  Result := TMoveEvaluator.Evaluate(Input, Scratch);
+end;
+
+class function TLearningMoveEvaluator.GetGenerationCode: Char;
+begin
+  Result := 'B';
+end;
+
 initialization
   GlobalGeneRegistry.RegisterGene(TMoveEvaluator);
+  GlobalGeneRegistry.RegisterGene(TLearningMoveEvaluator);
 
 
 end.

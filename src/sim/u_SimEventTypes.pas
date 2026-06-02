@@ -3,7 +3,7 @@ unit u_SimEventTypes;
 interface
 
 uses System.Types,
-  u_AgentTypes, u_AgentBrain, u_AgentGenome, u_SimClocks, u_SimTypes;
+  u_agentState, u_AgentTypes, u_AgentBrain, u_AgentGenome, u_SimClocks, u_SimTypes;
 
 type
   TSimEventKind = (
@@ -13,53 +13,34 @@ type
     sekAgentMoved,
     sekDeltaConsumed,
     sekAgentDied,
-    sekResourceSampled,
-    sekPopulationState
-
+    sekPopulationSummary
   );
 
   TSimEventKinds = set of TSimEventKind;
 
-
 // ======== May Logging
-
-  TSimEventKind2 = (
-    sek2PopulationStatus,
-    sek2PopulationEvent,
-    sek2PopulationRecap
-  );
 
   TLifespan = record
     AgentId: TAgentId;
     Age: Integer;
   end;
-  TReservespan = record
+  TReserveState = record
     AgentId: TAgentId;
     Reserves: Single;
   end;
-  TTravelspan = record
-    AgentId: TAgentId;
-    Distance: Integer;
-  end;
 
-  // the state of the population at the start of the tick
-  TPopulationState = record
-    Alive: Integer;
-    Dead: Integer;
-    Births: Integer;
+  // the state of the population at the end of a tick
+  TPopulationSummary = record
+    // Snapshot stats (computed in one pass after all agents tick)
+    Living: Integer;
     LongestLife: TLifespan;
-    ShortestLife: TLifespan;
-    MaxReserves: TReservespan;
-    MaxTravel: TTravelspan; // from state.Birthplace
-    MaxLiving: Integer;
-  end;
-
-  // a recap of what happened during the tick
-  TPopulationRecap = record
-    Deaths: Integer;
-    Births: Integer;
-    Mutations: Integer;
+    MaxReserves: TReserveState;
     MeanReserves: Single;
+    MaxLiving: Integer;        // high-water mark (persisted across ticks)
+
+    // Per-tick event counters (incremented at point of occurrence)
+    NewBirths: Integer;
+    NewDeaths: Integer;
   end;
 
   // births and deaths that occur during the tick
@@ -74,23 +55,17 @@ type
     Mutation: TGeneSequence;  // check what Default(TGeneSequence) does, use as mutation flag (#0 probably)
   end;
 
-  TSimulatorEventHeader = record
-    Sequence: Integer;
-    DayNumber: Integer;
-    DayTick: TDayTick;
-    Kind: TSimEventKind2;
+  TMetabolicState = record
+    Age: Integer;
+    Reserves: Single;
+    ReserveDelta: Single;
+    GeneSequence: TGeneSequence;
+    MoleculeFactors: TMoleculeFactors;
+    ForageMoleculeWeights: TMoleculeFactors;
+    DecisionWeights: TDecisionWeights;
   end;
 
-  // this is emit from the runtime for the General timeline event log
-  TSimulatorSummaryEvent = record
-    Header: TSimulatorEventHeader;
-    PreState: TPopulationState;
-    PopEvent: TPopulationEvent;
-    PostRecap: TPopulationRecap;
-  end;
-
-// ======== 2026-05-28 Log Ideas End ============
-
+// ======== May Logging end
 
 
 
@@ -154,12 +129,6 @@ type
     ReservesBeforeDeath: Single;
   end;
 
-  TResourceSampledEvent = record
-    CacheIndex: Integer;
-    Amount: Single;
-    RegenDebt: Single;
-  end;
-
   TSimEvent = record
     Header: TSimEventHeader;
     ActionResolved: TActionResolvedEvent;
@@ -168,15 +137,14 @@ type
     AgentMoved: TAgentMovedEvent;
     DeltaConsumed: TDeltaConsumedEvent;
     AgentDied: TAgentDiedEvent;
-    ResourceSampled: TResourceSampledEvent;
-    PopulationState: TPopulationState;
+    PopulationSummary: TPopulationSummary;
   end;
 
-//  TSimEventFilter = record
-//    Kinds: TSimEventKinds;
-//    AgentId: Integer;
-//    CellIndex: Integer;
-//  end;
+  TSimEventFilter = record
+    Kinds: TSimEventKinds;
+    AgentId: Integer;
+    CellIndex: Integer;
+  end;
 
   TSimEventViewDef = record
     Kinds: TSimEventKinds;
