@@ -139,18 +139,18 @@ inherited BiologyEditor: TBiologyEditor
         Font.Style = []
         ParentFont = False
       end
-      object bvBiomass: TBevel
+      object bvDelta: TBevel
         Left = 120
         Top = 250
         Width = 313
         Height = 50
       end
-      object lblBiomassRating: TLabel
+      object lblDeltaRating: TLabel
         Left = 136
         Top = 264
-        Width = 60
+        Width = 38
         Height = 21
-        Caption = 'Biomass'
+        Caption = 'Delta'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -16
@@ -209,7 +209,7 @@ inherited BiologyEditor: TBiologyEditor
         ExplicitLeft = 208
         ExplicitTop = 196
       end
-      inline BiomassRatingFrame: TRatingEditorFrame
+      inline DeltaRatingFrame: TRatingEditorFrame
         Left = 208
         Top = 253
         Width = 205

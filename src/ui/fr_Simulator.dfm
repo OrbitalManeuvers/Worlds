@@ -1,31 +1,31 @@
 inherited SimulatorFrame: TSimulatorFrame
-  Width = 1522
-  Height = 819
+  Width = 1311
+  Height = 875
   Font.Height = -13
   ParentFont = False
-  ExplicitWidth = 1522
-  ExplicitHeight = 819
+  ExplicitWidth = 1311
+  ExplicitHeight = 875
   object phController: TShape
     Left = 16
     Top = 16
     Width = 513
-    Height = 148
+    Height = 120
     Brush.Color = clGray
     Visible = False
   end
   object phAgentWatches: TShape
-    Left = 16
-    Top = 271
-    Width = 729
-    Height = 475
+    Left = 600
+    Top = 16
+    Width = 698
+    Height = 273
     Anchors = [akLeft, akTop, akRight, akBottom]
     Brush.Color = clGray
     Visible = False
   end
   object bvBottom: TBevel
     Left = 16
-    Top = 761
-    Width = 1496
+    Top = 817
+    Width = 1285
     Height = 11
     Anchors = [akLeft, akRight, akBottom]
     Shape = bsBottomLine
@@ -33,76 +33,82 @@ inherited SimulatorFrame: TSimulatorFrame
     ExplicitWidth = 857
   end
   object phResViewer1: TShape
-    Left = 903
-    Top = 170
+    Left = 692
+    Top = 300
     Width = 300
     Height = 330
-    Anchors = [akTop, akRight]
+    Anchors = [akRight, akBottom]
     Brush.Color = clGray
-    ExplicitLeft = 640
+    ExplicitLeft = 903
   end
   object phResViewer2: TShape
-    Left = 1209
-    Top = 170
+    Left = 998
+    Top = 300
     Width = 300
     Height = 330
-    Anchors = [akTop, akRight]
+    Anchors = [akRight, akBottom]
     Brush.Color = clGray
-    ExplicitLeft = 946
+    ExplicitLeft = 1209
   end
   object btnCopySummary: TSpeedButton
-    Left = 545
-    Top = 224
+    Left = 16
+    Top = 214
     Width = 49
     Height = 25
     Caption = 'Copy'
     OnClick = btnCopySummaryClick
   end
   object phPopulationViewer: TShape
-    Left = 751
-    Top = 506
-    Width = 758
-    Height = 240
-    Anchors = [akTop, akRight, akBottom]
+    Left = 600
+    Top = 636
+    Width = 698
+    Height = 177
+    Anchors = [akLeft, akRight, akBottom]
     Brush.Color = clGray
   end
   object phPopulationSummary: TShape
     Left = 16
-    Top = 170
+    Top = 138
     Width = 513
-    Height = 95
+    Height = 70
     Brush.Color = clGray
     Visible = False
   end
   object btnClose: TButton
-    Left = 1392
-    Top = 778
+    Left = 1181
+    Top = 834
     Width = 125
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'DISCARD + Close'
     TabOrder = 0
     OnClick = btnCloseClick
+    ExplicitLeft = 1392
+    ExplicitTop = 778
   end
   object btnSaveClose: TButton
     Tag = 1
-    Left = 1256
-    Top = 778
+    Left = 1045
+    Top = 834
     Width = 117
     Height = 25
     Anchors = [akRight, akBottom]
     Caption = 'SAVE + Close'
     TabOrder = 1
     OnClick = btnCloseClick
+    ExplicitLeft = 1256
+    ExplicitTop = 778
   end
   object SaveProgress: TProgressBar
     Left = 16
-    Top = 778
-    Width = 1224
+    Top = 834
+    Width = 1013
     Height = 25
     Anchors = [akLeft, akRight, akBottom]
     TabOrder = 2
     Visible = False
+    ExplicitTop = 778
+    ExplicitWidth = 1224
   end
   object ViewPopup: TPopupMenu
     Left = 592

@@ -43,18 +43,6 @@ type
     NewDeaths: Integer;
   end;
 
-  // births and deaths that occur during the tick
-  TPopulationEventKind = (pekBirth, pekDeath);
-  TPopulationEvent = record
-    Kind: TPopulationEventKind;
-    AgentId: TAgentId;
-    Age: Integer;
-    InitialReserves: Single;
-    ParentAgentId: TAgentId;  // from state.ParentId
-    Birthplace: TCellIndex;
-    Mutation: TGeneSequence;  // check what Default(TGeneSequence) does, use as mutation flag (#0 probably)
-  end;
-
   TMetabolicState = record
     Age: Integer;
     Reserves: Single;

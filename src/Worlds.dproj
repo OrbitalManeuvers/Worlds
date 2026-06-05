@@ -257,11 +257,6 @@
         <DCCReference Include="common\u_LogTypes.pas"/>
         <DCCReference Include="sim\u_SimTypes.pas"/>
         <DCCReference Include="sim\u_Playlists.pas"/>
-        <DCCReference Include="ui\fr_AgentViewer.pas">
-            <Form>AgentViewerFrame</Form>
-            <FormType>dfm</FormType>
-            <DesignClass>TFrame</DesignClass>
-        </DCCReference>
         <DCCReference Include="ui\fr_PopulationViewer.pas">
             <Form>PopulationViewFrame</Form>
             <FormType>dfm</FormType>
@@ -278,6 +273,12 @@
             <FormType>dfm</FormType>
             <DesignClass>TFrame</DesignClass>
         </DCCReference>
+        <DCCReference Include="ui\fr_Exploration.pas">
+            <Form>ExplorationFrame</Form>
+            <FormType>dfm</FormType>
+            <DesignClass>TFrame</DesignClass>
+        </DCCReference>
+        <DCCReference Include="common\u_ExplorationTypes.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

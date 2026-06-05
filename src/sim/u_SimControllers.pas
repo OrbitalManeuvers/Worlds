@@ -116,7 +116,7 @@ begin
 
       fCurrentSegmentIndex := segIndex;
       fEndEventFired := False;
-      fActiveEndEvents := seg.EndEvents;
+      fActiveEndEvents := []; //seg.EndEvents;
       fRecording := seg.Recording;
 
       // run ticks until EndTime or EndEvents fires

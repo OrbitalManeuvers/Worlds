@@ -275,7 +275,7 @@ end;
 
 function TSimEnvironment.UpdateDelta(const aDayTick: TDayTick): TDeltaUpkeepReport;
 const
-  DELTA_GROWTH_RATE = 0.04;
+  DELTA_GROWTH_RATE = 0.06;
   DELTA_NO_MOON_DECAY_PER_TICK = 0.088;
   REGEN_DEBT_DECAY_PER_TICK = 1.0;
   DELTA_EXTINCTION_EPSILON = 0.001;

@@ -81,11 +81,12 @@ uses
   u_LogTypes in 'common\u_LogTypes.pas',
   u_SimTypes in 'sim\u_SimTypes.pas',
   u_Playlists in 'sim\u_Playlists.pas',
-  fr_AgentViewer in 'ui\fr_AgentViewer.pas' {AgentViewerFrame: TFrame},
   fr_PopulationViewer in 'ui\fr_PopulationViewer.pas' {PopulationViewFrame: TFrame},
   fr_AgentWatches in 'ui\fr_AgentWatches.pas' {AgentWatchFrame: TFrame},
   u_LocalEventLogs in 'sim\u_LocalEventLogs.pas',
-  fr_PopulationSummary in 'ui\fr_PopulationSummary.pas' {PopulationSummaryFrame: TFrame};
+  fr_PopulationSummary in 'ui\fr_PopulationSummary.pas' {PopulationSummaryFrame: TFrame},
+  fr_Exploration in 'ui\fr_Exploration.pas' {ExplorationFrame: TFrame},
+  u_ExplorationTypes in 'common\u_ExplorationTypes.pas';
 
 {$R *.res}
 

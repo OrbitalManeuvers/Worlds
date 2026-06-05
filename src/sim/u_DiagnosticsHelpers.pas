@@ -399,20 +399,6 @@ begin
   Result.Add('rsvD', Self.ReserveDelta.AsText);
   Result.Add('gene', Self.GeneSequence.AsText);
   Result.Add('mw', Self.AsMoleculeFactors.AsFieldText);
-
-//  Self.MoleculeFactors
-
-(*
-    Age: Integer;
-    Reserves: Single;
-    ReserveDelta: Single;
-    GeneSequence: TGeneSequence;
-    MoleculeFactors: TMoleculeFactors;
-    ForageMoleculeWeights: TMoleculeFactors;
-    DecisionWeights: TDecisionWeights;
-
-*)
-
 end;
 
 function _metabolicState.AsMoleculeFactors: TLogFields;

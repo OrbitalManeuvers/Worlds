@@ -31,9 +31,9 @@ type
     GammaRatingFrame: TRatingEditorFrame;
     bvGamma: TBevel;
     lblGammaRating: TLabel;
-    BiomassRatingFrame: TRatingEditorFrame;
-    bvBiomass: TBevel;
-    lblBiomassRating: TLabel;
+    DeltaRatingFrame: TRatingEditorFrame;
+    bvDelta: TBevel;
+    lblDeltaRating: TLabel;
     Label2: TLabel;
     procedure RatingsListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
@@ -95,12 +95,12 @@ begin
   UpdateLabel(lblAlphaRating, Alpha);
   UpdateLabel(lblBetaRating, Beta);
   UpdateLabel(lblGammaRating, Gamma);
-  UpdateLabel(lblBiomassRating, Delta);
+  UpdateLabel(lblDeltaRating, Delta);
 
   UpdateEditor(AlphaRatingFrame, Alpha);
   UpdateEditor(BetaRatingFrame, Beta);
   UpdateEditor(GammaRatingFrame, Gamma);
-  UpdateEditor(BiomassRatingFrame, Delta);
+  UpdateEditor(DeltaRatingFrame, Delta);
 end;
 
 procedure TBiologyEditor.ItemChanged;
@@ -159,7 +159,7 @@ begin
     AlphaRatingFrame.Rating := fRatings[Alpha];
     BetaRatingFrame.Rating := fRatings[Beta];
     GammaRatingFrame.Rating := fRatings[Gamma];
-    BiomassRatingFrame.Rating := fRatings[Delta];
+    DeltaRatingFrame.Rating := fRatings[Delta];
   end
   else
   begin

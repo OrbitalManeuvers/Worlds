@@ -2,7 +2,7 @@ object ControllerFrame: TControllerFrame
   Left = 0
   Top = 0
   Width = 490
-  Height = 145
+  Height = 119
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -13
@@ -14,23 +14,14 @@ object ControllerFrame: TControllerFrame
     Left = 3
     Top = 2
     Width = 89
-    Height = 133
-    Brush.Style = bsClear
-    Pen.Color = clGray
-    Pen.Width = 2
-  end
-  object Shape2: TShape
-    Left = 99
-    Top = 89
-    Width = 381
-    Height = 46
+    Height = 110
     Brush.Style = bsClear
     Pen.Color = clGray
     Pen.Width = 2
   end
   object Shape3: TShape
     Left = 99
-    Top = 2
+    Top = 31
     Width = 381
     Height = 81
     Brush.Style = bsClear
@@ -53,7 +44,7 @@ object ControllerFrame: TControllerFrame
   end
   object btnStep: TPngSpeedButton
     Left = 107
-    Top = 10
+    Top = 39
     Width = 72
     Height = 65
     Caption = 'Step Once'
@@ -64,7 +55,7 @@ object ControllerFrame: TControllerFrame
   end
   object btnRun5: TPngSpeedButton
     Left = 181
-    Top = 10
+    Top = 39
     Width = 72
     Height = 65
     Caption = 'Run 5'
@@ -75,7 +66,7 @@ object ControllerFrame: TControllerFrame
   end
   object btnRun10: TPngSpeedButton
     Left = 255
-    Top = 10
+    Top = 39
     Width = 72
     Height = 65
     Caption = 'Run 10'
@@ -86,7 +77,7 @@ object ControllerFrame: TControllerFrame
   end
   object btnSunset: TPngSpeedButton
     Left = 329
-    Top = 10
+    Top = 39
     Width = 72
     Height = 65
     Caption = 'Sunset'
@@ -97,7 +88,7 @@ object ControllerFrame: TControllerFrame
   end
   object btnSunrise: TPngSpeedButton
     Left = 403
-    Top = 10
+    Top = 39
     Width = 72
     Height = 65
     Caption = 'Sunrise'
@@ -120,39 +111,15 @@ object ControllerFrame: TControllerFrame
     ParentFont = False
     StyleElements = [seClient, seBorder]
   end
-  object Label1: TLabel
-    Left = 112
-    Top = 104
-    Width = 42
-    Height = 17
-    Caption = 'Playlist:'
-  end
-  object btnPlay: TPngSpeedButton
-    Left = 422
-    Top = 94
-    Width = 36
-    Height = 36
-    ImageIndex = 7
-    Images = ilController
-    OnClick = btnPlayClick
-  end
   object btnScratch: TSpeedButton
-    Left = 12
-    Top = 102
+    Left = 99
+    Top = 0
     Width = 70
-    Height = 28
+    Height = 26
     AllowAllUp = True
     GroupIndex = 1
     Caption = 'Scratch'
     OnClick = btnScratchClick
-  end
-  object cbPlaylists: TComboBox
-    Left = 174
-    Top = 101
-    Width = 239
-    Height = 25
-    Style = csDropDownList
-    TabOrder = 0
   end
   object ilController: TPngImageList
     Height = 32

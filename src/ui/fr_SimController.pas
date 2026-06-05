@@ -21,11 +21,7 @@ type
     btnSunrise: TPngSpeedButton;
     lblClock: TLabel;
     Shape1: TShape;
-    Shape2: TShape;
     Shape3: TShape;
-    Label1: TLabel;
-    cbPlaylists: TComboBox;
-    btnPlay: TPngSpeedButton;
     btnScratch: TSpeedButton;
     procedure btnStepClick(Sender: TObject);
     procedure btnRun5Click(Sender: TObject);
@@ -45,10 +41,11 @@ type
     procedure SetController(const Value: TSimController);
     procedure UpdateClockDisplay;
     procedure RunToDate(aDate: TSimDate);
-    procedure OnAfterAdvance(Sender: TObject);
     function GetRecording: Boolean;
     function GetScratchEnabled: Boolean;
     procedure SetScratchEnabled(const Value: Boolean);
+    procedure BeforeRun;
+    procedure AfterRun;
   public
     property Controller: TSimController read fController write SetController;
     property Recording: Boolean read GetRecording;
@@ -119,6 +116,19 @@ begin
   Result := btnScratch.Down;
 end;
 
+procedure TControllerFrame.BeforeRun;
+begin
+  if Assigned(fOnBeforeRun) then
+    fOnBeforeRun(Self);
+end;
+
+procedure TControllerFrame.AfterRun;
+begin
+  UpdateClockDisplay;
+  if Assigned(fOnAfterRun) then
+    fOnAfterRun(Self);
+end;
+
 procedure TControllerFrame.RunToDate(aDate: TSimDate);
 begin
   var playlist := TPlaylist.Create;
@@ -126,18 +136,16 @@ begin
     var seg := Default(TSegment);
     seg.StartTime  := fController.CurrentDate;
     seg.EndTime    := aDate;
-    seg.EndEvents  := [];
+//    seg.EndEvents  := [];
     seg.Recording  := btnRecord.Down;
     playlist.Add(seg);
 
-    // allow clients to freeze UI update
-    if Assigned(fOnBeforeRun) then
-      fOnBeforeRun(Self);
+    // allow clients to freeze UI updates
+    BeforeRun;
     try
       fController.RunPlaylist(playlist);
     finally
-      if Assigned(fOnAfterRun) then
-        fOnAfterRun(Self);
+      AfterRun;
     end;
 
   finally
@@ -147,27 +155,13 @@ end;
 
 procedure TControllerFrame.SetController(const Value: TSimController);
 begin
-  if Assigned(fController) then
-    fController.AfterAdvance.Unsubscribe(OnAfterAdvance);
-
   fController := Value;
-
-  if Assigned(fController) then
-  begin
-    fController.AfterAdvance.Subscribe(OnAfterAdvance);
-    UpdateClockDisplay;
-
-  end;
+  UpdateClockDisplay;
 end;
 
 procedure TControllerFrame.SetScratchEnabled(const Value: Boolean);
 begin
   btnScratch.Down := Value;
-end;
-
-procedure TControllerFrame.OnAfterAdvance(Sender: TObject);
-begin
-  UpdateClockDisplay;
 end;
 
 procedure TControllerFrame.UpdateClockDisplay;

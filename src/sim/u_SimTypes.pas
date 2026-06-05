@@ -22,6 +22,7 @@ type
     DayNumber: Integer;
     DayTick: TDayTick;
 
+    procedure Clear;
     function NextSunrise: TSimDate;
     function NextSunset: TSimDate;
     function AddTicks(aCount: Integer): TSimDate;
@@ -39,6 +40,12 @@ begin
   totalTick := DayNumber * CLOCK_TICKS_PER_DAY + DayTick + aCount;
   Result.DayNumber := Integer(totalTick div CLOCK_TICKS_PER_DAY);
   Result.DayTick   := TDayTick(totalTick mod CLOCK_TICKS_PER_DAY);
+end;
+
+procedure TSimDate.Clear;
+begin
+  Self.DayNumber := 0;
+  Self.DayTick := Low(TDayTick);
 end;
 
 function TSimDate.NextSunrise: TSimDate;
