@@ -21,7 +21,6 @@ object MainForm: TMainForm
     Height = 19
     Panels = <>
     SimplePanel = True
-    ExplicitWidth = 1315
   end
   object pnlTaskbar: TPanel
     Left = 0
@@ -37,7 +36,6 @@ object MainForm: TMainForm
     Padding.Bottom = 2
     ShowCaption = False
     TabOrder = 1
-    ExplicitWidth = 1315
     object btnFood: TPngSpeedButton
       Left = 2
       Top = 2

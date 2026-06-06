@@ -9,10 +9,10 @@ uses
   Vcl.ExtCtrls, Vcl.ComCtrls, Vcl.Grids, Vcl.ValEdit, Vcl.Buttons,
 
   u_SessionComposerIntf, u_SimSessions, u_SimEventTypes, u_EventLogViews,
-  fr_SimController, fr_LogViewer, fr_ResourceVisualizer, u_SimVisualizer,
+  fr_StepControls, fr_LogViewer, fr_ResourceVisualizer, u_SimVisualizer,
   u_AgentGenome, u_AgentTypes, u_SimPopulations,
   fr_PopulationViewer, fr_PopulationSummary,
-  u_SessionParameters, fr_AgentWatches;
+  u_SessionParameters, fr_AgentWatches, fr_Exploration;
 
 (*
 
@@ -27,7 +27,7 @@ type
     btnClose: TButton;
     ViewPopup: TPopupMenu;
     mniExport: TMenuItem;
-    phController: TShape;
+    phStepper: TShape;
     phAgentWatches: TShape;
     btnSaveClose: TButton;
     SaveProgress: TProgressBar;
@@ -37,11 +37,14 @@ type
     btnCopySummary: TSpeedButton;
     phPopulationViewer: TShape;
     phPopulationSummary: TShape;
+    phExplorer: TShape;
     procedure btnCloseClick(Sender: TObject);
     procedure btnCopySummaryClick(Sender: TObject);
   private
+    LaunchRequest: TSimLaunchRequest;
     Session: TSimSession;
-    Controller: TControllerFrame;
+    Stepper: TStepperFrame;
+    Explorer: TExplorationFrame;
 
     ResViewer1: TResViewFrame;
     ResViewer2: TResViewFrame;
@@ -51,20 +54,26 @@ type
     PopulationSummary: TPopulationSummaryFrame;
     AgentWatches: TAgentWatchFrame;
 
+    // session lifetime
+    procedure CreateSession;
     procedure DestroySession;
+
+    function BuildComposer: ISessionComposer;
+    procedure ConnectViewers;
+    procedure DisconnectViewers;
+
     procedure HandleBeforeRun(Sender: TObject);
     procedure HandleAfterRun(Sender: TObject);
     procedure HandleSaveProgress(Sender: TObject; Progress: Integer);
     procedure HandleResViewerPaint(Sender: TObject);
     procedure HandleScratchChange(Sender: TObject);
+    procedure HandleReset(Sender: TObject);
   public
     procedure Init; override;
     procedure Done; override;
-    procedure DeactivateContent; override;    // eliminate, this is doubling up
 
     { called externally }
-    procedure CreateSession(const aComposer: ISessionComposer;
-      const aCommonParams: TCommonSessionParameters);
+    procedure StartFromLaunchRequest(const aRequest: TSimLaunchRequest);
   end;
 
 
@@ -73,7 +82,9 @@ implementation
 {$R *.dfm}
 
 uses System.IOUtils, Vcl.Graphics, Vcl.Themes, Vcl.Clipbrd,
-  u_WorldsMessages, u_SessionManager, u_LogTypes, u_DiagnosticsHelpers;
+  u_WorldsMessages, u_SessionManager, u_LogTypes, u_DiagnosticsHelpers,
+  u_SessionComposers,
+  u_DebugSessionComposers;
 
 { TSimulatorFrame }
 
@@ -81,6 +92,7 @@ procedure TSimulatorFrame.Init;
 
   procedure InitFrame(aFrame: TFrame; aPlaceholder: TShape);
   begin
+    aFrame.Visible := False;
     aFrame.BoundsRect := aPlaceholder.BoundsRect;
     aFrame.Parent := aPlaceholder.Parent;
     aFrame.Anchors := aPlaceholder.Anchors;
@@ -92,11 +104,17 @@ begin
   inherited;
 
   { UI for controlling the session }
-  Controller := TControllerFrame.Create(Self);
-  InitFrame(Controller, phController);
-  Controller.OnBeforeRun := HandleBeforeRun;
-  Controller.OnAfterRun := HandleAfterRun;
-  Controller.OnScratchChange := HandleScratchChange;
+  Stepper := TStepperFrame.Create(Self);
+  InitFrame(Stepper, phStepper);
+  Stepper.OnBeforeRun := HandleBeforeRun;
+  Stepper.OnAfterRun := HandleAfterRun;
+  Stepper.OnScratchChange := HandleScratchChange;
+  Stepper.OnReset := HandleReset;
+
+  Explorer := TExplorationFrame.Create(Self);
+  InitFrame(Explorer, phExplorer);
+  // to-do
+
 
   { population summary }
   PopulationSummary := TPopulationSummaryFrame.Create(Self);
@@ -114,11 +132,6 @@ begin
   ResViewer2.OnPaint := HandleResViewerPaint;
   InitFrame(ResViewer2, phResViewer2);
 
-
-  { class to handle drawing resource visualizer frames }
-  Visualizer := TSubstanceVisualizer.Create;
-  DeltaVisualizer := TDeltaVisualizer.Create;
-
   { Population Viewer }
   PopulationViewer := TPopulationViewFrame.Create(Self);
   PopulationViewer.Name := 'popViewer';
@@ -129,17 +142,139 @@ begin
   AgentWatches.Name := 'agentWatches';
   InitFrame(AgentWatches, phAgentWatches);
 
+  { class to handle drawing resource visualizer frames }
+  Visualizer := TSubstanceVisualizer.Create;
+  DeltaVisualizer := TDeltaVisualizer.Create;
+
 end;
 
 procedure TSimulatorFrame.Done;
 begin
   DestroySession;
+
+  Visualizer.Free;
+  DeltaVisualizer.Free;
+
   inherited;
+end;
+
+procedure TSimulatorFrame.StartFromLaunchRequest(const aRequest: TSimLaunchRequest);
+begin
+  LaunchRequest := aRequest;
+  CreateSession;
+end;
+
+procedure TSimulatorFrame.CreateSession;
+begin
+  DestroySession;
+
+  Session := TSimSession.Create(LaunchRequest.CommonParams);
+
+  var composer: ISessionComposer := BuildComposer;
+  composer.Compose(Session.Simulator.Runtime);
+
+  Session.BeginSession;
+  Session.AssertScratchLogReadable;
+  Stepper.Controller := Session.Controller;
+  Stepper.ScratchEnabled := Session.ScratchLogEnabled;
+
+  // to-do
+//  Explorer.Controller := Session.Controller;
+
+
+  ConnectViewers;
+end;
+
+procedure TSimulatorFrame.ConnectViewers;
+begin
+  Visualizer.Simulator := Session.Simulator;
+  DeltaVisualizer.Simulator := Session.Simulator;
+
+  var env := Session.Simulator.Runtime.Environment;
+  var names: TArray<string>;
+
+  // over-allocate whatever is needed by 1 to add Delta
+  SetLength(names, Length(env.SubstanceEntries) + 1);
+
+  // fill in regular resources
+  for var i := 0 to High(env.SubstanceEntries) do
+    names[i] := env.SubstanceEntries[i].Name;
+
+  // add delta unconditionally as the last item
+  names[Length(names) - 1] := 'Delta';
+  ResViewer1.ApplySubstanceNames(names);
+  ResViewer2.ApplySubstanceNames(names);
+
+  if Assigned(PopulationSummary) then
+  begin
+    PopulationSummary.SubscriptionId := Session.Diagnostics.Subscribe(PopulationSummary);
+  end;
+
+  if Assigned(PopulationViewer) then
+  begin
+    PopulationViewer.SubscriptionId := Session.Diagnostics.Subscribe(PopulationViewer);
+    PopulationViewer.Connect(Session.Simulator.Runtime.Population);
+  end;
+
+  if Assigned(AgentWatches) then
+  begin
+    AgentWatches.SubscriptionId := Session.Diagnostics.Subscribe(AgentWatches);
+    AgentWatches.Connect(Session.Simulator.Runtime.Population);
+  end;
+end;
+
+procedure TSimulatorFrame.DisconnectViewers;
+begin
+  DeltaVisualizer.Simulator := nil;
+  Visualizer.Simulator := nil;
+  ResViewer1.InvalidateView;
+  ResViewer2.InvalidateView;
+
+  if PopulationSummary.SubscriptionId <> 0 then
+    Session.Diagnostics.Unsubscribe(PopulationSummary.SubscriptionId);
+  PopulationSummary.SubscriptionId := 0;
+
+  if PopulationViewer.SubscriptionId <> 0 then
+    Session.Diagnostics.Unsubscribe(PopulationViewer.SubscriptionId);
+  PopulationViewer.SubscriptionId := 0;
+  PopulationViewer.Connect(nil);
+
+  if AgentWatches.SubscriptionId <> 0 then
+    Session.Diagnostics.Unsubscribe(AgentWatches.SubscriptionId);
+  AgentWatches.SubscriptionId := 0;
+  AgentWatches.Connect(nil);
+end;
+
+procedure TSimulatorFrame.DestroySession;
+begin
+  if not Assigned(Session) then
+    Exit;
+  Stepper.Controller := nil;
+  DisconnectViewers;
+
+  Session.EndSession;
+  Session.Free;
+  Session := nil;
+end;
+
+function TSimulatorFrame.BuildComposer: ISessionComposer;
+begin
+  case LaunchRequest.SessionType of
+    stStandard:
+      result := TSessionComposer.Create(LaunchRequest.StandardParams);
+    stDebug:
+      result := TDebugSessionComposer.Create(LaunchRequest.DebugParams.ScenarioName);
+  end;
 end;
 
 procedure TSimulatorFrame.HandleBeforeRun(Sender: TObject);
 begin
-  Session.Recording := Controller.Recording;
+  Session.Recording := Stepper.Recording;
+end;
+
+procedure TSimulatorFrame.HandleReset(Sender: TObject);
+begin
+  CreateSession;
 end;
 
 procedure TSimulatorFrame.HandleResViewerPaint(Sender: TObject);
@@ -179,7 +314,7 @@ end;
 
 procedure TSimulatorFrame.HandleScratchChange(Sender: TObject);
 begin
-  Session.ScratchLogEnabled := Controller.ScratchEnabled;
+  Session.ScratchLogEnabled := Stepper.ScratchEnabled;
 end;
 
 procedure TSimulatorFrame.HandleAfterRun(Sender: TObject);
@@ -200,21 +335,6 @@ begin
     ResViewer2.Invalidate;
 end;
 
-
-
-procedure TSimulatorFrame.DestroySession;
-begin
-  if not Assigned(Session) then
-    Exit;
-  Controller.Controller := nil;
-
-  Session.EndSession;
-  Session.Free;
-  Session := nil;
-
-  Visualizer.Free;
-  DeltaVisualizer.Free;
-end;
 
 procedure TSimulatorFrame.btnCloseClick(Sender: TObject);
 begin
@@ -255,67 +375,7 @@ begin
 //  Clipboard.AsText := vlPopulationStats.Strings.Text;
 end;
 
-procedure TSimulatorFrame.CreateSession(const aComposer: ISessionComposer;
-  const aCommonParams: TCommonSessionParameters);
-begin
-  DestroySession;
 
-  Session := TSimSession.Create(aCommonParams);
-//  EventLog := Session.EventLog;
-//  EventLogView := TEventLogView.Create(EventLog);
-
-//  LogViewer.Connect(EventLogView);
-//  try
-
-  aComposer.Compose(Session.Simulator.Runtime);
-  Session.BeginSession;
-  Session.AssertScratchLogReadable;
-  Controller.Controller := Session.Controller;
-  Controller.ScratchEnabled := Session.ScratchLogEnabled;
-
-  Visualizer.Simulator := Session.Simulator;
-  DeltaVisualizer.Simulator := Session.Simulator;
-
-  var env := Session.Simulator.Runtime.Environment;
-  var names: TArray<string>;
-
-  // over-allocate whatever is needed by 1 to add Delta
-  SetLength(names, Length(env.SubstanceEntries) + 1);
-
-  // fill in regular resources
-  for var i := 0 to High(env.SubstanceEntries) do
-    names[i] := env.SubstanceEntries[i].Name;
-
-  // add delta unconditionally as the last item
-  names[Length(names) - 1] := 'Delta';
-  ResViewer1.ApplySubstanceNames(names);
-  ResViewer2.ApplySubstanceNames(names);
-
-  if Assigned(PopulationSummary) then
-  begin
-    Session.Diagnostics.Subscribe(PopulationSummary);
-  end;
-
-  if Assigned(PopulationViewer) then
-  begin
-    PopulationViewer.Connect(Session.Simulator.Runtime.Population);
-    Session.Diagnostics.Subscribe(PopulationViewer);
-  end;
-
-  if Assigned(AgentWatches) then
-  begin
-    Session.Diagnostics.Subscribe(AgentWatches);
-    AgentWatches.Connect(Session.Simulator.Runtime.Population);
-
-  end;
-
-end;
-
-procedure TSimulatorFrame.DeactivateContent;
-begin
-  inherited;
-  DestroySession;
-end;
 
 
 

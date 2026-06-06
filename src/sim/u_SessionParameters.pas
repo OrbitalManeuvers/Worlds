@@ -48,21 +48,19 @@ type
       NightDecayRate: TRating;
     end;
 
-//
-//    Delta: record
-//      Enabled: Boolean;
-//      Density: TRating;
-//      InitialAmount: Single;
-//      CycleLength: Integer;
-//      MinSpacingCells: Integer;
-//      CleanupGraceTicks: Integer;
-//    end;
-
     procedure InitDefaults;
   end;
 
   TDebugSessionParameters = record
     ScenarioName: string;
+  end;
+
+
+  TSimLaunchRequest = record
+    CommonParams: TCommonSessionParameters;
+    SessionType: TSessionType;
+    StandardParams: TUpscalerParameters;
+    DebugParams: TDebugSessionParameters;
   end;
 
 

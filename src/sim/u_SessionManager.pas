@@ -33,6 +33,7 @@ type
     fManifest: TSessionManifest;
     fSession: TSessionRecord;
     fHasSession: Boolean;
+    fLaunchRequest: TSimLaunchRequest;
     function BuildSessionLogFileName(const aSessionTitle: string): string;
     function BuildSessionTOCFileName(const aSessionLogFile: string): string;
     function BuildManifestFileName: string;
@@ -42,6 +43,10 @@ type
     procedure PublishSessionToManifest(const aRecord: TSessionRecord);
     procedure NotifySessionSubmitted;
     function GetConfigured: Boolean;
+
+    function BuildLaunchRequest(const CommonParams: TCommonSessionParameters; const StandardParams: TUpscalerParameters): TSimLaunchRequest; overload;
+    function BuildLaunchRequest(const CommonParams: TCommonSessionParameters; const DebugParams: TDebugSessionParameters): TSimLaunchRequest; overload;
+
   public
     constructor Create;
     destructor Destroy; override;
@@ -56,6 +61,7 @@ type
 
     // main form calls these
     function GetSession: TSessionRecord;
+    function GetLaunchRequest: TSimLaunchRequest;
 
     // update session status
     procedure UpdateSessionStatus(aStatus: TSessionStatus; aSavedRecording: Boolean;
@@ -162,6 +168,12 @@ begin
   Result := not fLogFolder.IsEmpty;
 end;
 
+function TSessionManager.GetLaunchRequest: TSimLaunchRequest;
+begin
+  Assert(fHasSession);
+  Result := fLaunchRequest;
+end;
+
 function TSessionManager.GetSession: TSessionRecord;
 begin
   Assert(fHasSession);
@@ -235,22 +247,37 @@ end;
 procedure TSessionManager.UpdateSessionStatus(aStatus: TSessionStatus; aSavedRecording: Boolean;
   aSavedEventCount: Integer; const aNotes: string);
 begin
-  var rec := GetSession;
-  rec.Status := aStatus;
-  rec.SavedRecording := aSavedRecording;
-  rec.Notes := aNotes;
-  rec.SavedEventCount := aSavedEventCount;
+  fSession.Status := aStatus;
+  fSession.SavedRecording := aSavedRecording;
+  fSession.Notes := aNotes;
+  fSession.SavedEventCount := aSavedEventCount;
 
   if aStatus in [ssCompleted, ssFailed] then
-    rec.ClosedAtUtc := Now;
+    fSession.ClosedAtUtc := Now;
 
-  if (aStatus = ssCompleted) and rec.SavedRecording and (not rec.PublishedToManifest) then
+  if (aStatus = ssCompleted) and fSession.SavedRecording and (not fSession.PublishedToManifest) then
   begin
-    PublishSessionToManifest(rec);
-    rec.PublishedToManifest := True;
+    PublishSessionToManifest(fSession);
+    fSession.PublishedToManifest := True;
   end;
+end;
 
-  fSession := rec;
+function TSessionManager.BuildLaunchRequest(const CommonParams: TCommonSessionParameters; const StandardParams: TUpscalerParameters): TSimLaunchRequest;
+begin
+  fLaunchRequest := Default(TSimLaunchRequest);
+  fLaunchRequest.SessionType := stStandard;
+  fLaunchRequest.CommonParams := CommonParams;
+  fLaunchRequest.StandardParams := StandardParams;
+  Result := fLaunchRequest;
+end;
+
+function TSessionManager.BuildLaunchRequest(const CommonParams: TCommonSessionParameters; const DebugParams: TDebugSessionParameters): TSimLaunchRequest;
+begin
+  fLaunchRequest := Default(TSimLaunchRequest);
+  fLaunchRequest.SessionType := stDebug;
+  fLaunchRequest.CommonParams := CommonParams;
+  fLaunchRequest.DebugParams := DebugParams;
+  Result := fLaunchRequest;
 end;
 
 procedure TSessionManager.SubmitDebugSession(const CommonParams: TCommonSessionParameters;
@@ -270,6 +297,8 @@ begin
   rec.PublishedToManifest := False;
   fSession := rec;
   fHasSession := True;
+
+  BuildLaunchRequest(rec.CommonParams, DebugParams);
 
   NotifySessionSubmitted;
 end;
@@ -291,6 +320,8 @@ begin
   rec.PublishedToManifest := False;
   fSession := rec;
   fHasSession := True;
+
+  BuildLaunchRequest(CommonParams, StandardParams);
 
   NotifySessionSubmitted;
 end;

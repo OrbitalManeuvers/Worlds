@@ -28,10 +28,12 @@ type
   private
     DisplayList: TArray<Integer>;
     Population: TSimPopulation;
+    fSubscriptionId: Integer;
     procedure BuildDisplayList;
   public
     procedure Step;
     procedure Connect(aPopulation: TSimPopulation);
+    property SubscriptionId: Integer read fSubscriptionId write fSubscriptionId;
   end;
 
 implementation
@@ -55,17 +57,21 @@ end;
 
 procedure TPopulationViewFrame.BuildDisplayList;
 begin
-  if Length(DisplayList) <> Population.AgentCount then
-    SetLength(DisplayList, Population.AgentCount);
-
   var count := 0;
-  for var index := 0 to Population.AgentCount - 1 do
+
+  if Assigned(Population) then
   begin
-    var state := Population.StatePtr(index);
-    if (not cbLivingOnly.Checked) or (state.Reserves > 0.0) then
+    if Length(DisplayList) <> Population.AgentCount then
+      SetLength(DisplayList, Population.AgentCount);
+
+    for var index := 0 to Population.AgentCount - 1 do
     begin
-      DisplayList[count] := index;
-      Inc(count);
+      var state := Population.StatePtr(index);
+      if (not cbLivingOnly.Checked) or (state.Reserves > 0.0) then
+      begin
+        DisplayList[count] := index;
+        Inc(count);
+      end;
     end;
   end;
 

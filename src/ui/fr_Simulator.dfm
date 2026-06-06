@@ -5,10 +5,10 @@ inherited SimulatorFrame: TSimulatorFrame
   ParentFont = False
   ExplicitWidth = 1311
   ExplicitHeight = 875
-  object phController: TShape
+  object phStepper: TShape
     Left = 16
     Top = 16
-    Width = 513
+    Width = 492
     Height = 120
     Brush.Color = clGray
     Visible = False
@@ -69,8 +69,16 @@ inherited SimulatorFrame: TSimulatorFrame
   object phPopulationSummary: TShape
     Left = 16
     Top = 138
-    Width = 513
+    Width = 492
     Height = 70
+    Brush.Color = clGray
+    Visible = False
+  end
+  object phExplorer: TShape
+    Left = 16
+    Top = 256
+    Width = 492
+    Height = 257
     Brush.Color = clGray
     Visible = False
   end
@@ -83,8 +91,6 @@ inherited SimulatorFrame: TSimulatorFrame
     Caption = 'DISCARD + Close'
     TabOrder = 0
     OnClick = btnCloseClick
-    ExplicitLeft = 1392
-    ExplicitTop = 778
   end
   object btnSaveClose: TButton
     Tag = 1
@@ -96,8 +102,6 @@ inherited SimulatorFrame: TSimulatorFrame
     Caption = 'SAVE + Close'
     TabOrder = 1
     OnClick = btnCloseClick
-    ExplicitLeft = 1256
-    ExplicitTop = 778
   end
   object SaveProgress: TProgressBar
     Left = 16
@@ -107,8 +111,6 @@ inherited SimulatorFrame: TSimulatorFrame
     Anchors = [akLeft, akRight, akBottom]
     TabOrder = 2
     Visible = False
-    ExplicitTop = 778
-    ExplicitWidth = 1224
   end
   object ViewPopup: TPopupMenu
     Left = 592

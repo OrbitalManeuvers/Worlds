@@ -176,20 +176,11 @@ end;
 
 procedure TMainForm.WMSessionSubmitted(var Msg: TMessage);
 begin
-  var rec := SessionManager.GetSession;
-
-  var composer: ISessionComposer;
-  case rec.SessionType of
-    stStandard:
-      composer := TSessionComposer.Create(rec.StandardParams);
-    stDebug:
-      composer := TDebugSessionComposer.Create(rec.DebugParams.ScenarioName);
-  end;
+  var request := SessionManager.GetLaunchRequest;
 
   ActivateContent(cfSimulator);
-
   var simFrame: TSimulatorFrame := ContentFrames[cfSimulator] as TSimulatorFrame;
-  simFrame.CreateSession(composer, rec.CommonParams);
+  simFrame.StartFromLaunchRequest(request);
 end;
 
 procedure TMainForm.WMEndSimulation(var Msg: TMessage);

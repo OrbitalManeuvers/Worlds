@@ -53,12 +53,14 @@ type
     fWatches: TArray<TAgentWatchEntry>;
     fPopulation: TSimPopulation;  // direct reference for header reads
   private
+    fSubscriptionId: Integer;
     procedure Consume(const Event: TSimEvent);
     procedure UpdateAgentList;
     function IndexOf(AgentId: TAgentId): Integer;
   public
     procedure Connect(aPopulation: TSimPopulation);
     procedure Step;
+    property SubscriptionId: Integer read fSubscriptionId write fSubscriptionId;
   end;
 
 implementation

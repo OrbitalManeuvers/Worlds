@@ -67,7 +67,7 @@ uses
   u_WorldsMessages in 'common\u_WorldsMessages.pas',
   fr_Simulator in 'ui\fr_Simulator.pas' {SimulatorFrame: TFrame},
   u_SimpleJSON in 'common\u_SimpleJSON.pas',
-  fr_SimController in 'ui\fr_SimController.pas' {ControllerFrame: TFrame},
+  fr_StepControls in 'ui\fr_StepControls.pas' {StepperFrame: TFrame},
   u_MappedFileSink in 'sim\u_MappedFileSink.pas',
   u_DebugLibraries in 'common\u_DebugLibraries.pas',
   u_SessionManager in 'sim\u_SessionManager.pas',

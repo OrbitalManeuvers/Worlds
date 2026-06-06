@@ -1,4 +1,4 @@
-unit fr_SimController;
+unit fr_StepControls;
 
 interface
 
@@ -11,7 +11,7 @@ uses
   u_SimControllers, u_SimTypes;
 
 type
-  TControllerFrame = class(TFrame)
+  TStepperFrame = class(TFrame)
     btnRecord: TPngSpeedButton;
     ilController: TPngImageList;
     btnStep: TPngSpeedButton;
@@ -23,14 +23,15 @@ type
     Shape1: TShape;
     Shape3: TShape;
     btnScratch: TSpeedButton;
+    btnResetSim: TSpeedButton;
     procedure btnStepClick(Sender: TObject);
     procedure btnRun5Click(Sender: TObject);
     procedure btnRun10Click(Sender: TObject);
     procedure btnSunsetClick(Sender: TObject);
     procedure btnSunriseClick(Sender: TObject);
     procedure btnRecordClick(Sender: TObject);
-    procedure btnPlayClick(Sender: TObject);
     procedure btnScratchClick(Sender: TObject);
+    procedure btnResetSimClick(Sender: TObject);
   private
     fOnBeforeRun: TNotifyEvent;
     fOnAfterRun: TNotifyEvent;
@@ -38,6 +39,7 @@ type
   private
     fController: TSimController;
     fOnScratchChange: TNotifyEvent;
+    fOnReset: TNotifyEvent;
     procedure SetController(const Value: TSimController);
     procedure UpdateClockDisplay;
     procedure RunToDate(aDate: TSimDate);
@@ -54,6 +56,7 @@ type
     property OnBeforeRun: TNotifyEvent read fOnBeforeRun write fOnBeforeRun;
     property OnAfterRun: TNotifyEvent read fOnAfterRun write fOnAfterRun;
     property OnScratchChange: TNotifyEvent read fOnScratchChange write fOnScratchChange;
+    property OnReset: TNotifyEvent read fOnReset write fOnReset;
   end;
 
 implementation
@@ -64,72 +67,73 @@ uses u_SimClocks, u_Playlists;
 
 { TControllerFrame }
 
-procedure TControllerFrame.btnPlayClick(Sender: TObject);
-begin
-  //
-end;
-
-procedure TControllerFrame.btnRecordClick(Sender: TObject);
+procedure TStepperFrame.btnRecordClick(Sender: TObject);
 begin
   if Assigned(fOnRecordingChange) then
     fOnRecordingChange(Self);
 end;
 
-procedure TControllerFrame.btnRun10Click(Sender: TObject);
+procedure TStepperFrame.btnResetSimClick(Sender: TObject);
+begin
+  if Assigned(fOnReset) then
+    fOnReset(Self);
+end;
+
+procedure TStepperFrame.btnRun10Click(Sender: TObject);
 begin
   RunToDate(fController.CurrentDate.AddTicks(10));
 end;
 
-procedure TControllerFrame.btnRun5Click(Sender: TObject);
+procedure TStepperFrame.btnRun5Click(Sender: TObject);
 begin
   RunToDate(fController.CurrentDate.AddTicks(5));
 end;
 
-procedure TControllerFrame.btnScratchClick(Sender: TObject);
+procedure TStepperFrame.btnScratchClick(Sender: TObject);
 begin
   if Assigned(fOnScratchChange) then
     fOnScratchChange(Self);
 end;
 
-procedure TControllerFrame.btnStepClick(Sender: TObject);
+procedure TStepperFrame.btnStepClick(Sender: TObject);
 begin
   RunToDate(fController.CurrentDate.AddTicks(1));
 end;
 
-procedure TControllerFrame.btnSunriseClick(Sender: TObject);
+procedure TStepperFrame.btnSunriseClick(Sender: TObject);
 begin
   RunToDate(fController.CurrentDate.NextSunrise);
 end;
 
-procedure TControllerFrame.btnSunsetClick(Sender: TObject);
+procedure TStepperFrame.btnSunsetClick(Sender: TObject);
 begin
   RunToDate(fController.CurrentDate.NextSunset);
 end;
 
-function TControllerFrame.GetRecording: Boolean;
+function TStepperFrame.GetRecording: Boolean;
 begin
   Result := btnRecord.Down;
 end;
 
-function TControllerFrame.GetScratchEnabled: Boolean;
+function TStepperFrame.GetScratchEnabled: Boolean;
 begin
   Result := btnScratch.Down;
 end;
 
-procedure TControllerFrame.BeforeRun;
+procedure TStepperFrame.BeforeRun;
 begin
   if Assigned(fOnBeforeRun) then
     fOnBeforeRun(Self);
 end;
 
-procedure TControllerFrame.AfterRun;
+procedure TStepperFrame.AfterRun;
 begin
   UpdateClockDisplay;
   if Assigned(fOnAfterRun) then
     fOnAfterRun(Self);
 end;
 
-procedure TControllerFrame.RunToDate(aDate: TSimDate);
+procedure TStepperFrame.RunToDate(aDate: TSimDate);
 begin
   var playlist := TPlaylist.Create;
   try
@@ -153,18 +157,18 @@ begin
   end;
 end;
 
-procedure TControllerFrame.SetController(const Value: TSimController);
+procedure TStepperFrame.SetController(const Value: TSimController);
 begin
   fController := Value;
   UpdateClockDisplay;
 end;
 
-procedure TControllerFrame.SetScratchEnabled(const Value: Boolean);
+procedure TStepperFrame.SetScratchEnabled(const Value: Boolean);
 begin
   btnScratch.Down := Value;
 end;
 
-procedure TControllerFrame.UpdateClockDisplay;
+procedure TStepperFrame.UpdateClockDisplay;
 begin
   if not Assigned(fController) then
     Exit;

@@ -19,9 +19,13 @@ type
   private
     fSummary1: TLogFields;
     fSummary2: TLogFields;
+    fSubscriptionId: Integer;
     procedure Consume(const aEvent: TSimEvent);
+    procedure SetSubscriptionId(const Value: Integer);
+    procedure Reset;
   public
     constructor Create(AOwner: TComponent); override;
+    property SubscriptionId: Integer read fSubscriptionId write SetSubscriptionId;
   end;
 
 implementation
@@ -32,6 +36,18 @@ uses u_DiagnosticsHelpers;
 
 
 { TSimStatsFrame }
+constructor TPopulationSummaryFrame.Create(AOwner: TComponent);
+begin
+  inherited;
+  Reset;
+end;
+
+procedure TPopulationSummaryFrame.Reset;
+begin
+  fSummary1 := Default(TLogFields);
+  fSummary2 := Default(TLogFields);
+end;
+
 
 procedure TPopulationSummaryFrame.Consume(const aEvent: TSimEvent);
 begin
@@ -44,13 +60,6 @@ begin
   end;
 end;
 
-constructor TPopulationSummaryFrame.Create(AOwner: TComponent);
-begin
-  inherited;
-  fSummary1 := Default(TLogFields);
-  fSummary2 := Default(TLogFields);
-end;
-
 procedure TPopulationSummaryFrame.pbSummary1Paint(Sender: TObject);
 begin
   pbSummary1.Render(fSummary1, clBtnFace);
@@ -59,6 +68,14 @@ end;
 procedure TPopulationSummaryFrame.pbSummary2Paint(Sender: TObject);
 begin
   pbSummary2.Render(fSummary2, clBtnFace);
+end;
+
+procedure TPopulationSummaryFrame.SetSubscriptionId(const Value: Integer);
+begin
+  fSubscriptionId := Value;
+  Reset;
+  pbSummary1.Invalidate;
+  pbSummary2.Invalidate;
 end;
 
 end.

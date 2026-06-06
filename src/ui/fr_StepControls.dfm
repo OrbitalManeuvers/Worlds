@@ -1,4 +1,4 @@
-object ControllerFrame: TControllerFrame
+object StepperFrame: TStepperFrame
   Left = 0
   Top = 0
   Width = 490
@@ -120,6 +120,15 @@ object ControllerFrame: TControllerFrame
     GroupIndex = 1
     Caption = 'Scratch'
     OnClick = btnScratchClick
+  end
+  object btnResetSim: TSpeedButton
+    Left = 411
+    Top = 0
+    Width = 70
+    Height = 26
+    AllowAllUp = True
+    Caption = 'Reset'
+    OnClick = btnResetSimClick
   end
   object ilController: TPngImageList
     Height = 32
