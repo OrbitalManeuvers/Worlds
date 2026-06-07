@@ -209,6 +209,14 @@ begin
   aCommonParams.SessionLogFile := BuildSessionLogFileName(aCommonParams.SessionTitle);
   aCommonParams.SessionTOCFile := BuildSessionTOCFileName(aCommonParams.SessionLogFile);
 
+  if aCommonParams.ScratchBackend = sbDefault then
+  begin
+    if aCommonParams.SessionType = stDebug then
+      aCommonParams.ScratchBackend := sbLocalMemory
+    else
+      aCommonParams.ScratchBackend := sbMappedFile;
+  end;
+
   if aCommonParams.ScratchFolder.Trim.IsEmpty then
   begin
     if not fScratchFolder.IsEmpty then

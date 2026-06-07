@@ -87,7 +87,8 @@ uses
   fr_PopulationSummary in 'ui\fr_PopulationSummary.pas' {PopulationSummaryFrame: TFrame},
   fr_Exploration in 'ui\fr_Exploration.pas' {ExplorationFrame: TFrame},
   u_ExplorationTypes in 'common\u_ExplorationTypes.pas',
-  u_ExplorationEvaluators in 'common\u_ExplorationEvaluators.pas';
+  u_ExplorationEvaluators in 'common\u_ExplorationEvaluators.pas',
+  u_ScratchRecorders in 'common\u_ScratchRecorders.pas';
 
 {$R *.res}
 

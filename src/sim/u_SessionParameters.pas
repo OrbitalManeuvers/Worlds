@@ -6,6 +6,7 @@ uses System.Types, u_BiologyTypes, u_EnvironmentTypes, u_Worlds;
 
 type
   TSessionType = (stStandard, stDebug);
+  TScratchBackend = (sbDefault, sbMappedFile, sbLocalMemory);
 
   TCommonSessionParameters = record
     SessionType: TSessionType;
@@ -13,6 +14,7 @@ type
     SessionLogFile: string;
     SessionTOCFile: string;
     ScratchFolder: string;
+    ScratchBackend: TScratchBackend;
   end;
 
   { TUpscalerParameters - parameters for a normal (upscaled) session }

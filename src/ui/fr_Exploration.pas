@@ -26,6 +26,9 @@ implementation
 
 procedure TExplorationFrame.Connect(aDiagnostics: TSimDiagnosticsHub; aPopulation: TSimPopulation);
 begin
+//  if fSub then
+
+
 //  fEvaluator.Population := aPopulation;
 //  fSubscriptionId := aDiagnostics.Subscribe(fEvaluator);
 end;

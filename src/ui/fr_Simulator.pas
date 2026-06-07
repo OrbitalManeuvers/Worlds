@@ -12,7 +12,8 @@ uses
   fr_StepControls, fr_LogViewer, fr_ResourceVisualizer, u_SimVisualizer,
   u_AgentGenome, u_AgentTypes, u_SimPopulations,
   fr_PopulationViewer, fr_PopulationSummary,
-  u_SessionParameters, fr_AgentWatches, fr_Exploration;
+  u_SessionParameters, u_ScratchRecorders,
+  fr_AgentWatches, fr_Exploration;
 
 (*
 
@@ -57,6 +58,7 @@ type
     // session lifetime
     procedure CreateSession;
     procedure DestroySession;
+    function BuildScratchRecorder: IScratchRecorder;
 
     function BuildComposer: ISessionComposer;
     procedure ConnectViewers;
@@ -168,7 +170,8 @@ procedure TSimulatorFrame.CreateSession;
 begin
   DestroySession;
 
-  Session := TSimSession.Create(LaunchRequest.CommonParams);
+  var scratchRecorder := BuildScratchRecorder;
+  Session := TSimSession.Create(LaunchRequest.CommonParams, scratchRecorder);
 
   var composer: ISessionComposer := BuildComposer;
   composer.Compose(Session.Simulator.Runtime);
@@ -183,6 +186,22 @@ begin
 
 
   ConnectViewers;
+end;
+
+function TSimulatorFrame.BuildScratchRecorder: IScratchRecorder;
+const
+  SCRATCH_FILE_NAME = 'worlds_scratch.simlog';
+begin
+  case LaunchRequest.CommonParams.ScratchBackend of
+    sbLocalMemory:
+      Result := CreateLocalScratchRecorder;
+  else
+    begin
+      var scratchFolder := LaunchRequest.CommonParams.ScratchFolder.Trim;
+      Assert((scratchFolder <> '') and TDirectory.Exists(scratchFolder));
+      Result := CreateMappedScratchRecorder(TPath.Combine(scratchFolder, SCRATCH_FILE_NAME));
+    end;
+  end;
 end;
 
 procedure TSimulatorFrame.ConnectViewers;
