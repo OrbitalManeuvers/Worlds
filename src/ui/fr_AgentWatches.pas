@@ -1,4 +1,4 @@
-unit fr_AgentWatches;
+﻿unit fr_AgentWatches;
 
 interface
 
@@ -8,47 +8,48 @@ uses
   Vcl.ControlList, Vcl.Buttons, Vcl.StdCtrls, Vcl.Samples.Spin,
 
   u_ControlRendering, u_LogTypes, u_SimEventTypes, u_AgentTypes,
-  u_SimPopulations;
+  u_SimPopulations, u_SimTypes;
+
+const
+  TICK_HISTORY_LENGTH = 5;
+  LINES_PER_TICK = 2;
 
 type
   TWatchOption = (woTrackOffspring);
   TWatchOptions = set of TWatchOption;
 
-  TWatchFields = record
-    Header: TLogFields;
-    Weights: TLogFields;
-    Action: TLogFields;
-    Evals: TLogFields;
+  TWatchEvent = record
+    Date: TSimDate;
+    Fields: array[0..LINES_PER_TICK - 1] of TLogFields;  // action, evals
   end;
 
   TAgentWatchEntry = record
     AgentId: TAgentId;
+    Header: TLogFields;
+
     Options: TWatchOptions;
 
-    // Ring buffer of recent decision traces
-//    History: array[0..4] of TDecisionTraceEvent;  // last N decisions
+    // Ring buffer
+    History: array[0..TICK_HISTORY_LENGTH - 1] of TWatchEvent;
     HistoryCount: Integer;
-//    WriteIndex: Integer;
-
-    Fields: TWatchFields;
-
+    WriteIndex: Integer;
   end;
 
   TAgentWatchFrame = class(TFrame, ISimEventConsumer)
     WatchList: TControlList;
-    shpCard: TShape;
     edtAgentList: TEdit;
     Label2: TLabel;
     btnUpdateAgents: TSpeedButton;
-    pbEvals: TPaintBox;
-    pbAction: TPaintBox;
-    pbHeader: TPaintBox;
-    pbWeights: TPaintBox;
+    pbContent: TPaintBox;
+    lblAgentId: TLabel;
+    shAgentId: TShape;
+    spnRowCount: TSpinEdit;
     procedure edtAgentListKeyPress(Sender: TObject; var Key: Char);
     procedure btnUpdateAgentsClick(Sender: TObject);
     procedure WatchListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
     procedure FieldPaint(Sender: TObject);
+    procedure spnRowCountChange(Sender: TObject);
   private
     fWatches: TArray<TAgentWatchEntry>;
     fPopulation: TSimPopulation;  // direct reference for header reads
@@ -76,6 +77,11 @@ const
   );
 
 
+type
+  TWordRec = record
+    Low, High: Word;
+  end;
+
 { TAgentWatchFrame }
 
 procedure TAgentWatchFrame.btnUpdateAgentsClick(Sender: TObject);
@@ -96,9 +102,18 @@ begin
   Result := -1;
 end;
 
+procedure TAgentWatchFrame.spnRowCountChange(Sender: TObject);
+begin
+  WatchList.ItemCount := Length(fWatches) * (1 + LINES_PER_TICK * spnRowCount.Value);
+  WatchList.Invalidate;
+end;
+
 procedure TAgentWatchFrame.Connect(aPopulation: TSimPopulation);
 begin
   fPopulation := aPopulation;
+  spnRowCount.MinValue := 0;
+  spnRowCount.MaxValue := TICK_HISTORY_LENGTH;
+  spnRowCount.Value := spnRowCount.MinValue;
 end;
 
 procedure TAgentWatchFrame.Consume(const Event: TSimEvent);
@@ -110,10 +125,17 @@ begin
     var index := IndexOf(Event.DecisionTrace.AgentId);
     if index >= 0 then
     begin
-      fWatches[index].Fields.Header := Event.DecisionTrace.AsHeader;
-      fWatches[index].Fields.Weights := Default(TLogFields);
-      fWatches[index].Fields.Action := Event.DecisionTrace.AsAction;
-      fWatches[index].Fields.Evals := Event.DecisionTrace.AsEvaluations;
+      var data := Default(TWatchEvent);
+      data.Date.DayNumber := Event.Header.DayNumber;
+      data.Date.DayTick := Event.Header.DayTick;
+      data.Fields[0] := Event.DecisionTrace.AsAction;
+      data.Fields[1] := Event.DecisionTrace.AsEvaluations;
+
+      // write to ring buffer
+      fWatches[index].History[fWatches[index].WriteIndex] := data;
+      fWatches[index].WriteIndex := (fWatches[index].WriteIndex + 1) mod TICK_HISTORY_LENGTH;
+      if fWatches[index].HistoryCount < TICK_HISTORY_LENGTH then
+        Inc(fWatches[index].HistoryCount);
     end;
   end;
 end;
@@ -133,9 +155,11 @@ procedure TAgentWatchFrame.UpdateAgentList;
   begin
     var count := Length(fWatches);
     SetLength(fWatches, count + 1);
-    fWatches[count].AgentId := aId;
-    fWatches[count].Options := opts;
-    fWatches[count].HistoryCount := 0;
+
+    var watch := Default(TAgentWatchEntry);
+    watch.AgentId := aId;
+    watch.Options := opts;
+    fWatches[count] := watch;
   end;
 
 begin
@@ -170,7 +194,7 @@ begin
       end;
     end;
 
-    WatchList.ItemCount := Length(fWatches);
+    WatchList.ItemCount := Length(fWatches) * (1 + LINES_PER_TICK * spnRowCount.Value);
     WatchList.Invalidate;
   end;
 end;
@@ -178,58 +202,102 @@ end;
 procedure TAgentWatchFrame.WatchListBeforeDrawItem(AIndex: Integer;
   ACanvas: TCanvas; ARect: TRect; AState: TOwnerDrawState);
 begin
-  shpCard.Brush.Color := StyleServices.GetStyleColor(scButtonNormal);
-  shpCard.Pen.Color := StyleServices.GetSystemColor(clBtnHighlight);
+  if (AIndex < 0) or (AIndex >= WatchList.ItemCount) then
+    Exit;
 
-  // weights are populated from the state record
-  if Assigned(fPopulation) then
+  // AIndex → watch index + line within that watch
+  var linesPerWatch := 1 + LINES_PER_TICK * spnRowCount.Value;
+  var watchIndex := AIndex div linesPerWatch;
+  var lineIndex := AIndex mod linesPerWatch;  // 0 = header, 1..N = history lines
+  var isHeader := (lineIndex = 0);
+
+  if watchIndex >= Length(fWatches) then
+    Exit;
+
+  // adjust paintbox for row type
+  var r := ARect;
+  Inc(r.Top, 2);
+  Dec(r.Right, 4);
+  Dec(r.Bottom, 2);
+
+  // set up the controls for the header or other lines
+  if isHeader then
   begin
-    var agentId := fWatches[AIndex].AgentId;
-    if agentId < fPopulation.AgentCount then
-    begin
-      var state := fPopulation.StatePtr(agentId);
-      if Assigned(state) then
-      begin
-        fWatches[AIndex].Fields.Weights := state.AsMoleculeWeights;
-      end;
-    end;
-
+    lblAgentId.Caption := 'A' + fWatches[watchIndex].AgentId.AsText;
+    r.Left := shAgentId.Left + shAgentId.Width + 4;
+  end
+  else
+  begin
+    r.Left := shAgentId.Left + (shAgentId.Width div 2);
   end;
 
-  pbHeader.Tag := aIndex;
-  pbHeader.Invalidate;
+  shAgentId.Visible := isHeader;
+  shAgentId.Brush.Color := StyleServices.GetSystemColor(clBtnFace);
+  lblAgentId.Visible := isHeader;
+  pbContent.BoundsRect := r;
 
-  pbAction.Tag := aIndex;
-  pbAction.Invalidate;
+  // we have to tell the paintbox which watch to draw, but ALSO which line to draw.
+  var pbTag: Integer := 0;
+  TWordRec(pbTag).High := watchIndex;
+  TWordRec(pbTag).Low := lineIndex;
+  pbContent.Tag := pbTag;
 
-  pbEvals.Tag := aIndex;
-  pbEvals.Invalidate;
-
-  pbWeights.Tag := aIndex;
-  pbWeights.Invalidate;
-
+  pbContent.Invalidate;
 end;
 
 procedure TAgentWatchFrame.FieldPaint(Sender: TObject);
 begin
   var pb := Sender as TPaintBox;
-  if (pb.Tag >= 0) and (pb.Tag < Length(fWatches)) then
+
+  var watchIndex := TWordRec(pb.Tag).High;
+  var lineIndex := TWordRec(pb.Tag).Low;
+
+  if watchIndex < Length(fWatches) then
   begin
-    var c := StyleServices.GetStyleColor(scButtonNormal);
-    if pb = pbHeader then
-      pb.Render(fWatches[pb.Tag].Fields.Header, c)
-    else if pb = pbWeights then
-      pb.Render(fWatches[pb.Tag].Fields.Weights, c)
-    else if pb = pbAction then
-      pb.Render(fWatches[pb.Tag].Fields.Action, c)
-    else if pb = pbEvals then
-      pb.Render(fWatches[pb.Tag].Fields.Evals, c);
+    if lineIndex = 0 then
+      pb.Render(fWatches[watchIndex].Header, clWindow)
+    else
+    begin
+      var tickOffset := (lineIndex - 1) div LINES_PER_TICK;
+      var subLine := (lineIndex - 1) mod LINES_PER_TICK;
+      if tickOffset < fWatches[watchIndex].HistoryCount then
+      begin
+        var ringIdx := (fWatches[watchIndex].WriteIndex - 1 - tickOffset + TICK_HISTORY_LENGTH) mod TICK_HISTORY_LENGTH;
+
+        var lineFields := Default(TLogFields);
+        lineFields.AddFields(fWatches[watchIndex].History[ringIdx].Date.AsFields);
+        lineFields.AddFields(fWatches[watchIndex].History[ringIdx].Fields[subLine]);
+
+        pb.Render(lineFields, clWindow);
+      end;
+    end;
   end;
 end;
 
 procedure TAgentWatchFrame.Step;
 begin
-  WatchList.Invalidate;
+  // apply updates from state
+  if Assigned(fPopulation) then
+  begin
+
+    for var watchIndex := 0 to High(fWatches) do
+    begin
+      var agentId := fWatches[watchIndex].AgentId;
+      if agentId < fPopulation.AgentCount then
+      begin
+        var state := fPopulation.StatePtr(agentId);
+        if Assigned(state) then
+        begin
+          fWatches[watchIndex].Header := state.AsWatchHeader;
+        end;
+
+      end;
+
+    end;
+
+    WatchList.Invalidate;
+
+  end;
 end;
 
 end.

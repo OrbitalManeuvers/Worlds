@@ -221,6 +221,12 @@ begin
     AgentWatches.SubscriptionId := Session.Diagnostics.Subscribe(AgentWatches);
     AgentWatches.Connect(Session.Simulator.Runtime.Population);
   end;
+
+  if Assigned(Explorer) then
+  begin
+    Explorer.Connect(Session.Diagnostics, Session.Simulator.Runtime.Population);
+  end;
+
 end;
 
 procedure TSimulatorFrame.DisconnectViewers;
@@ -243,6 +249,12 @@ begin
     Session.Diagnostics.Unsubscribe(AgentWatches.SubscriptionId);
   AgentWatches.SubscriptionId := 0;
   AgentWatches.Connect(nil);
+
+  if Assigned(Explorer) then
+  begin
+    // to-do
+  end;
+
 end;
 
 procedure TSimulatorFrame.DestroySession;

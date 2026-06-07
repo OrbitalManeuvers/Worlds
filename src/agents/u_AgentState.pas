@@ -25,6 +25,7 @@ type
     ReserveDelta: Single;  // end-of-last-live-tick reserves minus prior tick reserves
     TicksSinceReproduction: Integer;
     TicksSinceForage: Integer;
+    TicksSinceShelter: Integer;
 
     // Current action
     Action: TAgentAction;

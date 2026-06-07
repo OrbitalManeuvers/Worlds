@@ -199,6 +199,7 @@ begin
   Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
   Result.TicksSinceForage := State.TicksSinceForage;
+  Result.TicksSinceShelter := State.TicksSinceShelter;
   Result.CurrentAction := Context.CurrentAction;
   Result.CurrentActionAge := Context.CurrentActionAge;
   Result.IsNight := Context.IsNight;

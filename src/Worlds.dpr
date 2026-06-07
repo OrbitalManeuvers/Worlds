@@ -86,7 +86,8 @@ uses
   u_LocalEventLogs in 'sim\u_LocalEventLogs.pas',
   fr_PopulationSummary in 'ui\fr_PopulationSummary.pas' {PopulationSummaryFrame: TFrame},
   fr_Exploration in 'ui\fr_Exploration.pas' {ExplorationFrame: TFrame},
-  u_ExplorationTypes in 'common\u_ExplorationTypes.pas';
+  u_ExplorationTypes in 'common\u_ExplorationTypes.pas',
+  u_ExplorationEvaluators in 'common\u_ExplorationEvaluators.pas';
 
 {$R *.res}
 

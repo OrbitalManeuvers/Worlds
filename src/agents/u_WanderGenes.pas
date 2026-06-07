@@ -102,6 +102,18 @@ begin
   if Input.TicksSinceForage <= WANDER_RECENT_FORAGE_TICKS then
     Result.Score := Result.Score - WANDER_RECENT_FORAGE_PENALTY;
 
+  // Future: TicksSinceShelter as a fatigue-based suppression amplifier.
+  // Unlike TicksSinceForage (which drives wander *toward* food), shelter deprivation
+  // should *dampen* wander — an exhausted agent shouldn't keep running around.
+  // Two possible uses:
+  //   1. Scale the existing WANDER_SHELTER_PENALTY higher when TicksSinceShelter is
+  //      large — "you finally lay down after 200 ticks, absolutely do not get up."
+  //   2. Apply a fatigue ceiling that reduces max wander score as time-without-rest
+  //      grows, creating soft indirect pressure toward shelter by making the competing
+  //      action less appealing.
+  // The positive pressure to shelter belongs in the shelter evaluator; here we only
+  // reduce wander's competitiveness so the shelter signal can win.
+
   Result.Score := EnsureRange(Result.Score, 0.0, WANDER_MAX_SCORE);
 
   if Result.Score < WANDER_MIN_VOTE_SCORE then

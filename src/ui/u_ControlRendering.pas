@@ -44,8 +44,8 @@ const
     '#87BE74','#99734D','#60994D','#6FA3A8','#C75538'
   );
 
-  FIELD_LABEL_COLOR: TStyleFont = sfButtonTextNormal;
-  FIELD_VALUE_COLOR: TColor = clWebAqua;
+  FIELD_LABEL_COLOR: TStyleFont = sfButtonTextPressed;
+  FIELD_VALUE_COLOR: TColor = clWebKhaki;
   FIELD_FONT_NAME = 'Consolas';
   FIELD_FONT_SIZE = 10;
   FIELD_SPACING_PX = 10;

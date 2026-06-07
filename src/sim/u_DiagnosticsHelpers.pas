@@ -5,7 +5,7 @@ interface
 uses System.Types, System.SysUtils, System.TypInfo,
   u_SimEventTypes, u_AgentTypes, u_AgentBrain,
   u_AgentGenome, u_LogTypes, u_SimPopulations, u_EnvironmentTypes,
-  u_AgentState;
+  u_AgentState, u_SimTypes;
 
 (*
 
@@ -86,6 +86,12 @@ type
 
   _agentState = record helper for TAgentState
     function AsMoleculeWeights: TLogFields;
+    function AsWatchHeader: TLogFields;
+    function AsWatchAction: TLogFields;
+  end;
+
+  _simDate = record helper for TSimDate
+    function AsFields: TLogFields;
   end;
 
 implementation
@@ -170,7 +176,7 @@ end;
 
 function _agentId.AsText: string;
 begin
-  Result := Integer(Self).AsText(2);
+  Result := Integer(Self).AsText(3);
 end;
 
 { _cellIndex }
@@ -461,5 +467,35 @@ begin
   for var molecule := Low(TMolecule) to High(TMolecule) do
     Result.Add(molecule.AsText, Self.ForageMoleculeWeights[molecule].AsText);
 end;
+
+function _agentState.AsWatchAction: TLogFields;
+begin
+  Result.Clear;
+
+  var s := Self.Action.AsText;
+  if Self.Action in [acMove, acForage] then
+    s := s + '(' + Self.ActionTarget.AsText + ')';
+
+  Result.Add('', s);
+end;
+
+function _agentState.AsWatchHeader: TLogFields;
+begin
+  Result.Clear;
+  Result.Add('r', Self.Reserves.AsText);
+  Result.Add('d', Self.ReserveDelta.AsText);
+  Result.Add('l', Self.Location.AsText);
+  Result.Add('', Self.AsWatchAction.AsFieldText);
+  Result.Add('w', Self.AsMoleculeWeights.AsFieldText);
+
+end;
+
+{ _simDate }
+function _simDate.AsFields: TLogFields;
+begin
+  Result.Clear;
+  Result.Add('', Self.DayNumber.AsText(3) + ':' + Integer(Ord(Self.DayTick)).AsText(3));
+end;
+
 
 end.

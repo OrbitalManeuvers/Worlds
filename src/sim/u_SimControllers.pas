@@ -90,9 +90,34 @@ begin
 end;
 
 procedure TSimController.Run(aStop: TSimStopPredicate; Recording: Boolean);
+var
+  canContinue: Boolean;
+  date: TSimDate;
 begin
   Assert(not fRunning, 'TSimController.Run called while controller is already running.');
-  //
+  Assert(Assigned(aStop), 'TSimController.Run requires a stop predicate.');
+
+  fRunning := True;
+  fRecording := Recording;
+  try
+    while True do
+    begin
+      NotifyBeforeAdvance;
+      fClock.Step;
+      NotifyAfterAdvance;
+
+      date.DayNumber := fClock.DayNumber;
+      date.DayTick := fClock.DayTick;
+
+      canContinue := True;
+      aStop(date, canContinue);
+      if not canContinue then
+        Break;
+    end;
+  finally
+    fRunning := False;
+    fRecording := False;
+  end;
 end;
 
 procedure TSimController.RunPlaylist(const aPlaylist: TPlaylist; aStop: TSimStopPredicate);
@@ -122,6 +147,10 @@ begin
       // run ticks until EndTime or EndEvents fires
       while not fEndEventFired do
       begin
+        NotifyBeforeAdvance;
+        fClock.Step;
+        NotifyAfterAdvance;
+
         date.DayNumber := fClock.DayNumber;
         date.DayTick := fClock.DayTick;
 
@@ -138,10 +167,6 @@ begin
           if not canContinue then
             Exit;  // abort entire playlist
         end;
-
-        NotifyBeforeAdvance;
-        fClock.Step;
-        NotifyAfterAdvance;
       end;
 
       fRecording := False;

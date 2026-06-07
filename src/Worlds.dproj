@@ -279,6 +279,7 @@
             <DesignClass>TFrame</DesignClass>
         </DCCReference>
         <DCCReference Include="common\u_ExplorationTypes.pas"/>
+        <DCCReference Include="common\u_ExplorationEvaluators.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

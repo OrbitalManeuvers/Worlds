@@ -90,6 +90,7 @@ type
     Reserves: Single;
     ReserveDelta: Single;
     TicksSinceForage: Integer;
+    TicksSinceShelter: Integer;
     HasRemoteSmellSignal: Boolean;
     CurrentAction: TAgentAction;
     CurrentActionAge: Integer;

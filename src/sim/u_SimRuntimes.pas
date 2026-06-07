@@ -859,12 +859,16 @@ begin
   Inc(state.Age);
   Inc(state.TicksSinceReproduction);
   Inc(state.TicksSinceForage);
+  Inc(state.TicksSinceShelter);
 
   // Shelter resets the forage hunger clock — sleeping is a deliberate choice to not eat,
   // not a failure to find food. Without this, agents wander immediately on waking because
   // TicksSinceForage accumulated all night and triggers desperation pressure.
   if state.Action = acShelter then
+  begin
     state.TicksSinceForage := 0;
+    state.TicksSinceShelter := 0;
+  end;
 
   var reservesAtTickStart := state.Reserves;
   var reservesBeforeUpkeep := state.Reserves;
