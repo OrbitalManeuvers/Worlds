@@ -178,12 +178,6 @@ begin
 
   Session.BeginSession;
   Session.AssertScratchLogReadable;
-  Stepper.Controller := Session.Controller;
-  Stepper.ScratchEnabled := Session.ScratchLogEnabled;
-
-  // to-do
-//  Explorer.Controller := Session.Controller;
-
 
   ConnectViewers;
 end;
@@ -206,6 +200,15 @@ end;
 
 procedure TSimulatorFrame.ConnectViewers;
 begin
+  // connections to session controller
+
+  // note: this could be standardized into .Connect() calls in ConnectViewers
+  Stepper.Controller := Session.Controller;
+  Stepper.ScratchEnabled := Session.ScratchLogEnabled;
+
+  // eventually: Playlists.Controller :=
+
+
   Visualizer.Simulator := Session.Simulator;
   DeltaVisualizer.Simulator := Session.Simulator;
 
@@ -224,6 +227,7 @@ begin
   ResViewer1.ApplySubstanceNames(names);
   ResViewer2.ApplySubstanceNames(names);
 
+  // connect subscriptions
   if Assigned(PopulationSummary) then
   begin
     PopulationSummary.SubscriptionId := Session.Diagnostics.Subscribe(PopulationSummary);
@@ -243,7 +247,7 @@ begin
 
   if Assigned(Explorer) then
   begin
-    Explorer.Connect(Session.Diagnostics, Session.Simulator.Runtime.Population);
+    Explorer.Connect(Session.Controller, Session.Diagnostics, Session.Simulator.Runtime.Population);
   end;
 
 end;
@@ -271,7 +275,7 @@ begin
 
   if Assigned(Explorer) then
   begin
-    // to-do
+    Explorer.Disconnect(Session.Diagnostics);
   end;
 
 end;
