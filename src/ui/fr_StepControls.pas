@@ -8,10 +8,10 @@ uses
   Vcl.ImgList, PngImageList, PngSpeedButton, Vcl.Buttons, Vcl.ExtCtrls,
   Vcl.StdCtrls,
 
-  u_SimControllers, u_SimTypes;
+  u_SimControllers, u_SimTypes, u_DiagnosticsIntf;
 
 type
-  TStepperFrame = class(TFrame)
+  TStepperFrame = class(TFrame, IRuntimeController)
     btnRecord: TPngSpeedButton;
     ilController: TPngImageList;
     btnStep: TPngSpeedButton;
@@ -48,8 +48,12 @@ type
     procedure SetScratchEnabled(const Value: Boolean);
     procedure BeforeRun;
     procedure AfterRun;
+
+    { IRuntimeController }
+    procedure ConnectController(aController: TSimController);
+    procedure DisconnectController(aController: TSimController);
   public
-    property Controller: TSimController read fController write SetController;
+//    property Controller: TSimController read fController write SetController;
     property Recording: Boolean read GetRecording;
     property ScratchEnabled: Boolean read GetScratchEnabled write SetScratchEnabled;
 
@@ -161,6 +165,16 @@ procedure TStepperFrame.SetController(const Value: TSimController);
 begin
   fController := Value;
   UpdateClockDisplay;
+end;
+
+procedure TStepperFrame.ConnectController(aController: TSimController);
+begin
+  SetController(aController);
+end;
+
+procedure TStepperFrame.DisconnectController(aController: TSimController);
+begin
+  SetController(nil);
 end;
 
 procedure TStepperFrame.SetScratchEnabled(const Value: Boolean);

@@ -7,25 +7,28 @@ uses
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.StdCtrls, Vcl.ExtCtrls,
 
-  u_SimEventTypes, u_LogTypes, u_ControlRendering;
+  u_SimEventTypes, u_LogTypes, u_ControlRendering, u_DiagnosticsIntf,
+  u_SimRuntimes, u_MulticastEvents, u_SimDiagnostics;
 
 type
-  TPopulationSummaryFrame = class(TFrame, ISimEventConsumer)
-    Shape1: TShape;
+  TPopulationSummaryFrame = class(TFrame, IRuntimeObserver)
+    shBorder: TShape;
     pbSummary1: TPaintBox;
     pbSummary2: TPaintBox;
     procedure pbSummary2Paint(Sender: TObject);
     procedure pbSummary1Paint(Sender: TObject);
   private
-    fSummary1: TLogFields;
-    fSummary2: TLogFields;
-    fSubscriptionId: Integer;
-    procedure Consume(const aEvent: TSimEvent);
-    procedure SetSubscriptionId(const Value: Integer);
+    { IRuntimeObserver }
+    procedure ConnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
+      AfterAdvance: TMulticastEvent<TNotifyEvent>);
+    procedure DisconnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
+      AfterAdvance: TMulticastEvent<TNotifyEvent>);
+  private
+    Runtime: TSimRuntime;
+    Summary1: TLogFields;
+    Summary2: TLogFields;
+    procedure HandleAfterAdvance(Sender: TObject);
     procedure Reset;
-  public
-    constructor Create(AOwner: TComponent); override;
-    property SubscriptionId: Integer read fSubscriptionId write SetSubscriptionId;
   end;
 
 implementation
@@ -36,46 +39,49 @@ uses u_DiagnosticsHelpers;
 
 
 { TSimStatsFrame }
-constructor TPopulationSummaryFrame.Create(AOwner: TComponent);
-begin
-  inherited;
-  Reset;
-end;
 
 procedure TPopulationSummaryFrame.Reset;
 begin
-  fSummary1 := Default(TLogFields);
-  fSummary2 := Default(TLogFields);
+  Summary1 := Default(TLogFields);
+  Summary2 := Default(TLogFields);
 end;
 
-
-procedure TPopulationSummaryFrame.Consume(const aEvent: TSimEvent);
+procedure TPopulationSummaryFrame.ConnectRuntime(aRuntime: TSimRuntime;
+  aDiagnostics: TSimDiagnosticsHub; AfterAdvance: TMulticastEvent<TNotifyEvent>);
 begin
-  if aEvent.Header.Kind = sekPopulationSummary then
+  Runtime := aRuntime;
+  AfterAdvance.Subscribe(HandleAfterAdvance);
+  Reset;
+end;
+
+procedure TPopulationSummaryFrame.DisconnectRuntime(aRuntime: TSimRuntime;
+  aDiagnostics: TSimDiagnosticsHub; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+begin
+  AfterAdvance.Unsubscribe(HandleAfterAdvance);
+  Runtime := nil;
+  Reset;
+  Invalidate;
+end;
+
+procedure TPopulationSummaryFrame.HandleAfterAdvance(Sender: TObject);
+begin
+  if Assigned(Runtime) then
   begin
-    fSummary1 := aEvent.PopulationSummary.AsSummaryFields;
-    fSummary2 := aEvent.PopulationSummary.AsMaxFields;
-    pbSummary1.Invalidate;
-    pbSummary2.Invalidate;
+    Summary1 := Runtime.PopulationSummary.AsSummaryFields;
+    Summary2 := Runtime.PopulationSummary.AsMaxFields;
+    Invalidate;
+//    pbSummary2.Invalidate;
   end;
 end;
 
 procedure TPopulationSummaryFrame.pbSummary1Paint(Sender: TObject);
 begin
-  pbSummary1.Render(fSummary1, clBtnFace);
+  pbSummary1.Render(Summary1, clBtnFace);
 end;
 
 procedure TPopulationSummaryFrame.pbSummary2Paint(Sender: TObject);
 begin
-  pbSummary2.Render(fSummary2, clBtnFace);
-end;
-
-procedure TPopulationSummaryFrame.SetSubscriptionId(const Value: Integer);
-begin
-  fSubscriptionId := Value;
-  Reset;
-  pbSummary1.Invalidate;
-  pbSummary2.Invalidate;
+  pbSummary2.Render(Summary2, clBtnFace);
 end;
 
 end.

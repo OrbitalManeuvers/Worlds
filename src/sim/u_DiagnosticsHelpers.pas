@@ -448,7 +448,7 @@ function _lifespan.AsFields: TLogFields;
 begin
   Result.Clear;
   Result.Add('', Format(
-    '%s (%s)', [AgentId.AsText, Age.AsText]));
+    '%s(%s)', [AgentId.AsText, Age.AsText]));
 end;
 
 //  _maxReserves = record helper for TReserveState
@@ -456,7 +456,7 @@ function _maxReserves.AsFields: TLogFields;
 begin
   Result.Clear;
   Result.Add('', Format(
-    '%s (%s)', [AgentId.AsText, Reserves.AsText]));
+    '%s(%s)', [AgentId.AsText, Reserves.AsText]));
 end;
 
 

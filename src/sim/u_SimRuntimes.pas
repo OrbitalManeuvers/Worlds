@@ -78,6 +78,7 @@ type
     fDeltaCleanupGraceTicksRemaining: Integer;
 
     fPopulationSummary: TPopulationSummary;
+    fTickTotalReserves: Single;
 
     function BuildEventHeader(aKind: TSimEventKind; const aPhase: TSimTickPhase): TSimEventHeader;
     function BuildDeltaSpawnPlan: TArray<Integer>;
@@ -91,8 +92,8 @@ type
     procedure EmitAgentMoved(const State: TAgentState; const FromCell, ToCell: Integer; const MoveCost: Single);
     procedure EmitDeltaConsumed(const State: TAgentState; const Cache: TCacheRef; const ConsumedAmount, GainAmount: Single);
 
-    procedure EmitPopulationSummary;
-    procedure ComputePopulationSnapshot;
+    procedure BeginTickSummary;
+    procedure FinalizeTickSummary;
 
     function CalculateAgentTickCost(const State: TAgentState): Single;
     function CalculateMoveCost(FromCell, ToCell: Integer): Single;
@@ -121,6 +122,7 @@ type
     property Population: TSimPopulation read fPopulation;
     property LastDeltaSpawnCount: Integer read fLastDeltaSpawnCount;
 
+    property PopulationSummary: TPopulationSummary read fPopulationSummary;
     property OnPhase: TRuntimePhaseEvent read fOnPhase write fOnPhase;
   end;
 
@@ -485,56 +487,29 @@ begin
   fDiagnostics.Emit(event);
 end;
 
-procedure TSimRuntime.EmitPopulationSummary;
+procedure TSimRuntime.BeginTickSummary;
 begin
-  if not Assigned(fDiagnostics) then
-    Exit;
-  var event := Default(TSimEvent);
-  event.Header := BuildEventHeader(sekPopulationSummary, stpPostEnvironment);
-  event.PopulationSummary := fPopulationSummary;
-  fDiagnostics.Emit(event);
+  // Reset per-tick counters and snapshot accumulators.
+  // MaxLiving is a high-water mark — never reset.
+  fPopulationSummary.NewBirths := 0;
+  fPopulationSummary.NewDeaths := 0;
+  fPopulationSummary.Living := 0;
+  fPopulationSummary.Sheltering := 0;
+  fPopulationSummary.LongestLife := Default(TLifespan);
+  fPopulationSummary.MaxReserves := Default(TReserveState);
+  fPopulationSummary.MaxDistance := Default(TDistanceRecord);
+  fTickTotalReserves := 0.0;
 end;
 
-procedure TSimRuntime.ComputePopulationSnapshot;
+procedure TSimRuntime.FinalizeTickSummary;
 begin
-  var living := 0;
-  var totalReserves: Single := 0.0;
-  var longest: TLifespan := Default(TLifespan);
-  var richest: TReserveState := Default(TReserveState);
-
-  for var i := 0 to fPopulation.AgentCount - 1 do
-  begin
-    var state := fPopulation.StatePtr(i);
-    if state.Reserves <= 0.0 then
-      Continue;
-
-    Inc(living);
-    totalReserves := totalReserves + state.Reserves;
-
-    if state.Age > longest.Age then
-    begin
-      longest.AgentId := state.AgentId;
-      longest.Age := state.Age;
-    end;
-
-    if state.Reserves > richest.Reserves then
-    begin
-      richest.AgentId := state.AgentId;
-      richest.Reserves := state.Reserves;
-    end;
-  end;
-
-  fPopulationSummary.Living := living;
-  fPopulationSummary.LongestLife := longest;
-  fPopulationSummary.MaxReserves := richest;
-
-  if living > 0 then
-    fPopulationSummary.MeanReserves := totalReserves / living
+  if fPopulationSummary.Living > 0 then
+    fPopulationSummary.MeanReserves := fTickTotalReserves / fPopulationSummary.Living
   else
     fPopulationSummary.MeanReserves := 0.0;
 
-  if living > fPopulationSummary.MaxLiving then
-    fPopulationSummary.MaxLiving := living;
+  if fPopulationSummary.Living > fPopulationSummary.MaxLiving then
+    fPopulationSummary.MaxLiving := fPopulationSummary.Living;
 end;
 
 function TSimRuntime.CalculateForageGain(const State: TAgentState; const Reply: TConsumeCacheReply): Single;
@@ -628,6 +603,15 @@ begin
 
       fPopulation.AppendAgent(offspringState);
       Inc(fPopulationSummary.NewBirths);
+      Inc(fPopulationSummary.Living);
+
+      // Newborn's initial state contributes to this tick's snapshot.
+      fTickTotalReserves := fTickTotalReserves + offspringState.Reserves;
+      if offspringState.Reserves > fPopulationSummary.MaxReserves.Reserves then
+      begin
+        fPopulationSummary.MaxReserves.AgentId := offspringState.AgentId;
+        fPopulationSummary.MaxReserves.Reserves := offspringState.Reserves;
+      end;
 
       EmitAgentBorn(offspringState, State.AgentId);
 
@@ -855,6 +839,9 @@ begin
   if state.Reserves <= 0.0 then
     Exit;
 
+  // This agent is alive at tick start — count it.
+  Inc(fPopulationSummary.Living);
+
   // Age tracks ticks survived; this includes the tick where upkeep may cause death.
   Inc(state.Age);
   Inc(state.TicksSinceReproduction);
@@ -882,6 +869,7 @@ begin
     state.GestationProgress := 0;
     EmitAgentDied(state^, reservesBeforeUpkeep);
     Inc(fPopulationSummary.NewDeaths);
+    Dec(fPopulationSummary.Living);
 
     // Notify environment once at transition-to-death.
     fEnvironment.NotifyAgentDeath(state.Location, DEFAULT_DEATH_BIOMASS_AMOUNT);
@@ -896,7 +884,48 @@ begin
 
   // Post-resolution death (e.g. move cost or reproduction cost drained reserves)
   if state.Reserves <= 0.0 then
+  begin
     Inc(fPopulationSummary.NewDeaths);
+    Dec(fPopulationSummary.Living);
+  end
+  else
+  begin
+    // Accumulate snapshot stats for surviving agents at their settled end-of-tick state.
+    fTickTotalReserves := fTickTotalReserves + state.Reserves;
+
+    if state.Age > fPopulationSummary.LongestLife.Age then
+    begin
+      fPopulationSummary.LongestLife.AgentId := state.AgentId;
+      fPopulationSummary.LongestLife.Age := state.Age;
+    end;
+
+    if state.Reserves > fPopulationSummary.MaxReserves.Reserves then
+    begin
+      fPopulationSummary.MaxReserves.AgentId := state.AgentId;
+      fPopulationSummary.MaxReserves.Reserves := state.Reserves;
+    end;
+
+    if state.Action = acShelter then
+      Inc(fPopulationSummary.Sheltering);
+
+    // Chebyshev distance from birthplace to current location.
+    var gridWidth := fEnvironment.Dimensions.cx;
+    if gridWidth > 0 then
+    begin
+      var bx := state.Birthplace mod gridWidth;
+      var by := state.Birthplace div gridWidth;
+      var lx := state.Location mod gridWidth;
+      var ly := state.Location div gridWidth;
+      var dist := Abs(lx - bx);
+      if Abs(ly - by) > dist then
+        dist := Abs(ly - by);
+      if dist > fPopulationSummary.MaxDistance.Distance then
+      begin
+        fPopulationSummary.MaxDistance.AgentId := state.AgentId;
+        fPopulationSummary.MaxDistance.Distance := dist;
+      end;
+    end;
+  end;
 
   var reflectInput: TBrainReflectInput;
   reflectInput.ResolvedAction := resolved.RequestedAction;
@@ -932,9 +961,8 @@ begin
   fCurrentDayTick := Value;
   fEnvironment.DayTick := Value;
 
-  // Reset per-tick event counters
-  fPopulationSummary.NewBirths := 0;
-  fPopulationSummary.NewDeaths := 0;
+  // Reset per-tick event counters and snapshot accumulators
+  BeginTickSummary;
 
   InjectDeltaAtNightfall;
   HandleDeltaCleanupPolicy(fEnvironment.LastDeltaUpkeepReport);
@@ -971,9 +999,8 @@ begin
     end;
   end;
 
-  // Compute snapshot stats in one clean pass after all agents have ticked
-  ComputePopulationSnapshot;
-  EmitPopulationSummary;
+  // Finalize snapshot stats from inline tracking
+  FinalizeTickSummary;
 
   NotifyPhase(stpPostAgents);
 end;

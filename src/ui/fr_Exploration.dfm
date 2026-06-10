@@ -62,6 +62,14 @@ object ExplorationFrame: TExplorationFrame
     Shape = bsBottomLine
     Style = bsRaised
   end
+  object btnRun: TSpeedButton
+    Left = 400
+    Top = 18
+    Width = 65
+    Height = 25
+    Caption = 'Run'
+    OnClick = btnRunClick
+  end
   object ConditionView: TScrollBox
     Left = 3
     Top = 128
@@ -78,7 +86,9 @@ object ExplorationFrame: TExplorationFrame
     Width = 153
     Height = 25
     TabOrder = 1
+    Text = '*'
     TextHint = 'Any'
+    OnChange = edtAgentsChange
   end
   object cmbQueryList: TComboBox
     Left = 80

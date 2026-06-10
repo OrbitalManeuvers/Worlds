@@ -36,7 +36,7 @@ type
 
   TExplorationQuery = record
     Agents: TArray<TAgentId>;
-    IncludeMode: Boolean;
+    Exclude: Boolean;
     Conditions: TArray<TExplorationCondition>;
   end;
 

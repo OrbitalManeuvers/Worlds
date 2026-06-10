@@ -13,7 +13,7 @@ object PopulationSummaryFrame: TPopulationSummaryFrame
   DesignSize = (
     375
     69)
-  object Shape1: TShape
+  object shBorder: TShape
     Left = 0
     Top = 0
     Width = 375

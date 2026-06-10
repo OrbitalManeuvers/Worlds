@@ -13,15 +13,8 @@ uses
   u_AgentGenome, u_AgentTypes, u_SimPopulations,
   fr_PopulationViewer, fr_PopulationSummary,
   u_SessionParameters, u_ScratchRecorders,
+  u_DiagnosticsIntf,
   fr_AgentWatches, fr_Exploration;
-
-(*
-
-To-do:
-
-  - This content frame is presented modally. Creation/teardown desperately needs review here.
-
-*)
 
 type
   TSimulatorFrame = class(TContentFrame)
@@ -55,6 +48,12 @@ type
     PopulationSummary: TPopulationSummaryFrame;
     AgentWatches: TAgentWatchFrame;
 
+    // consumers
+    RuntimeObservers: TList<IRuntimeObserver>;
+    RuntimeControllers: TList<IRuntimeController>;
+    RuntimeSubscribers: TList<IRuntimeSubscriber>;
+
+
     // session lifetime
     procedure CreateSession;
     procedure DestroySession;
@@ -85,8 +84,7 @@ implementation
 
 uses System.IOUtils, Vcl.Graphics, Vcl.Themes, Vcl.Clipbrd,
   u_WorldsMessages, u_SessionManager, u_LogTypes, u_DiagnosticsHelpers,
-  u_SessionComposers,
-  u_DebugSessionComposers;
+  u_SessionComposers, u_DebugSessionComposers;
 
 { TSimulatorFrame }
 
@@ -100,10 +98,26 @@ procedure TSimulatorFrame.Init;
     aFrame.Anchors := aPlaceholder.Anchors;
     aPlaceholder.Hide;
     aFrame.Show;
+
+    var obs: IRuntimeObserver;
+    if Supports(aFrame, IRuntimeObserver, obs) then
+      RuntimeObservers.Add(obs);
+
+    var con: IRuntimeController;
+    if Supports(aFrame, IRuntimeController, con) then
+      RuntimeControllers.Add(con);
+
+    var sub: IRuntimeSubscriber;
+    if Supports(aFrame, IRuntimeSubscriber, sub) then
+      RuntimeSubscribers.Add(sub);
   end;
 
 begin
   inherited;
+
+  RuntimeObservers := TList<IRuntimeObserver>.Create;
+  RuntimeControllers := TList<IRuntimeController>.Create;
+  RuntimeSubscribers  := TList<IRuntimeSubscriber>.Create;
 
   { UI for controlling the session }
   Stepper := TStepperFrame.Create(Self);
@@ -113,10 +127,10 @@ begin
   Stepper.OnScratchChange := HandleScratchChange;
   Stepper.OnReset := HandleReset;
 
+  { Exploration tool }
   Explorer := TExplorationFrame.Create(Self);
+  Explorer.Name := 'exploration';
   InitFrame(Explorer, phExplorer);
-  // to-do
-
 
   { population summary }
   PopulationSummary := TPopulationSummaryFrame.Create(Self);
@@ -152,6 +166,10 @@ end;
 
 procedure TSimulatorFrame.Done;
 begin
+  RuntimeObservers.Free;
+  RuntimeControllers.Free;
+  RuntimeSubscribers.Free;
+
   DestroySession;
 
   Visualizer.Free;
@@ -200,12 +218,29 @@ end;
 
 procedure TSimulatorFrame.ConnectViewers;
 begin
+  // observers
+  for var obs in RuntimeObservers do
+    obs.ConnectRuntime(Session.Simulator.Runtime, Session.Diagnostics, Session.Controller.AfterAdvance);
+
+  // controllers
+  for var con in RuntimeControllers do
+    con.ConnectController(Session.Controller);
+
+  // event subscribers
+  for var sub in RuntimeSubscribers do
+  begin
+    var consumer: ISimEventConsumer;
+    if Supports(sub, ISimEventConsumer, consumer) then
+    begin
+      var id := Session.Diagnostics.Subscribe(consumer);
+      sub.SetSubscriptionId(id);
+    end;
+  end;
+
+
   // connections to session controller
-
-  // note: this could be standardized into .Connect() calls in ConnectViewers
-  Stepper.Controller := Session.Controller;
+//  Stepper.Controller := Session.Controller;
   Stepper.ScratchEnabled := Session.ScratchLogEnabled;
-
   // eventually: Playlists.Controller :=
 
 
@@ -226,65 +261,38 @@ begin
   names[Length(names) - 1] := 'Delta';
   ResViewer1.ApplySubstanceNames(names);
   ResViewer2.ApplySubstanceNames(names);
-
-  // connect subscriptions
-  if Assigned(PopulationSummary) then
-  begin
-    PopulationSummary.SubscriptionId := Session.Diagnostics.Subscribe(PopulationSummary);
-  end;
-
-  if Assigned(PopulationViewer) then
-  begin
-    PopulationViewer.SubscriptionId := Session.Diagnostics.Subscribe(PopulationViewer);
-    PopulationViewer.Connect(Session.Simulator.Runtime.Population);
-  end;
-
-  if Assigned(AgentWatches) then
-  begin
-    AgentWatches.SubscriptionId := Session.Diagnostics.Subscribe(AgentWatches);
-    AgentWatches.Connect(Session.Simulator.Runtime.Population);
-  end;
-
-  if Assigned(Explorer) then
-  begin
-    Explorer.Connect(Session.Controller, Session.Diagnostics, Session.Simulator.Runtime.Population);
-  end;
-
 end;
 
 procedure TSimulatorFrame.DisconnectViewers;
 begin
+  // observers
+  for var obs in RuntimeObservers do
+    obs.DisconnectRuntime(Session.Simulator.Runtime, Session.Diagnostics, Session.Controller.AfterAdvance);
+
+  // controllers
+  for var con in RuntimeControllers do
+    con.DisconnectController(Session.Controller);
+
+  // event subscribers
+  for var sub in RuntimeSubscribers do
+  begin
+    if sub.GetSubscriptionId <> 0 then
+    begin
+      Session.Diagnostics.Unsubscribe(sub.GetSubscriptionId);
+      sub.SetSubscriptionId(0);
+    end;
+  end;
+
   DeltaVisualizer.Simulator := nil;
   Visualizer.Simulator := nil;
   ResViewer1.InvalidateView;
   ResViewer2.InvalidateView;
-
-  if PopulationSummary.SubscriptionId <> 0 then
-    Session.Diagnostics.Unsubscribe(PopulationSummary.SubscriptionId);
-  PopulationSummary.SubscriptionId := 0;
-
-  if PopulationViewer.SubscriptionId <> 0 then
-    Session.Diagnostics.Unsubscribe(PopulationViewer.SubscriptionId);
-  PopulationViewer.SubscriptionId := 0;
-  PopulationViewer.Connect(nil);
-
-  if AgentWatches.SubscriptionId <> 0 then
-    Session.Diagnostics.Unsubscribe(AgentWatches.SubscriptionId);
-  AgentWatches.SubscriptionId := 0;
-  AgentWatches.Connect(nil);
-
-  if Assigned(Explorer) then
-  begin
-    Explorer.Disconnect(Session.Diagnostics);
-  end;
-
 end;
 
 procedure TSimulatorFrame.DestroySession;
 begin
   if not Assigned(Session) then
     Exit;
-  Stepper.Controller := nil;
   DisconnectViewers;
 
   Session.EndSession;
@@ -356,13 +364,6 @@ procedure TSimulatorFrame.HandleAfterRun(Sender: TObject);
 begin
   if Assigned(Session) then
     Session.AssertScratchLogReadable;
-
-  if Assigned(PopulationViewer) then
-    PopulationViewer.Step;
-
-  // agent watches
-  if Assigned(AgentWatches) then
-    AgentWatches.Step;
 
   if Assigned(ResViewer1) then
     ResViewer1.Invalidate;

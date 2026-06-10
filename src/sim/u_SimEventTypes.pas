@@ -29,12 +29,19 @@ type
     Reserves: Single;
   end;
 
+  TDistanceRecord = record
+    AgentId: TAgentId;
+    Distance: Integer;
+  end;
+
   // the state of the population at the end of a tick
   TPopulationSummary = record
     // Snapshot stats (computed in one pass after all agents tick)
     Living: Integer;
+    Sheltering: Integer;
     LongestLife: TLifespan;
     MaxReserves: TReserveState;
+    MaxDistance: TDistanceRecord;
     MeanReserves: Single;
     MaxLiving: Integer;        // high-water mark (persisted across ticks)
 

@@ -7,12 +7,13 @@ uses System.Generics.Collections,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
   Vcl.ExtCtrls, Vcl.Buttons,
 
+  u_MulticastEvents,
   u_SimEventTypes, u_ExplorationEvaluators, u_ExplorationTypes,
   u_SimDiagnostics, u_SimPopulations, u_SimControllers,
-  fr_ConditionEditor;
+  fr_ConditionEditor, u_DiagnosticsIntf, u_SimRuntimes;
 
 type
-  TExplorationFrame = class(TFrame)
+  TExplorationFrame = class(TFrame, IRuntimeObserver, IRuntimeController)
     ConditionView: TScrollBox;
     Label1: TLabel;
     btnAddCondition: TSpeedButton;
@@ -22,25 +23,41 @@ type
     Label2: TLabel;
     btnDeleteCondition: TSpeedButton;
     Bevel1: TBevel;
+    btnRun: TSpeedButton;
     procedure btnAddConditionClick(Sender: TObject);
     procedure btnDeleteConditionClick(Sender: TObject);
+    procedure btnRunClick(Sender: TObject);
+    procedure edtAgentsChange(Sender: TObject);
   private
+    fRuntime: TSimRuntime;
+    fDiagnostics: TSimDiagnosticsHub;
     fConditions: TObjectList<TConditionEditor>;
-    fSubscriptionId: Integer;
     fPopulation: TSimPopulation;
     fEvaluator: TExplorationEvaluator;
     fController: TSimController;
     fCancelled: Boolean;
     fSystemStop: Boolean;
-    procedure Temp;
+    fAgentsValid: Boolean;
+    fAgents: TList<Integer>;
+    fNextconditionId: Integer;
     procedure HandleEditorClicked(Sender: TObject);
-    procedure HandleAfterAdvance(Sender: TObject);
+    procedure HandleStatusChanged(Sender: TObject);
+    procedure HandleExplorationSystemCancel(Sender: TObject; TicksExecuted: Integer; var CanContinue: Boolean);
     procedure UpdateControls;
+
+    { IRuntimeObserver }
+    procedure ConnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
+      AfterAdvance: TMulticastEvent<TNotifyEvent>);
+    procedure DisconnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
+      AfterAdvance: TMulticastEvent<TNotifyEvent>);
+
+    { IRuntimeController }
+    procedure ConnectController(aController: TSimController);
+    procedure DisconnectController(aController: TSimController);
+
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    procedure Connect(aController: TSimController; aDiagnostics: TSimDiagnosticsHub; aPopulation: TSimPopulation);
-    procedure Disconnect(aDiagnostics: TSimDiagnosticsHub);
 
     property Cancelled: Boolean read fCancelled write fCancelled;
     property SystemStop: Boolean read fSystemStop write fSystemStop;
@@ -50,22 +67,24 @@ implementation
 
 {$R *.dfm}
 
-uses u_SimTypes, u_AgentTypes;
+uses u_SimTypes, u_AgentTypes, d_ExplorationProgressDlg;
 
 const
-  MAX_POPULATION = 1000;
+  MAX_EXPLORATION_POPULATION = 500;
+  MAX_EXPLORATION_TICKS = 1000;
 
 constructor TExplorationFrame.Create(AOwner: TComponent);
 begin
   inherited;
   fEvaluator := TExplorationEvaluator.Create;
   fConditions := TObjectList<TConditionEditor>.Create(False);
+  fAgents := TList<Integer>.Create;
+  fAgentsValid := True;
 end;
 
 destructor TExplorationFrame.Destroy;
 begin
-  Assert(fSubscriptionId = 0);
-
+  fAgents.Free;
   fConditions.Free;
   fEvaluator.Free;
   inherited;
@@ -83,40 +102,133 @@ begin
   UpdateControls;
 end;
 
-procedure TExplorationFrame.Connect(aController: TSimController; aDiagnostics: TSimDiagnosticsHub; aPopulation: TSimPopulation);
+procedure TExplorationFrame.btnRunClick(Sender: TObject);
 begin
-  Assert(Assigned(aDiagnostics));
-  Assert(Assigned(aPopulation));
-  Assert(fSubscriptionId = 0);
+  var query := Default(TExplorationQuery);
 
-  fPopulation := aPopulation;
-  fEvaluator.Population := aPopulation;
-  fSubscriptionId := aDiagnostics.Subscribe(fEvaluator);
-
-  fController := aController;
-  fController.AfterAdvance.Subscribe(HandleAfterAdvance);
-end;
-
-procedure TExplorationFrame.Disconnect(aDiagnostics: TSimDiagnosticsHub);
-begin
-  Assert(Assigned(aDiagnostics));
-  fController.AfterAdvance.Unsubscribe(HandleAfterAdvance);
-
-  if fSubscriptionId <> 0 then
+  // if there are agents specified
+  if fAgents.Count > 0 then
   begin
-    aDiagnostics.Unsubscribe(fSubscriptionId);
-    fSubscriptionId := 0;
+    SetLength(query.Agents, fAgents.Count);
+    for var i := 0 to fAgents.Count - 1 do
+      query.Agents[i] := fAgents[i];
   end;
 
-  fEvaluator.Population := nil;
+  // copy the conditions from the UI
+  for var i := 0 to fConditions.Count - 1 do
+  begin
+    if fConditions[i].Status = esOK then
+    begin
+      var len := Length(query.Conditions);
+      SetLength(query.Conditions, len + 1);
+      query.Conditions[len] := fConditions[i].Condition;
+    end;
+  end;
+
+  // execute
+  var dlg := TExplorationProgressDlg.Create(Application);
+  try
+    dlg.OnSystemCancel := HandleExplorationSystemCancel;
+    var expResult := dlg.Execute(fRuntime, fController, fEvaluator, query);
+
+    // if the result is >= 0
+    if expResult >= 0 then
+    begin
+//      query.Conditions[expResult]
+    end;
+
+  finally
+    dlg.Free;
+  end;
 end;
 
-procedure TExplorationFrame.HandleAfterAdvance(Sender: TObject);
+procedure TExplorationFrame.ConnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
+  AfterAdvance: TMulticastEvent<TNotifyEvent>);
 begin
-  // called from the controller when the tick is done
-  SystemStop := Assigned(fPopulation) and (fPopulation.AgentCount > MAX_POPULATION);
-  if not SystemStop then
-    fEvaluator.TickComplete;
+  fRuntime := aRuntime;
+  fDiagnostics := aDiagnostics;
+
+  fEvaluator.Population := fRuntime.Population;
+  fEvaluator.SubscriptionId := fDiagnostics.Subscribe(fEvaluator);
+
+  UpdateControls;
+end;
+
+procedure TExplorationFrame.DisconnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
+  AfterAdvance: TMulticastEvent<TNotifyEvent>);
+begin
+  fEvaluator.Population := nil;
+  aDiagnostics.Unsubscribe(fEvaluator.SubscriptionId);
+  fEvaluator.SubscriptionId := 0;
+end;
+
+procedure TExplorationFrame.ConnectController(aController: TSimController);
+begin
+  fController := aController;
+end;
+
+procedure TExplorationFrame.DisconnectController(aController: TSimController);
+begin
+  fController := nil;
+end;
+
+//procedure TExplorationFrame.Connect(aController: TSimController; aDiagnostics: TSimDiagnosticsHub; aPopulation: TSimPopulation);
+//begin
+//  Assert(Assigned(aDiagnostics));
+//  Assert(Assigned(aPopulation));
+//  Assert(fSubscriptionId = 0);
+//
+//  fPopulation := aPopulation;
+//  fEvaluator.Population := aPopulation;
+//  fSubscriptionId := aDiagnostics.Subscribe(fEvaluator);
+//  fController := aController;
+//
+//  UpdateControls;
+//end;
+
+//procedure TExplorationFrame.Disconnect(aDiagnostics: TSimDiagnosticsHub);
+//begin
+//  Assert(Assigned(aDiagnostics));
+//
+//  if fSubscriptionId <> 0 then
+//  begin
+//    aDiagnostics.Unsubscribe(fSubscriptionId);
+//    fSubscriptionId := 0;
+//  end;
+//
+//  fEvaluator.Population := nil;
+//end;
+
+procedure TExplorationFrame.edtAgentsChange(Sender: TObject);
+begin
+  fAgents.Clear;
+
+  var input := Trim(edtAgents.Text);
+  fAgentsValid := input = '*';
+
+  if not fAgentsValid then
+  begin
+    var parts := input.Split([',', ' ']);
+    if Length(parts) > 0 then
+    begin
+      for var item in parts do
+      begin
+        var id: Integer;
+        if TryStrToInt(item, id) then
+        begin
+          fAgentsValid := True;
+          fAgents.Add(id);
+        end
+        else
+        begin
+          fAgentsValid := False;
+          Break;
+        end;
+      end;
+    end;
+  end;
+
+  UpdateControls;
 end;
 
 procedure TExplorationFrame.HandleEditorClicked(Sender: TObject);
@@ -132,13 +244,28 @@ begin
   end;
 end;
 
+procedure TExplorationFrame.HandleExplorationSystemCancel(Sender: TObject;
+  TicksExecuted: Integer; var CanContinue: Boolean);
+begin
+  if (TicksExecuted > MAX_EXPLORATION_TICKS) or
+    (Assigned(fPopulation) and (fPopulation.AgentCount > MAX_EXPLORATION_POPULATION)) then
+    CanContinue := False;
+end;
+
+procedure TExplorationFrame.HandleStatusChanged(Sender: TObject);
+begin
+  UpdateControls;
+end;
+
 procedure TExplorationFrame.btnAddConditionClick(Sender: TObject);
 begin
   var editor := TConditionEditor.Create(Self);
   fConditions.Add(editor);
 
   editor.OnClick := HandleEditorClicked;
-  editor.name := 'c' + IntToStr(ConditionView.ControlCount + 1);
+  editor.OnStatusChange := HandleStatusChanged;
+  editor.name := 'ced' + IntToStr(fNextConditionId);
+  Inc(fNextConditionId);
   editor.Align := alTop;
   editor.Top := ConditionView.ClientHeight + 1; // make sure it's last
   editor.Parent := ConditionView;
@@ -146,34 +273,24 @@ begin
   UpdateControls;
 end;
 
-
-// this will eventually be Run
-procedure TExplorationFrame.Temp;
-begin
-  fController.Run(
-    procedure(const Date: TSimDate; var CanContinue: Boolean)
-    begin
-      CanContinue := (not Self.Cancelled) and (not Self.SystemStop);
-      if CanContinue then
-      begin
-        fEvaluator.TickComplete;
-        CanContinue := fEvaluator.StopCondition < 0;
-      end;
-
-    end
-  );
-end;
-
 procedure TExplorationFrame.UpdateControls;
 begin
   btnDeleteCondition.Enabled := False;
-  for var c in fConditions do
-    if c.Selected then
-    begin
-      btnDeleteCondition.Enabled := True;
-      Break;
-    end;
+  btnRun.Enabled := fConditions.Count > 0;
 
+  var validConditions := 0;
+  for var c in fConditions do
+  begin
+    if c.Status = esOK then
+      Inc(validConditions);
+    if c.Selected then
+      btnDeleteCondition.Enabled := True;
+    if c.Status = esError then
+      btnRun.Enabled := False;
+  end;
+
+  if (validConditions = 0) or (not fAgentsValid) then
+    btnRun.Enabled := False;
 end;
 
 end.

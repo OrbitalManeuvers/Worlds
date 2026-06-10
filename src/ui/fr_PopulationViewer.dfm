@@ -58,7 +58,6 @@ object PopulationViewFrame: TPopulationViewFrame
     ParentFont = False
     TabOrder = 0
     OnBeforeDrawItem = PopulationListBeforeDrawItem
-    ExplicitWidth = 609
     object lblDetail: TLabel
       AlignWithMargins = True
       Left = 4

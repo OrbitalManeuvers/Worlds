@@ -32,6 +32,7 @@ type
     fCondition: TExplorationCondition;
     fSelected: Boolean;
     fStatus: TEditorStatus;
+    fOnStatusChange: TNotifyEvent;
     procedure SetCondition(const Value: TExplorationCondition);
     procedure UpdateLayout;
     procedure SetSelected(const Value: Boolean);
@@ -46,6 +47,7 @@ type
     property Condition: TExplorationCondition read GetCondition write SetCondition;
     property Selected: Boolean read fSelected write SetSelected;
     property Status: TEditorStatus read fStatus;
+    property OnStatusChange: TNotifyEvent read fOnStatusChange write fOnStatusChange;
   end;
 
 implementation
@@ -104,8 +106,8 @@ end;
 
 function TConditionEditor.GetCondition: TExplorationCondition;
 begin
-  // gather UI data to fill in record based on cmbKind
-
+  // only valid when Status = ok
+  Assert(Status = esOK);
   Result := fCondition;
 end;
 
@@ -308,6 +310,9 @@ begin
     shStatus.Brush.Style := bsSolid
   else
     shStatus.Brush.Style := bsClear;
+
+  if Assigned(fOnStatusChange) then
+    fOnStatusChange(Self);
 end;
 
 

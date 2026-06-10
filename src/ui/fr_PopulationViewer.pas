@@ -7,10 +7,10 @@ uses
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ControlList,
   Vcl.StdCtrls,
 
-  u_SimPopulations, u_SimEventTypes;
+  u_SimRuntimes, u_MulticastEvents, u_DiagnosticsIntf, u_SimDiagnostics;
 
 type
-  TPopulationViewFrame = class(TFrame, ISimEventConsumer)
+  TPopulationViewFrame = class(TFrame, IRuntimeObserver)
     PopulationList: TControlList;
     lblDetail: TLabel;
     Label2: TLabel;
@@ -24,16 +24,17 @@ type
     procedure PopulationListBeforeDrawItem(AIndex: Integer; ACanvas: TCanvas;
       ARect: TRect; AState: TOwnerDrawState);
     procedure cbLivingOnlyClick(Sender: TObject);
-    procedure Consume(const aEvent: TSimEvent);
   private
+    { IRuntimeObserver }
+    procedure ConnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
+      AfterAdvance: TMulticastEvent<TNotifyEvent>);
+    procedure DisconnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
+      AfterAdvance: TMulticastEvent<TNotifyEvent>);
+    procedure HandleAfterAdvance(Sender: TObject);
+  private
+    Runtime: TSimRuntime;
     DisplayList: TArray<Integer>;
-    Population: TSimPopulation;
-    fSubscriptionId: Integer;
     procedure BuildDisplayList;
-  public
-    procedure Step;
-    procedure Connect(aPopulation: TSimPopulation);
-    property SubscriptionId: Integer read fSubscriptionId write fSubscriptionId;
   end;
 
 implementation
@@ -49,24 +50,18 @@ begin
   BuildDisplayList;
 end;
 
-procedure TPopulationViewFrame.Connect(aPopulation: TSimPopulation);
-begin
-  Population := aPopulation;
-  BuildDisplayList;
-end;
-
 procedure TPopulationViewFrame.BuildDisplayList;
 begin
   var count := 0;
 
-  if Assigned(Population) then
+  if Assigned(Runtime) then
   begin
-    if Length(DisplayList) <> Population.AgentCount then
-      SetLength(DisplayList, Population.AgentCount);
+    if Length(DisplayList) <> Runtime.Population.AgentCount then
+      SetLength(DisplayList, Runtime.Population.AgentCount);
 
-    for var index := 0 to Population.AgentCount - 1 do
+    for var index := 0 to Runtime.Population.AgentCount - 1 do
     begin
-      var state := Population.StatePtr(index);
+      var state := Runtime.Population.StatePtr(index);
       if (not cbLivingOnly.Checked) or (state.Reserves > 0.0) then
       begin
         DisplayList[count] := index;
@@ -82,20 +77,33 @@ begin
   lblPopulationCount.Caption := Format('%.04d', [count]);
 end;
 
-procedure TPopulationViewFrame.Consume(const aEvent: TSimEvent);
+procedure TPopulationViewFrame.ConnectRuntime(aRuntime: TSimRuntime;
+  aDiagnostics: TSimDiagnosticsHub; AfterAdvance: TMulticastEvent<TNotifyEvent>);
 begin
-  // on death/birth, rebuild list
-//  if aEvent.Header.Kind in [sekAgentBorn, sekAgentDied] then
-//    BuildDisplayList;
+  Runtime := aRuntime;
+  AfterAdvance.Subscribe(HandleAfterAdvance);
+end;
+
+procedure TPopulationViewFrame.DisconnectRuntime(aRuntime: TSimRuntime;
+  aDiagnostics: TSimDiagnosticsHub; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+begin
+  Runtime := nil;
+  AfterAdvance.Unsubscribe(HandleAfterAdvance);
+  BuildDisplayList;
+end;
+
+procedure TPopulationViewFrame.HandleAfterAdvance(Sender: TObject);
+begin
+  BuildDisplayList;
 end;
 
 procedure TPopulationViewFrame.PopulationListBeforeDrawItem(AIndex: Integer;
   ACanvas: TCanvas; ARect: TRect; AState: TOwnerDrawState);
 begin
-  if not Assigned(Population) then
+  if not Assigned(Runtime) then
     Exit;
 
-  var state := Population.StatePtr(AIndex); // no data moves, just a pointer
+  var state := Runtime.Population.StatePtr(AIndex); // no data moves, just a pointer
 
   if state.Reserves <= 0.0 then
   begin
@@ -139,10 +147,5 @@ begin
 
 end;
 
-procedure TPopulationViewFrame.Step;
-begin
-  if Assigned(Population) then
-    BuildDisplayList;
-end;
 
 end.

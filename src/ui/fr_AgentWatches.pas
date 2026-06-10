@@ -8,7 +8,8 @@ uses
   Vcl.ControlList, Vcl.Buttons, Vcl.StdCtrls, Vcl.Samples.Spin,
 
   u_ControlRendering, u_LogTypes, u_SimEventTypes, u_AgentTypes,
-  u_SimPopulations, u_SimTypes;
+  u_SimPopulations, u_SimTypes,
+  u_SimRuntimes, u_MulticastEvents, u_DiagnosticsIntf, u_SimDiagnostics;
 
 const
   TICK_HISTORY_LENGTH = 5;
@@ -35,7 +36,7 @@ type
     WriteIndex: Integer;
   end;
 
-  TAgentWatchFrame = class(TFrame, ISimEventConsumer)
+  TAgentWatchFrame = class(TFrame, ISimEventConsumer, IRuntimeObserver)
     WatchList: TControlList;
     edtAgentList: TEdit;
     Label2: TLabel;
@@ -51,17 +52,23 @@ type
     procedure FieldPaint(Sender: TObject);
     procedure spnRowCountChange(Sender: TObject);
   private
-    fWatches: TArray<TAgentWatchEntry>;
-    fPopulation: TSimPopulation;  // direct reference for header reads
+    Runtime: TSimRuntime;
+    Watches: TArray<TAgentWatchEntry>;
+    SubscriptionId: Integer;
   private
-    fSubscriptionId: Integer;
     procedure Consume(const Event: TSimEvent);
     procedure UpdateAgentList;
     function IndexOf(AgentId: TAgentId): Integer;
+
+  private
+    { IRuntimeObserver }
+    procedure ConnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
+      AfterAdvance: TMulticastEvent<TNotifyEvent>);
+    procedure DisconnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
+      AfterAdvance: TMulticastEvent<TNotifyEvent>);
+    procedure HandleAfterAdvance(Sender: TObject);
+
   public
-    procedure Connect(aPopulation: TSimPopulation);
-    procedure Step;
-    property SubscriptionId: Integer read fSubscriptionId write fSubscriptionId;
   end;
 
 implementation
@@ -91,11 +98,11 @@ end;
 
 function TAgentWatchFrame.IndexOf(AgentId: TAgentId): Integer;
 begin
-  if Length(fWatches) > 0 then
+  if Length(Watches) > 0 then
   begin
-    for var i := 0 to High(fWatches) do
+    for var i := 0 to High(Watches) do
     begin
-      if fWatches[i].AgentId = AgentId then
+      if Watches[i].AgentId = AgentId then
         Exit(i);
     end;
   end;
@@ -104,17 +111,35 @@ end;
 
 procedure TAgentWatchFrame.spnRowCountChange(Sender: TObject);
 begin
-  WatchList.ItemCount := Length(fWatches) * (1 + LINES_PER_TICK * spnRowCount.Value);
+  WatchList.ItemCount := Length(Watches) * (1 + LINES_PER_TICK * spnRowCount.Value);
   WatchList.Invalidate;
 end;
 
-procedure TAgentWatchFrame.Connect(aPopulation: TSimPopulation);
+procedure TAgentWatchFrame.ConnectRuntime(aRuntime: TSimRuntime;
+  aDiagnostics: TSimDiagnosticsHub; AfterAdvance: TMulticastEvent<TNotifyEvent>);
 begin
-  fPopulation := aPopulation;
+  Runtime := aRuntime;
+  AfterAdvance.Subscribe(HandleAfterAdvance);
+  SubscriptionId := aDiagnostics.Subscribe(Self);
+
   spnRowCount.MinValue := 0;
   spnRowCount.MaxValue := TICK_HISTORY_LENGTH;
   spnRowCount.Value := spnRowCount.MinValue;
 end;
+
+procedure TAgentWatchFrame.DisconnectRuntime(aRuntime: TSimRuntime;
+  aDiagnostics: TSimDiagnosticsHub; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+begin
+  aDiagnostics.Unsubscribe(SubscriptionId);
+  AfterAdvance.Unsubscribe(HandleAfterAdvance);
+  Runtime := nil;
+end;
+
+
+//procedure TAgentWatchFrame.Connect(aPopulation: TSimPopulation);
+//begin
+//  fPopulation := aPopulation;
+//end;
 
 procedure TAgentWatchFrame.Consume(const Event: TSimEvent);
 begin
@@ -132,10 +157,10 @@ begin
       data.Fields[1] := Event.DecisionTrace.AsEvaluations;
 
       // write to ring buffer
-      fWatches[index].History[fWatches[index].WriteIndex] := data;
-      fWatches[index].WriteIndex := (fWatches[index].WriteIndex + 1) mod TICK_HISTORY_LENGTH;
-      if fWatches[index].HistoryCount < TICK_HISTORY_LENGTH then
-        Inc(fWatches[index].HistoryCount);
+      Watches[index].History[Watches[index].WriteIndex] := data;
+      Watches[index].WriteIndex := (Watches[index].WriteIndex + 1) mod TICK_HISTORY_LENGTH;
+      if Watches[index].HistoryCount < TICK_HISTORY_LENGTH then
+        Inc(Watches[index].HistoryCount);
     end;
   end;
 end;
@@ -153,13 +178,13 @@ procedure TAgentWatchFrame.UpdateAgentList;
 
   procedure AddWatch(aId: TAgentId; opts: TWatchOptions);
   begin
-    var count := Length(fWatches);
-    SetLength(fWatches, count + 1);
+    var count := Length(Watches);
+    SetLength(Watches, count + 1);
 
     var watch := Default(TAgentWatchEntry);
     watch.AgentId := aId;
     watch.Options := opts;
-    fWatches[count] := watch;
+    Watches[count] := watch;
   end;
 
 begin
@@ -173,7 +198,7 @@ begin
   begin
     // if not adding, then reset the list first
     if not isAdd then
-      SetLength(fWatches, 0);
+      SetLength(Watches, 0);
 
     // check each part
     for var i := 0 to High(parts) do
@@ -194,7 +219,7 @@ begin
       end;
     end;
 
-    WatchList.ItemCount := Length(fWatches) * (1 + LINES_PER_TICK * spnRowCount.Value);
+    WatchList.ItemCount := Length(Watches) * (1 + LINES_PER_TICK * spnRowCount.Value);
     WatchList.Invalidate;
   end;
 end;
@@ -211,7 +236,7 @@ begin
   var lineIndex := AIndex mod linesPerWatch;  // 0 = header, 1..N = history lines
   var isHeader := (lineIndex = 0);
 
-  if watchIndex >= Length(fWatches) then
+  if watchIndex >= Length(Watches) then
     Exit;
 
   // adjust paintbox for row type
@@ -223,7 +248,7 @@ begin
   // set up the controls for the header or other lines
   if isHeader then
   begin
-    lblAgentId.Caption := 'A' + fWatches[watchIndex].AgentId.AsText;
+    lblAgentId.Caption := 'A' + Watches[watchIndex].AgentId.AsText;
     r.Left := shAgentId.Left + shAgentId.Width + 4;
   end
   else
@@ -252,21 +277,21 @@ begin
   var watchIndex := TWordRec(pb.Tag).High;
   var lineIndex := TWordRec(pb.Tag).Low;
 
-  if watchIndex < Length(fWatches) then
+  if watchIndex < Length(Watches) then
   begin
     if lineIndex = 0 then
-      pb.Render(fWatches[watchIndex].Header, clWindow)
+      pb.Render(Watches[watchIndex].Header, clWindow)
     else
     begin
       var tickOffset := (lineIndex - 1) div LINES_PER_TICK;
       var subLine := (lineIndex - 1) mod LINES_PER_TICK;
-      if tickOffset < fWatches[watchIndex].HistoryCount then
+      if tickOffset < Watches[watchIndex].HistoryCount then
       begin
-        var ringIdx := (fWatches[watchIndex].WriteIndex - 1 - tickOffset + TICK_HISTORY_LENGTH) mod TICK_HISTORY_LENGTH;
+        var ringIdx := (Watches[watchIndex].WriteIndex - 1 - tickOffset + TICK_HISTORY_LENGTH) mod TICK_HISTORY_LENGTH;
 
         var lineFields := Default(TLogFields);
-        lineFields.AddFields(fWatches[watchIndex].History[ringIdx].Date.AsFields);
-        lineFields.AddFields(fWatches[watchIndex].History[ringIdx].Fields[subLine]);
+        lineFields.AddFields(Watches[watchIndex].History[ringIdx].Date.AsFields);
+        lineFields.AddFields(Watches[watchIndex].History[ringIdx].Fields[subLine]);
 
         pb.Render(lineFields, clWindow);
       end;
@@ -274,21 +299,19 @@ begin
   end;
 end;
 
-procedure TAgentWatchFrame.Step;
+procedure TAgentWatchFrame.HandleAfterAdvance(Sender: TObject);
 begin
-  // apply updates from state
-  if Assigned(fPopulation) then
+  if Assigned(Runtime) then
   begin
-
-    for var watchIndex := 0 to High(fWatches) do
+    for var watchIndex := 0 to High(Watches) do
     begin
-      var agentId := fWatches[watchIndex].AgentId;
-      if agentId < fPopulation.AgentCount then
+      var agentId := Watches[watchIndex].AgentId;
+      if agentId < Runtime.Population.AgentCount then
       begin
-        var state := fPopulation.StatePtr(agentId);
+        var state := Runtime.Population.StatePtr(agentId);
         if Assigned(state) then
         begin
-          fWatches[watchIndex].Header := state.AsWatchHeader;
+          Watches[watchIndex].Header := state.AsWatchHeader;
         end;
 
       end;
@@ -296,8 +319,8 @@ begin
     end;
 
     WatchList.Invalidate;
-
   end;
 end;
+
 
 end.

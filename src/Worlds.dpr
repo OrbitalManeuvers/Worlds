@@ -89,7 +89,9 @@ uses
   u_ExplorationTypes in 'common\u_ExplorationTypes.pas',
   u_ExplorationEvaluators in 'common\u_ExplorationEvaluators.pas',
   u_ScratchRecorders in 'common\u_ScratchRecorders.pas',
-  fr_ConditionEditor in 'ui\fr_ConditionEditor.pas' {ConditionEditor: TFrame};
+  fr_ConditionEditor in 'ui\fr_ConditionEditor.pas' {ConditionEditor: TFrame},
+  d_ExplorationProgressDlg in 'ui\d_ExplorationProgressDlg.pas' {ExplorationProgressDlg},
+  u_DiagnosticsIntf in 'common\u_DiagnosticsIntf.pas';
 
 {$R *.res}
 
