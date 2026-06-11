@@ -98,22 +98,27 @@ begin
     case cond.Kind of
       ekBorn:
         if aEvent.Header.Kind = sekAgentBorn then
+        begin
           if IsAgentInScope(aEvent.AgentBorn.AgentId) then
           begin
             fStopCondition := condIndex;
             Exit;
           end;
+        end;
 
       ekDies:
         if aEvent.Header.Kind = sekAgentDied then
+        begin
           if IsAgentInScope(aEvent.AgentDied.AgentId) then
           begin
             fStopCondition := condIndex;
             Exit;
           end;
+        end;
 
       ekActionSelected:
         if aEvent.Header.Kind = sekActionResolved then
+        begin
           if IsAgentInScope(aEvent.ActionResolved.AgentId) then
           begin
             if aEvent.ActionResolved.ResolvedAction <> cond.Action.Action then
@@ -144,6 +149,7 @@ begin
             fStopCondition := condIndex;
             Exit;
           end;
+        end;
     end;
   end;
 end;
@@ -163,9 +169,6 @@ procedure TExplorationEvaluator.TickComplete(const aSummary: TPopulationSummary)
 
 begin
   if fStopCondition <> NOT_TRIGGERED then
-    Exit;
-
-  if not Assigned(fPopulation) then
     Exit;
 
   for var i := 0 to High(fStateConditions) do

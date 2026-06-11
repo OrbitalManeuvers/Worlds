@@ -10,7 +10,7 @@ uses
   u_SimRuntimes, u_MulticastEvents, u_DiagnosticsIntf, u_SimDiagnostics;
 
 type
-  TPopulationViewFrame = class(TFrame, IRuntimeObserver)
+  TPopulationViewFrame = class(TFrame, IRuntimeObserver, IDiagnosticsView)
     PopulationList: TControlList;
     lblDetail: TLabel;
     Label2: TLabel;
@@ -30,10 +30,15 @@ type
       AfterAdvance: TMulticastEvent<TNotifyEvent>);
     procedure DisconnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
       AfterAdvance: TMulticastEvent<TNotifyEvent>);
-    procedure HandleAfterAdvance(Sender: TObject);
+
+    { IDiagnosticsView }
+    procedure BeginRun;
+    procedure EndRun;
   private
     Runtime: TSimRuntime;
+    fRunning: Boolean;
     DisplayList: TArray<Integer>;
+    procedure HandleAfterAdvance(Sender: TObject);
     procedure BuildDisplayList;
   end;
 
@@ -94,6 +99,20 @@ end;
 
 procedure TPopulationViewFrame.HandleAfterAdvance(Sender: TObject);
 begin
+  if fRunning then
+    Exit;
+
+  BuildDisplayList;
+end;
+
+procedure TPopulationViewFrame.BeginRun;
+begin
+  fRunning := True;
+end;
+
+procedure TPopulationViewFrame.EndRun;
+begin
+  fRunning := False;
   BuildDisplayList;
 end;
 

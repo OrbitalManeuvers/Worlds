@@ -11,7 +11,7 @@ uses
   u_SimControllers, u_SimTypes, u_DiagnosticsIntf;
 
 type
-  TStepperFrame = class(TFrame, IRuntimeController)
+  TStepperFrame = class(TFrame, IRuntimeController, IDiagnosticsView)
     btnRecord: TPngSpeedButton;
     ilController: TPngImageList;
     btnStep: TPngSpeedButton;
@@ -33,8 +33,6 @@ type
     procedure btnScratchClick(Sender: TObject);
     procedure btnResetSimClick(Sender: TObject);
   private
-    fOnBeforeRun: TNotifyEvent;
-    fOnAfterRun: TNotifyEvent;
     fOnRecordingChange: TNotifyEvent;
   private
     fController: TSimController;
@@ -46,8 +44,8 @@ type
     function GetRecording: Boolean;
     function GetScratchEnabled: Boolean;
     procedure SetScratchEnabled(const Value: Boolean);
-    procedure BeforeRun;
-    procedure AfterRun;
+    procedure BeginRun;
+    procedure EndRun;
 
     { IRuntimeController }
     procedure ConnectController(aController: TSimController);
@@ -57,8 +55,6 @@ type
     property Recording: Boolean read GetRecording;
     property ScratchEnabled: Boolean read GetScratchEnabled write SetScratchEnabled;
 
-    property OnBeforeRun: TNotifyEvent read fOnBeforeRun write fOnBeforeRun;
-    property OnAfterRun: TNotifyEvent read fOnAfterRun write fOnAfterRun;
     property OnScratchChange: TNotifyEvent read fOnScratchChange write fOnScratchChange;
     property OnReset: TNotifyEvent read fOnReset write fOnReset;
   end;
@@ -124,17 +120,15 @@ begin
   Result := btnScratch.Down;
 end;
 
-procedure TStepperFrame.BeforeRun;
+procedure TStepperFrame.BeginRun;
 begin
-  if Assigned(fOnBeforeRun) then
-    fOnBeforeRun(Self);
+  //  !! this should be replaced by IDiagnosticsView
 end;
 
-procedure TStepperFrame.AfterRun;
+procedure TStepperFrame.EndRun;
 begin
+  //  !! this should be replaced by IDiagnosticsView
   UpdateClockDisplay;
-  if Assigned(fOnAfterRun) then
-    fOnAfterRun(Self);
 end;
 
 procedure TStepperFrame.RunToDate(aDate: TSimDate);
@@ -149,12 +143,12 @@ begin
     playlist.Add(seg);
 
     // allow clients to freeze UI updates
-    BeforeRun;
-    try
-      fController.RunPlaylist(playlist);
-    finally
-      AfterRun;
-    end;
+//    BeforeRun;
+//    try
+    fController.RunPlaylist(playlist);
+//    finally
+//      AfterRun;
+//    end;
 
   finally
     playlist.Free;
@@ -184,10 +178,11 @@ end;
 
 procedure TStepperFrame.UpdateClockDisplay;
 begin
-  if not Assigned(fController) then
-    Exit;
-  lblClock.Caption := Format('%.03d:%.03d', [fController.CurrentDate.DayNumber,
-    fController.CurrentDate.DayTick]);
+  if Assigned(fController) then
+  begin
+    lblClock.Caption := Format('%.03d:%.03d', [fController.CurrentDate.DayNumber,
+      fController.CurrentDate.DayTick]);
+  end;
 end;
 
 end.

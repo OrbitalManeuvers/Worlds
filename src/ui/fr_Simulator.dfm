@@ -94,7 +94,6 @@ inherited SimulatorFrame: TSimulatorFrame
     Caption = 'DISCARD + Close'
     TabOrder = 0
     OnClick = btnCloseClick
-    ExplicitLeft = 1181
   end
   object btnSaveClose: TButton
     Tag = 1
@@ -106,7 +105,6 @@ inherited SimulatorFrame: TSimulatorFrame
     Caption = 'SAVE + Close'
     TabOrder = 1
     OnClick = btnCloseClick
-    ExplicitLeft = 1045
   end
   object SaveProgress: TProgressBar
     Left = 16
@@ -116,7 +114,6 @@ inherited SimulatorFrame: TSimulatorFrame
     Anchors = [akLeft, akRight, akBottom]
     TabOrder = 2
     Visible = False
-    ExplicitWidth = 1013
   end
   object ViewPopup: TPopupMenu
     Left = 592

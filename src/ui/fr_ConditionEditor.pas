@@ -273,6 +273,8 @@ end;
 procedure TConditionEditor.UpdateLayout;
 begin
   // control visibility
+  cmbKind.ItemIndex := Ord(fCondition.Kind);
+
   cmbCacheType.Visible := False;
   edtParameter.Visible := False;
   cmbAction.Visible := fCondition.Kind = ekActionSelected;

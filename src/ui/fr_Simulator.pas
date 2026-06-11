@@ -52,6 +52,7 @@ type
     RuntimeObservers: TList<IRuntimeObserver>;
     RuntimeControllers: TList<IRuntimeController>;
     RuntimeSubscribers: TList<IRuntimeSubscriber>;
+    DiagnosticsViews: TList<IDiagnosticsView>;
 
 
     // session lifetime
@@ -110,6 +111,10 @@ procedure TSimulatorFrame.Init;
     var sub: IRuntimeSubscriber;
     if Supports(aFrame, IRuntimeSubscriber, sub) then
       RuntimeSubscribers.Add(sub);
+
+    var view: IDiagnosticsView;
+    if Supports(aFrame, IDiagnosticsView, view) then
+      DiagnosticsViews.Add(view);
   end;
 
 begin
@@ -118,12 +123,11 @@ begin
   RuntimeObservers := TList<IRuntimeObserver>.Create;
   RuntimeControllers := TList<IRuntimeController>.Create;
   RuntimeSubscribers  := TList<IRuntimeSubscriber>.Create;
+  DiagnosticsViews := TList<IDiagnosticsView>.Create;
 
   { UI for controlling the session }
   Stepper := TStepperFrame.Create(Self);
   InitFrame(Stepper, phStepper);
-  Stepper.OnBeforeRun := HandleBeforeRun;
-  Stepper.OnAfterRun := HandleAfterRun;
   Stepper.OnScratchChange := HandleScratchChange;
   Stepper.OnReset := HandleReset;
 
@@ -169,6 +173,7 @@ begin
   RuntimeObservers.Free;
   RuntimeControllers.Free;
   RuntimeSubscribers.Free;
+  DiagnosticsViews.Free;
 
   DestroySession;
 
@@ -218,6 +223,10 @@ end;
 
 procedure TSimulatorFrame.ConnectViewers;
 begin
+  // self
+  Session.Controller.OnBeforeRun := HandleBeforeRun;
+  Session.Controller.OnAfterRun := HandleAfterRun;
+
   // observers
   for var obs in RuntimeObservers do
     obs.ConnectRuntime(Session.Simulator.Runtime, Session.Diagnostics, Session.Controller.AfterAdvance);
@@ -310,11 +319,6 @@ begin
   end;
 end;
 
-procedure TSimulatorFrame.HandleBeforeRun(Sender: TObject);
-begin
-  Session.Recording := Stepper.Recording;
-end;
-
 procedure TSimulatorFrame.HandleReset(Sender: TObject);
 begin
   CreateSession;
@@ -360,17 +364,25 @@ begin
   Session.ScratchLogEnabled := Stepper.ScratchEnabled;
 end;
 
+procedure TSimulatorFrame.HandleBeforeRun(Sender: TObject);
+begin
+  Session.Recording := Stepper.Recording;
+  for var view in DiagnosticsViews do
+    view.BeginRun;
+end;
+
 procedure TSimulatorFrame.HandleAfterRun(Sender: TObject);
 begin
   if Assigned(Session) then
     Session.AssertScratchLogReadable;
 
+  for var view in DiagnosticsViews do
+    view.EndRun;
   if Assigned(ResViewer1) then
     ResViewer1.Invalidate;
   if Assigned(ResViewer2) then
     ResViewer2.Invalidate;
 end;
-
 
 procedure TSimulatorFrame.btnCloseClick(Sender: TObject);
 begin

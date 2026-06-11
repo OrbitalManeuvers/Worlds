@@ -73,6 +73,22 @@ const
   MAX_EXPLORATION_POPULATION = 500;
   MAX_EXPLORATION_TICKS = 1000;
 
+type
+  condition_helper = record helper for TExplorationCondition
+    procedure firstDelta;
+  end;
+
+{ query_helper }
+procedure condition_helper.firstDelta;
+begin
+  Kind := ekActionSelected;
+  Action.Action := acForage;
+  Action.Target.TType := ttCache;
+  Action.Target.Cache.Kind := ckDelta;
+  Action.Target.Cache.Index := -1;
+end;
+
+{ TExplorationFrame }
 constructor TExplorationFrame.Create(AOwner: TComponent);
 begin
   inherited;
@@ -172,33 +188,6 @@ begin
   fController := nil;
 end;
 
-//procedure TExplorationFrame.Connect(aController: TSimController; aDiagnostics: TSimDiagnosticsHub; aPopulation: TSimPopulation);
-//begin
-//  Assert(Assigned(aDiagnostics));
-//  Assert(Assigned(aPopulation));
-//  Assert(fSubscriptionId = 0);
-//
-//  fPopulation := aPopulation;
-//  fEvaluator.Population := aPopulation;
-//  fSubscriptionId := aDiagnostics.Subscribe(fEvaluator);
-//  fController := aController;
-//
-//  UpdateControls;
-//end;
-
-//procedure TExplorationFrame.Disconnect(aDiagnostics: TSimDiagnosticsHub);
-//begin
-//  Assert(Assigned(aDiagnostics));
-//
-//  if fSubscriptionId <> 0 then
-//  begin
-//    aDiagnostics.Unsubscribe(fSubscriptionId);
-//    fSubscriptionId := 0;
-//  end;
-//
-//  fEvaluator.Population := nil;
-//end;
-
 procedure TExplorationFrame.edtAgentsChange(Sender: TObject);
 begin
   fAgents.Clear;
@@ -269,6 +258,11 @@ begin
   editor.Align := alTop;
   editor.Top := ConditionView.ClientHeight + 1; // make sure it's last
   editor.Parent := ConditionView;
+
+  var firstDelta: TExplorationCondition;
+  firstDelta.firstDelta;
+  editor.Condition := firstDelta;
+
   ConditionView.ScrollInView(editor);
   UpdateControls;
 end;

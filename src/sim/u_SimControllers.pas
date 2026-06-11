@@ -18,9 +18,13 @@ type
     fCurrentSegmentIndex: Integer;
     fEndEventFired: Boolean;
     fActiveEndEvents: TSimEventKinds;
+    fOnBeforeRun: TNotifyEvent;
+    fOnAfterRun: TNotifyEvent;
     fBeforeAdvance: TMulticastEvent<TNotifyEvent>;
     fAfterAdvance: TMulticastEvent<TNotifyEvent>;
 
+    procedure BeforeRun;
+    procedure AfterRun;
     procedure NotifyBeforeAdvance;
     procedure NotifyAfterAdvance;
     function GetCurrentDate: TSimDate;
@@ -37,6 +41,10 @@ type
     // playlist specifies stop definition, optionally provide alternate method
     procedure RunPlaylist(const aPlaylist: TPlaylist; aStop: TSimStopPredicate = nil);
 
+    // these bracket Run() and RunPlaylist()
+    property OnBeforeRun: TNotifyEvent read fOnBeforeRun write fOnBeforeRun;
+    property OnAfterRun: TNotifyEvent read fOnAfterRun write fOnAfterRun;
+
     property CurrentDate: TSimDate read GetCurrentDate;
     property BeforeAdvance: TMulticastEvent<TNotifyEvent> read fBeforeAdvance;
     property AfterAdvance: TMulticastEvent<TNotifyEvent> read fAfterAdvance;
@@ -46,6 +54,18 @@ implementation
 
 
 { TSimController }
+
+procedure TSimController.AfterRun;
+begin
+  if Assigned(fOnAfterRun) then
+    fOnAfterRun(Self);
+end;
+
+procedure TSimController.BeforeRun;
+begin
+  if Assigned(fOnBeforeRun) then
+    fOnBeforeRun(Self);
+end;
 
 constructor TSimController.Create(aClock: TSimClock);
 begin
@@ -99,6 +119,7 @@ begin
 
   fRunning := True;
   fRecording := Recording;
+  BeforeRun;
   try
     while True do
     begin
@@ -115,6 +136,7 @@ begin
         Break;
     end;
   finally
+    AfterRun;
     fRunning := False;
     fRecording := False;
   end;
@@ -129,6 +151,7 @@ begin
   Assert(Assigned(aPlaylist) and (aPlaylist.Count > 0));
 
   fRunning := True;
+  BeforeRun;
   try
     for var segIndex := 0 to aPlaylist.Count - 1 do
     begin
@@ -176,6 +199,7 @@ begin
     fRunning := False;
     fRecording := False;
     fCurrentSegmentIndex := -1;
+    AfterRun;
   end;
 end;
 

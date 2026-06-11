@@ -26,6 +26,12 @@ type
     function GetSubscriptionId: Integer;
   end;
 
+  IDiagnosticsView = interface
+    ['{A1D7F4E3-92C8-4B1A-B5F7-3E6D8C0A9B24}']
+    procedure BeginRun;
+    procedure EndRun;
+  end;
+
 implementation
 
 end.

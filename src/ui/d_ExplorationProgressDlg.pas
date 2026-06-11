@@ -92,8 +92,9 @@ begin
     fController.Run(
       procedure(const Date: TSimDate; var CanContinue: Boolean)
       begin
+        Sleep(250);
         CanContinue := (not fCancelled) and (fEvaluator.StopCondition < 0);
-        if fTicksExecuted mod 50 = 0 then
+        if fTicksExecuted mod 2 = 0 then
         begin
           lblSimDate.Caption := Format('%.03d:%.03d', [Date.DayNumber, Date.DayTick]);
           Application.ProcessMessages;  // let the modal form repaint

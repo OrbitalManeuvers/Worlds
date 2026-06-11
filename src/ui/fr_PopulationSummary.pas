@@ -11,7 +11,7 @@ uses
   u_SimRuntimes, u_MulticastEvents, u_SimDiagnostics;
 
 type
-  TPopulationSummaryFrame = class(TFrame, IRuntimeObserver)
+  TPopulationSummaryFrame = class(TFrame, IRuntimeObserver, IDiagnosticsView)
     shBorder: TShape;
     pbSummary1: TPaintBox;
     pbSummary2: TPaintBox;
@@ -23,8 +23,13 @@ type
       AfterAdvance: TMulticastEvent<TNotifyEvent>);
     procedure DisconnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
       AfterAdvance: TMulticastEvent<TNotifyEvent>);
+
+    { IDiagnosticsView }
+    procedure BeginRun;
+    procedure EndRun;
   private
     Runtime: TSimRuntime;
+    fRunning: Boolean;
     Summary1: TLogFields;
     Summary2: TLogFields;
     procedure HandleAfterAdvance(Sender: TObject);
@@ -65,13 +70,26 @@ end;
 
 procedure TPopulationSummaryFrame.HandleAfterAdvance(Sender: TObject);
 begin
+  if fRunning then
+    Exit;
+
   if Assigned(Runtime) then
   begin
     Summary1 := Runtime.PopulationSummary.AsSummaryFields;
     Summary2 := Runtime.PopulationSummary.AsMaxFields;
     Invalidate;
-//    pbSummary2.Invalidate;
   end;
+end;
+
+procedure TPopulationSummaryFrame.BeginRun;
+begin
+  fRunning := True;
+end;
+
+procedure TPopulationSummaryFrame.EndRun;
+begin
+  fRunning := False;
+  HandleAfterAdvance(nil);
 end;
 
 procedure TPopulationSummaryFrame.pbSummary1Paint(Sender: TObject);
