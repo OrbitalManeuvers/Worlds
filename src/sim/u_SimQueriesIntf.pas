@@ -5,8 +5,6 @@ interface
 uses u_AgentTypes, u_SimEnvironments;
 
 type
-  TWanderFoodHintPreference = (wfpAny, wfpPreferDelta, wfpDeltaOnly);
-
   ISimQuery = interface
     ['{8C77A41D-4AD7-4232-8E5A-6469F16F1D90}']
   end;
@@ -41,12 +39,6 @@ type
     // Count is the number of valid items populated in Buffer[0..Count-1].
     // Range is clamped/quantized by the implementation to a bounded neighborhood tier.
     procedure FillLocalFoodCaches(Location: Integer; Range: Single; var Buffer: TSmellCacheInfos; out Count: Integer);
-  end;
-
-  IEnvironmentWanderQuery = interface(IEnvironmentQuery)
-    ['{242981BE-1224-40D9-847A-CFCA0A00F2F4}']
-    function FindDistantFoodHint(Location: Integer; Preference: TWanderFoodHintPreference;
-      out CellIndex: Integer; out UsedFallback: Boolean): Boolean;
   end;
 
   TSightInfo = record

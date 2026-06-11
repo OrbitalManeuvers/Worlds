@@ -215,7 +215,6 @@ begin
     ttNone: ;
     ttCell: Result := Self.Cell.AsText;
     ttCache: Result := Self.Cache.AsText;
-    ttWander: ;
   end;
 end;
 

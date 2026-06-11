@@ -31,7 +31,6 @@ type
     Action: TAgentAction;
     ActionTarget: TTarget;
     ActionAge: Integer;          // number of ticks spent doing current action
-    WanderTarget: Integer;
     GestationProgress: Integer;  // ticks spent in gestation
 
     // Learned state (decision weights)

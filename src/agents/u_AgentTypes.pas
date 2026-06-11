@@ -31,10 +31,10 @@ type
     Index: Integer;
   end;
 
-  TTargetType = (ttNone, ttCell, ttCache, ttWander);
+  TTargetType = (ttNone, ttCell, ttCache);
   TTarget = record
     case TType: TTargetType of
-      ttNone, ttWander: ();
+      ttNone: ();
       ttCell: (Cell: TCellIndex);
       ttCache: (Cache: TCacheRef);
   end;

@@ -212,9 +212,6 @@ begin
     else
       state.Location := location;
     state.Birthplace := state.Location;
-
-    state.WanderTarget := -1;
-
     state.Reserves := 5.0;
     state.TicksSinceReproduction := INITIAL_TICKS_SINCE_REPRODUCTION;
     TGeneSequencer.Populate(state.Genome.GeneMap, sequence);
@@ -281,7 +278,6 @@ begin
 
   state.AgentId := aAgentId;
   state.Location := aLocation;
-  state.WanderTarget := -1;
   state.Reserves := 5.0;
   state.TicksSinceReproduction := INITIAL_TICKS_SINCE_REPRODUCTION;
 

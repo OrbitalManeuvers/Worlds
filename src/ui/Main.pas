@@ -38,10 +38,14 @@ type
     procedure WMEndSimulation(var Msg: TMessage); message WM_END_SIMULATION;
     procedure btnSettingsClick(Sender: TObject);
 
+  private type
+    TWorldsFileType = (ftSettings, ftLibrary, ftDebugLibrary);
   private
+    ScenarioFolder: string;
     ActiveFrameType: TContentFrameType;
     ContentFrames: array[TContentFrameType] of TContentFrame;
     Settings: TProgramSettings;
+    function GetFileName(aType: TWorldsFileType): string;
     procedure ActivateContent(FrameType: TContentFrameType);
     procedure WorldLibraryModified(Sender: TObject);
     procedure UpdateControls;
@@ -85,45 +89,52 @@ const
     TSimulatorFrame
   );
 
-const
-  SCENARIO_FOLDER = 'forage\';
-
 { Utility }
 function RuntimeFilePath(const aFileName: string): string;
 begin
   Result := TPath.Combine(ExtractFilePath(Application.ExeName), aFileName);
 end;
 
-function LibraryFileName: string;
-begin
-  Result := RuntimeFilePath(SCENARIO_FOLDER + 'WorldsEnvironmentLibrary.json');
-end;
-
-function DebugLibraryFileName: string;
-begin
-  Result := RuntimeFilePath(SCENARIO_FOLDER + 'WorldsDebugLibrary.json');
-end;
-
-function SettingsFileName: string;
-begin
-  Result := RuntimeFilePath('ProgramSettings.json');
-end;
-
 
 { TMainForm }
+
+function TMainForm.GetFileName(aType: TWorldsFileType): string;
+begin
+  case aType of
+    ftSettings:
+      Result := RuntimeFilePath('ProgramSettings.json');
+    ftLibrary:
+      Result := RuntimeFilePath(TPath.Combine(ScenarioFolder, 'WorldsEnvironmentLibrary.json'));
+    ftDebugLibrary:
+      Result := RuntimeFilePath(TPath.Combine(ScenarioFolder, 'WorldsDebugLibrary.json'));
+  else
+    Result := '';
+  end;
+end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   Settings := Default(TProgramSettings);
 
+  ScenarioFolder := '';
+  for var paramIndex := 1 to ParamCount do
+  begin
+    var param := ParamStr(paramIndex);
+    if SameText(Copy(param, 1, 10), '-scenario=') then
+    begin
+      ScenarioFolder := Trim(Copy(param, 11, MaxInt));
+      Break;
+    end;
+  end;
+
   // initialize global library
   WorldLibrary := TEnvironmentLibrary.Create;
-  TSerializer.LoadLibrary(WorldLibrary, LibraryFileName());
+  TSerializer.LoadLibrary(WorldLibrary, GetFileName(ftLibrary));
   WorldLibrary.Modified := False;
   WorldLibrary.OnChange := WorldLibraryModified;
 
   // global debug library
-  DebugLibrary := TDebugLibrary.Create(DebugLibraryFileName());
+  DebugLibrary := TDebugLibrary.Create(GetFileName(ftDebugLibrary));
 
   // global session manager
   SessionManager := TSessionManager.Create;
@@ -164,7 +175,7 @@ procedure TMainForm.TryLoadSettings;
 begin
   SessionManager.LogFolder := '';
   SessionManager.ScratchFolder := '';
-  if Settings.LoadFromFile(SettingsFileName) then
+  if Settings.LoadFromFile(GetFileName(ftSettings)) then
   begin
     btnSettings.ImageIndex := -1;
     SessionManager.LogFolder := Settings.LogFolder;
@@ -199,7 +210,7 @@ procedure TMainForm.btnSaveClick(Sender: TObject);
 begin
   WorldLibrary.BeginUpdate;
   try
-    TSerializer.SaveLibrary(WorldLibrary, LibraryFileName());
+    TSerializer.SaveLibrary(WorldLibrary, GetFileName(ftLibrary));
     WorldLibrary.Modified := False;
   finally
     WorldLibrary.EndUpdate;
@@ -263,7 +274,7 @@ begin
     case result of
       mrYes:
         begin
-          TSerializer.SaveLibrary(WorldLibrary, LibraryFileName());
+          TSerializer.SaveLibrary(WorldLibrary, GetFileName(ftLibrary));
           CanClose := True;
         end;
       mrNo:

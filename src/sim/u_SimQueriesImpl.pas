@@ -7,7 +7,7 @@ uses System.SysUtils,
 
 type
   TSimQuery = class(TInterfacedObject, ISimQuery,
-    IEnvironmentSmellQuery, IEnvironmentWanderQuery,
+    IEnvironmentSmellQuery,
     IPopulationSightQuery, IPopulationCrowdingQuery)
   private
     fEnvironment: TSimEnvironment;
@@ -16,10 +16,6 @@ type
     { IEnvironmentSmellQuery }
     procedure GetGridSize(out Width, Height: Integer);
     procedure FillLocalFoodCaches(Location: Integer; Range: Single; var Buffer: TSmellCacheInfos; out Count: Integer);
-
-    { IEnvironmentWanderQuery }
-    function FindDistantFoodHint(Location: Integer; Preference: TWanderFoodHintPreference;
-      out CellIndex: Integer; out UsedFallback: Boolean): Boolean;
 
     { IPopulationSightQuery }
     procedure FillLocalAgents(Location: Integer; Range: Single; var Buffer: TSightInfos; out Count: Integer);
@@ -40,8 +36,6 @@ const
   // Ignore trace residue so smell only reports caches with meaningful mass.
   MIN_SMELL_DETECTABLE_AMOUNT = 0.02;
   MAX_LOCAL_QUERY_RADIUS_CELLS = 3;
-  MIN_FOOD_HINT_DISTANCE = 5;
-  MIN_DELTA_HINT_DISTANCE = MIN_FOOD_HINT_DISTANCE;
 
 { TSimQuery }
 
@@ -177,138 +171,6 @@ begin
 
     Inc(Count);
   end;
-end;
-
-function TSimQuery.FindDistantFoodHint(Location: Integer; Preference: TWanderFoodHintPreference;
-  out CellIndex: Integer; out UsedFallback: Boolean): Boolean;
-var
-  width: Integer;
-  height: Integer;
-  originX: Integer;
-  originY: Integer;
-
-  function IsFarEnough(const CandidateCell, MinDistance: Integer): Boolean;
-  begin
-    var targetX := CandidateCell mod width;
-    var targetY := CandidateCell div width;
-
-    var distance := Abs(targetX - originX);
-    if Abs(targetY - originY) > distance then
-      distance := Abs(targetY - originY);
-
-    Result := distance >= MinDistance;
-  end;
-
-  function TryResourceHint: Boolean;
-  begin
-    Result := False;
-
-    var resourceCount := Length(fEnvironment.Resources);
-    if resourceCount <= 0 then
-      Exit;
-
-    var direction := 1;
-    if Random(2) = 0 then
-      direction := -1;
-
-    var startIndex := Random(resourceCount);
-    for var offset := 0 to resourceCount - 1 do
-    begin
-      var index := (startIndex + (direction * offset)) mod resourceCount;
-      if index < 0 then
-        index := index + resourceCount;
-
-      var cache := fEnvironment.Resources[index];
-      if cache.Amount <= MIN_SMELL_DETECTABLE_AMOUNT then
-        Continue;
-
-      if not IsFarEnough(cache.CellIndex, MIN_FOOD_HINT_DISTANCE) then
-        Continue;
-
-      CellIndex := cache.CellIndex;
-      Exit(True);
-    end;
-  end;
-
-  function TryDeltaHint: Boolean;
-  begin
-    Result := False;
-
-    var deltaCount := Length(fEnvironment.DeltaCaches);
-    if deltaCount <= 0 then
-      Exit;
-
-    var direction := 1;
-    if Random(2) = 0 then
-      direction := -1;
-
-    var startIndex := Random(deltaCount);
-    for var offset := 0 to deltaCount - 1 do
-    begin
-      var index := (startIndex + (direction * offset)) mod deltaCount;
-      if index < 0 then
-        index := index + deltaCount;
-
-      var cache := fEnvironment.DeltaCaches[index];
-      if cache.Amount <= MIN_SMELL_DETECTABLE_AMOUNT then
-        Continue;
-
-      if not IsFarEnough(cache.CellIndex, MIN_DELTA_HINT_DISTANCE) then
-        Continue;
-
-      CellIndex := cache.CellIndex;
-      Exit(True);
-    end;
-  end;
-
-begin
-  Result := False;
-  CellIndex := -1;
-  UsedFallback := False;
-
-  if not Assigned(fEnvironment) then
-    Exit;
-
-  width := fEnvironment.Dimensions.cx;
-  height := fEnvironment.Dimensions.cy;
-  if (width <= 0) or (height <= 0) then
-    Exit;
-
-  if (Location < 0) or (Location > High(fEnvironment.Cells)) then
-    Exit;
-
-  originX := Location mod width;
-  originY := Location div width;
-
-  case Preference of
-    wfpDeltaOnly:
-    begin
-      if TryDeltaHint then
-        Exit(True);
-    end;
-
-    wfpPreferDelta:
-    begin
-      if TryDeltaHint then
-        Exit(True);
-      if TryResourceHint then
-        Exit(True);
-    end;
-
-    wfpAny:
-    begin
-      if TryResourceHint then
-        Exit(True);
-      if TryDeltaHint then
-        Exit(True);
-    end;
-  end;
-
-  // Fallback to the center of the environment — predictable and author-controllable,
-  // unlike a random corner which varies with agent position.
-  CellIndex := ((height div 2) * width) + (width div 2);
-  UsedFallback := True;
-  Result := True;
 end;
 
 function TSimQuery.CountAgentsWithinRadius(CellIndex, Radius: Integer): Integer;

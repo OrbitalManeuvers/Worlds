@@ -544,7 +544,6 @@ begin
   Result.GestationProgress := 0;
   Result.ActionTarget.TType := ttCell;
   Result.ActionTarget.Cell := ParentState.Location;
-  Result.WanderTarget := -1;
   Result.Genome := ParentState.Genome;
 
   // !! inheritance?
@@ -672,14 +671,7 @@ begin
     var moveCommand: IMoveAgentCommand;
     if Supports(fSimCommand, IMoveAgentCommand, moveCommand) then
     begin
-      var isWanderMove := Requested.Evaluations[acMove].Target.TType = ttWander;
       var moveDestination := Requested.RequestedTarget.Cell;
-
-      // Commit the wander target before attempting the move so it persists even
-      // if the move is blocked. Without this, a blocked step would leave
-      // WanderTarget at -1 and the brain would pick a new hint next tick.
-      if isWanderMove then
-        State.WanderTarget := Requested.RequestedTarget.Cell;
 
       // Decompose remote intent into a legal one-step move while preserving the
       // original destination as the action target for continuity across ticks.
@@ -730,9 +722,6 @@ begin
         var oldCell := State.Location;
         State.Location := moveReply.NewCell;
         fPopulation.NotifyLocationChanged(AgentIndex, oldCell, State.Location);
-
-        if (State.WanderTarget >= 0) and (State.Location = State.WanderTarget) then
-          State.WanderTarget := -1;
 
         // Clear the action target when the agent arrives at its destination,
         // so cognition doesn't carry a stale target into the next tick.
@@ -847,15 +836,6 @@ begin
   Inc(state.TicksSinceReproduction);
   Inc(state.TicksSinceForage);
   Inc(state.TicksSinceShelter);
-
-  // Shelter resets the forage hunger clock — sleeping is a deliberate choice to not eat,
-  // not a failure to find food. Without this, agents wander immediately on waking because
-  // TicksSinceForage accumulated all night and triggers desperation pressure.
-  if state.Action = acShelter then
-  begin
-    state.TicksSinceForage := 0;
-    state.TicksSinceShelter := 0;
-  end;
 
   var reservesAtTickStart := state.Reserves;
   var reservesBeforeUpkeep := state.Reserves;

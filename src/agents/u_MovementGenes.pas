@@ -131,7 +131,6 @@ begin
 
   // Action context shapes entry friction.
   // Signal strength drives the base score; current action shapes how easy it is to act on it.
-  // Wander and idle are low-commitment — move competes freely from those states.
   case Input.CurrentAction of
     acForage:  Result.Score := Result.Score - MOVE_FORAGE_PENALTY;
     acShelter: Result.Score := Result.Score - MOVE_SHELTER_PENALTY;

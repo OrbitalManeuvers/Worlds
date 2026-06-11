@@ -30,7 +30,7 @@ type
       var Scratch: TReflectionScratch): TCognitionReflectionOutput; override;
   end;
 
-  // knows how to wander in good times
+  // knows how to explore in good times
   TExploringCognition = class(TCognitionGene);
 
 

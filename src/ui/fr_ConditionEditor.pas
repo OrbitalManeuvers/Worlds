@@ -1,4 +1,4 @@
-unit fr_ConditionEditor;
+﻿unit fr_ConditionEditor;
 
 interface
 
@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls,
 
-  u_ExplorationTypes;
+  u_ExplorationTypes, u_AgentTypes;
 
 type
   TEditorStatus = (esOK, esError, esDisabled);
@@ -32,19 +32,32 @@ type
     fCondition: TExplorationCondition;
     fSelected: Boolean;
     fStatus: TEditorStatus;
+    fLoading: Boolean;
     fOnStatusChange: TNotifyEvent;
-    procedure SetCondition(const Value: TExplorationCondition);
+
+    // Apply methods — called from user interaction
+    procedure ApplyKind(aKind: TExplorationConditionKind);
+    procedure ApplyAction(aAction: TAgentAction);
+    procedure ApplyCacheType(aKind: TCacheKind);
+    procedure ApplyParameter;
+
+    // Shared tail
+    procedure Refresh;
     procedure UpdateLayout;
-    procedure SetSelected(const Value: Boolean);
-    function GetCondition: TExplorationCondition;
     procedure Validate;
+
+    procedure SetSelected(const Value: Boolean);
     procedure ChangeStatus(aStatus: TEditorStatus);
     function MakeParam(const aValue: string; aParamType: TParamType; out IntValue: Integer): Boolean; overload;
     function MakeParam(const aValue: string; aParamType: TParamType; out FloatValue: Single): Boolean; overload;
     function MakeParam(const aValue: string; aParamType: TParamType; out PointValue: TPoint): Boolean; overload;
   public
     constructor Create(AOwner: TComponent); override;
-    property Condition: TExplorationCondition read GetCondition write SetCondition;
+
+    procedure LoadFromCondition(const aCondition: TExplorationCondition);
+    function GetCondition: TExplorationCondition;
+
+    property Condition: TExplorationCondition read GetCondition write LoadFromCondition;
     property Selected: Boolean read fSelected write SetSelected;
     property Status: TEditorStatus read fStatus;
     property OnStatusChange: TNotifyEvent read fOnStatusChange write fOnStatusChange;
@@ -54,7 +67,7 @@ implementation
 
 {$R *.dfm}
 
-uses Vcl.Themes, u_AgentTypes;
+uses Vcl.Themes;
 
 const
   GRID_WIDTH = 256; // well-established tech debt found several places
@@ -74,6 +87,7 @@ begin
   inherited;
   shBorder.ControlStyle := shBorder.ControlStyle + [csClickEvents];
   fCondition := Default(TExplorationCondition);
+  fLoading := False;
 
   cmbKind.Items.BeginUpdate;
   try
@@ -99,55 +113,143 @@ begin
   ChangeStatus(esOK);
 end;
 
-procedure TConditionEditor.edtParameterChange(Sender: TObject);
+{ --- Apply methods: user interaction path --- }
+
+procedure TConditionEditor.ApplyKind(aKind: TExplorationConditionKind);
 begin
+  fCondition.Kind := aKind;
+
+  // Reset dependent state when kind changes.
+  if aKind = ekActionSelected then
+  begin
+    cmbAction.ItemIndex := 0;
+    fCondition.Action.Action := acMove;
+    fCondition.Action.Target := Default(TTarget);
+  end;
+
+  edtParameter.Text := '';
+  Refresh;
+end;
+
+procedure TConditionEditor.ApplyAction(aAction: TAgentAction);
+begin
+  fCondition.Action.Action := aAction;
+  fCondition.Action.Target := Default(TTarget);
+  edtParameter.Text := '';
+  Refresh;
+end;
+
+procedure TConditionEditor.ApplyCacheType(aKind: TCacheKind);
+begin
+  // Cache kind is only read during Validate — just refresh.
+  Refresh;
+end;
+
+procedure TConditionEditor.ApplyParameter;
+begin
+  Validate;
+end;
+
+{ --- Shared tail --- }
+
+procedure TConditionEditor.Refresh;
+begin
+  UpdateLayout;
+  Validate;
+end;
+
+{ --- Record → UI path --- }
+
+procedure TConditionEditor.LoadFromCondition(const aCondition: TExplorationCondition);
+
+  function CellIndexToText(aCell: TCellIndex): string;
+  begin
+    Result := Format('%d,%d', [aCell mod GRID_WIDTH, aCell div GRID_WIDTH]);
+  end;
+
+begin
+  fCondition := aCondition;
+
+  fLoading := True;
+  try
+    cmbKind.ItemIndex := Ord(fCondition.Kind);
+
+    if fCondition.Kind = ekActionSelected then
+    begin
+      cmbAction.ItemIndex := Ord(fCondition.Action.Action);
+
+      case fCondition.Action.Action of
+        acMove:
+          begin
+            if fCondition.Action.Target.TType = ttCell then
+              edtParameter.Text := CellIndexToText(fCondition.Action.Target.Cell)
+            else
+              edtParameter.Text := '';
+          end;
+        acForage:
+          begin
+            if fCondition.Action.Target.TType = ttCache then
+            begin
+              cmbCacheType.ItemIndex := Ord(fCondition.Action.Target.Cache.Kind);
+              edtParameter.Text := IntToStr(fCondition.Action.Target.Cache.Index);
+            end
+            else
+            begin
+              cmbCacheType.ItemIndex := 0;
+              edtParameter.Text := '';
+            end;
+          end;
+      else
+        edtParameter.Text := '';
+      end;
+    end
+    else
+    begin
+      case fCondition.Kind of
+        ekAwakePastTick, ekReachesAge, ekTravelsDistance:
+          edtParameter.Text := IntToStr(fCondition.IntParam);
+        ekExceedsReserves:
+          edtParameter.Text := FloatToStr(fCondition.FloatParam);
+      else
+        edtParameter.Text := '';
+      end;
+    end;
+  finally
+    fLoading := False;
+  end;
+
+  UpdateLayout;
   Validate;
 end;
 
 function TConditionEditor.GetCondition: TExplorationCondition;
 begin
-  // only valid when Status = ok
   Assert(Status = esOK);
   Result := fCondition;
 end;
 
-function TConditionEditor.MakeParam(const aValue: string; aParamType: TParamType; out IntValue: Integer): Boolean;
+{ --- UI event handlers --- }
+
+procedure TConditionEditor.cmbKindCloseUp(Sender: TObject);
 begin
-  Result := TryStrToInt(aValue, intValue);
+  ApplyKind(TExplorationConditionKind(cmbKind.ItemIndex));
 end;
 
-function TConditionEditor.MakeParam(const aValue: string; aParamType: TParamType; out FloatValue: Single): Boolean;
+procedure TConditionEditor.cmbActionCloseUp(Sender: TObject);
 begin
-  Result := TryStrToFloat(aValue, FloatValue);
+  ApplyAction(TAgentAction(cmbAction.ItemIndex));
 end;
 
-function TConditionEditor.MakeParam(const aValue: string; aParamType: TParamType; out PointValue: TPoint): Boolean;
+procedure TConditionEditor.cmbCacheTypeCloseUp(Sender: TObject);
 begin
-  Result := False;
-  var parts := aValue.Split([',']);
-  if Length(parts) = 2 then
-    Result := TryStrToInt(parts[0], PointValue.X) and TryStrToInt(parts[1], PointValue.Y);
+  ApplyCacheType(TCacheKind(cmbCacheType.ItemIndex));
 end;
 
-procedure TConditionEditor.SetCondition(const Value: TExplorationCondition);
+procedure TConditionEditor.edtParameterChange(Sender: TObject);
 begin
-  fCondition := Value;
-  UpdateLayout;
-end;
-
-procedure TConditionEditor.SetSelected(const Value: Boolean);
-begin
-  fSelected := Value;
-  if fSelected then
-  begin
-    shBorder.Pen.Color := StyleServices.GetSystemColor(clHighlight);
-    shBorder.Pen.Width := 2;
-  end
-  else
-  begin
-    shBorder.Pen.Color := StyleServices.GetSystemColor(clBtnHighlight);
-    shBorder.Pen.Width := 1;
-  end;
+  if fLoading then
+    Exit;
+  ApplyParameter;
 end;
 
 procedure TConditionEditor.shBorderMouseDown(Sender: TObject;
@@ -169,25 +271,37 @@ begin
     ChangeStatus(esDisabled);
 end;
 
-procedure TConditionEditor.cmbActionCloseUp(Sender: TObject);
-begin
-  fCondition.Action.Action := TAgentAction(cmbAction.ItemIndex);
-  UpdateLayout;
-  Validate;
-end;
+{ --- Layout and Validation --- }
 
-procedure TConditionEditor.cmbCacheTypeCloseUp(Sender: TObject);
+procedure TConditionEditor.UpdateLayout;
 begin
-  Validate;
-end;
+  cmbKind.ItemIndex := Ord(fCondition.Kind);
 
-procedure TConditionEditor.cmbKindCloseUp(Sender: TObject);
-begin
-  fCondition.Kind := TExplorationConditionKind(cmbKind.ItemIndex);
-  if fCondition.Kind = ekActionSelected then
-    cmbAction.ItemIndex := 0;
-  UpdateLayout;
-  Validate;
+  cmbCacheType.Visible := False;
+  edtParameter.Visible := False;
+  cmbAction.Visible := fCondition.Kind = ekActionSelected;
+  cmbCacheType.Visible := cmbAction.Visible and (cmbAction.ItemIndex = Ord(acForage));
+  edtParameter.Visible := cmbCacheType.Visible or
+    (cmbAction.Visible and (cmbAction.ItemIndex = Ord(acMove))) or
+    (fCondition.Kind in [ekAwakePastTick, ekReachesAge, ekTravelsDistance, ekExceedsReserves]);
+
+  // positioning
+  var x := cmbKind.Left + cmbKind.Width + 4;
+
+  if cmbAction.Visible then
+  begin
+    cmbAction.Left := x;
+    Inc(x, cmbAction.Width + 4);
+  end;
+
+  if cmbCacheType.Visible then
+  begin
+    cmbCacheType.Left := x;
+    Inc(x, cmbCacheType.Width + 4);
+  end;
+
+  if edtParameter.Visible then
+    edtParameter.Left := x;
 end;
 
 procedure TConditionEditor.Validate;
@@ -203,21 +317,16 @@ begin
 
   var valid := True;
 
-  // the only place you can do something invalid is in the editor
   if edtParameter.Visible then
   begin
     var param := Trim(edtParameter.Text);
-
-    fCondition.Kind := TExplorationConditionKind(cmbKind.ItemIndex);
 
     case fCondition.Kind of
       ekBorn: ;
       ekDies: ;
       ekActionSelected:
         begin
-          var action := TAgentAction(cmbAction.ItemIndex);
-          fCondition.Action.Action := action;
-          case action of
+          case fCondition.Action.Action of
             acMove:
               begin
                 var p: TPoint;
@@ -264,42 +373,27 @@ begin
     end;
   end;
 
-  if not Valid then
+  if not valid then
     ChangeStatus(esError)
   else
     ChangeStatus(esOK);
 end;
 
-procedure TConditionEditor.UpdateLayout;
+{ --- Helpers --- }
+
+procedure TConditionEditor.SetSelected(const Value: Boolean);
 begin
-  // control visibility
-  cmbKind.ItemIndex := Ord(fCondition.Kind);
-
-  cmbCacheType.Visible := False;
-  edtParameter.Visible := False;
-  cmbAction.Visible := fCondition.Kind = ekActionSelected;
-  cmbCacheType.Visible := cmbAction.Visible and (cmbAction.ItemIndex = Ord(acForage));
-  edtParameter.Visible := cmbCacheType.Visible or
-    (cmbAction.Visible and (cmbAction.ItemIndex = Ord(acMove))) or
-    (fCondition.Kind in [ekAwakePastTick, ekReachesAge, ekTravelsDistance, ekExceedsReserves]);
-
-  // positioning
-  var x := cmbKind.Left + cmbKind.Width + 4;
-
-  if cmbAction.Visible then
+  fSelected := Value;
+  if fSelected then
   begin
-    cmbAction.Left := x;
-    Inc(x, cmbAction.Width + 4);
-  end;
-
-  if cmbCacheType.Visible then
+    shBorder.Pen.Color := StyleServices.GetSystemColor(clHighlight);
+    shBorder.Pen.Width := 2;
+  end
+  else
   begin
-    cmbCacheType.Left := x;
-    Inc(x, cmbCacheType.Width + 4);
+    shBorder.Pen.Color := StyleServices.GetSystemColor(clBtnHighlight);
+    shBorder.Pen.Width := 1;
   end;
-
-  if edtParameter.Visible then
-    edtParameter.Left := x;
 end;
 
 procedure TConditionEditor.ChangeStatus(aStatus: TEditorStatus);
@@ -317,5 +411,22 @@ begin
     fOnStatusChange(Self);
 end;
 
+function TConditionEditor.MakeParam(const aValue: string; aParamType: TParamType; out IntValue: Integer): Boolean;
+begin
+  Result := TryStrToInt(aValue, IntValue);
+end;
+
+function TConditionEditor.MakeParam(const aValue: string; aParamType: TParamType; out FloatValue: Single): Boolean;
+begin
+  Result := TryStrToFloat(aValue, FloatValue);
+end;
+
+function TConditionEditor.MakeParam(const aValue: string; aParamType: TParamType; out PointValue: TPoint): Boolean;
+begin
+  Result := False;
+  var parts := aValue.Split([',']);
+  if Length(parts) = 2 then
+    Result := TryStrToInt(parts[0], PointValue.X) and TryStrToInt(parts[1], PointValue.Y);
+end;
 
 end.

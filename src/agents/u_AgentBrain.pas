@@ -194,29 +194,6 @@ begin
   Result.MoleculeWeights := State.ForageMoleculeWeights;
 end;
 
-function BuildWanderEvalInput(const State: TAgentState; const Context: TDecisionContext): TWanderEvalInput;
-begin
-  Result.Reserves := State.Reserves;
-  Result.ReserveDelta := State.ReserveDelta;
-  Result.TicksSinceForage := State.TicksSinceForage;
-  Result.TicksSinceShelter := State.TicksSinceShelter;
-  Result.CurrentAction := Context.CurrentAction;
-  Result.CurrentActionAge := Context.CurrentActionAge;
-  Result.IsNight := Context.IsNight;
-  Result.SolarFlux := Context.SolarFlux;
-
-  // Suppress wander only when there's a remote smell signal worth chasing.
-  // A local-only signal (distance 0) means the agent is already on the food;
-  // that should influence forage scoring, not block wander.
-  Result.HasRemoteSmellSignal := False;
-  for var detail in Context.Smell.Details do
-    if detail.Directions.Distance > 0 then
-    begin
-      Result.HasRemoteSmellSignal := True;
-      Break;
-    end;
-end;
-
 function BuildShelterEvalInput(const State: TAgentState; const Context: TDecisionContext): TShelterEvalInput;
 begin
   Result.CurrentAction := Context.CurrentAction;
@@ -360,7 +337,6 @@ begin
   Assert(Assigned(State.Genome.GeneMap.Smell));
   Assert(Assigned(State.Genome.GeneMap.ForageEval));
   Assert(Assigned(State.Genome.GeneMap.MoveEval));
-  Assert(Assigned(State.Genome.GeneMap.WanderEval));
   Assert(Assigned(State.Genome.GeneMap.Cognition));
   Assert(Assigned(State.Genome.GeneMap.ReproduceEval));
 
@@ -407,16 +383,6 @@ begin
   begin
     var moveInput := BuildMoveEvalInput(State, Scratch.DecisionContext);
     bestMove := moveEval.Evaluate(moveInput, Scratch.EvaluatorScratch.Movement);
-  end;
-
-  var wanderEval := State.Genome.GeneMap.WanderEval;
-  if Assigned(wanderEval) then
-  begin
-    var wanderInput := BuildWanderEvalInput(State, Scratch.DecisionContext);
-    var wanderMove := wanderEval.Evaluate(wanderInput, Scratch.EvaluatorScratch.Wander);
-
-    if wanderMove.Score > bestMove.Score then
-      bestMove := wanderMove;
   end;
 
   Scratch.ActionEvaluations[acMove] := bestMove;
@@ -475,34 +441,6 @@ begin
   begin
     Result.RequestedAction := State.Action;
     Result.RequestedTarget := State.ActionTarget;
-  end;
-
-  // Resolve wander intents into concrete cell targets before leaving the brain.
-  if (Result.RequestedAction = acMove) and (Result.RequestedTarget.TType = ttWander) then
-  begin
-    var targetCell := -1;
-
-    if State.WanderTarget >= 0 then
-      targetCell := State.WanderTarget
-    else
-    begin
-      var wanderQuery := Input.Query as IEnvironmentWanderQuery;
-      var hintPreference := wfpAny;
-      if State.Genome.ConverterRatings[Delta] > 0.0 then
-        hintPreference := wfpPreferDelta;
-      var hintWasFallback := False;
-
-      // Keep move output valid even when no distant hint is available.
-      if not wanderQuery.FindDistantFoodHint(State.Location, hintPreference, targetCell, hintWasFallback)
-        and (not hintWasFallback) then
-        targetCell := State.Location;
-
-      // Fallback corners are still valid stable destinations — commit them so the
-      // agent doesn't re-evaluate and pick a different corner every tick as it moves.
-    end;
-
-    Result.RequestedTarget.TType := ttCell;
-    Result.RequestedTarget.Cell := targetCell;
   end;
 
   Result.Evaluations := Scratch.ActionEvaluations;

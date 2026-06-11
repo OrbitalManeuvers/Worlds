@@ -111,6 +111,7 @@
         <VerInfo_MajorVer>0</VerInfo_MajorVer>
         <VerInfo_MinorVer>1</VerInfo_MinorVer>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=0.1.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <Debugger_RunParams>-scenario=forage</Debugger_RunParams>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win64)'!=''">
         <AppDPIAwarenessMode>PerMonitorV2</AppDPIAwarenessMode>
@@ -253,7 +254,6 @@
         <DCCReference Include="ui\u_ProgramSettings.pas"/>
         <DCCReference Include="common\u_SessionManifest.pas"/>
         <DCCReference Include="common\u_SessionTOC.pas"/>
-        <DCCReference Include="agents\u_WanderGenes.pas"/>
         <DCCReference Include="common\u_LogTypes.pas"/>
         <DCCReference Include="sim\u_SimTypes.pas"/>
         <DCCReference Include="sim\u_Playlists.pas"/>
@@ -289,11 +289,6 @@
         <DCCReference Include="ui\d_ExplorationProgressDlg.pas">
             <Form>ExplorationProgressDlg</Form>
             <FormType>dfm</FormType>
-        </DCCReference>
-        <DCCReference Include="ui\fr_DiagnosticsFrame.pas">
-            <Form>DiagnosticsFrame</Form>
-            <FormType>dfm</FormType>
-            <DesignClass>TFrame</DesignClass>
         </DCCReference>
         <DCCReference Include="common\u_DiagnosticsIntf.pas"/>
         <BuildConfiguration Include="Base">

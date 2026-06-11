@@ -18,7 +18,7 @@ const
   FORAGE_RESERVE_COMFORT_LEVEL = 8.0;   // above this, forage urgency fades
   FORAGE_HIGH_RESERVE_DISCOUNT = 0.20;  // minimum score multiplier when reserves are full
   FORAGE_PERSISTENCE_BONUS = 0.03;      // already foraging — continue eating
-  FORAGE_SEEKING_BONUS = 0.02;          // was moving/wandering toward food — reward the find
+  FORAGE_SEEKING_BONUS = 0.02;          // was moving toward food — reward the find
   FORAGE_SHELTER_PENALTY = 0.05;        // resting agent resists being pulled out by weak signals
   FORAGE_WEIGHT_EPSILON = 0.01;         // weights below this are treated as zero (learning asymptote)
 
