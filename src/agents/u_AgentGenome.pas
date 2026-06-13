@@ -64,6 +64,7 @@ type
   end;
 
   TShelterEvalInput = record
+    CircadianPressure: Single;
     CurrentAction: TAgentAction;
     CurrentActionAge: Integer;
     Reserves: Single;

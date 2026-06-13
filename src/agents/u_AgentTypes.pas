@@ -76,6 +76,7 @@ type
     SolarFluxDelta: Single;
 
     EnergyLevel: TEnergyLevel;
+    CircadianPressure: Single;
     Smell: TSmellReport;
 //    Sight: TSightReport;
 

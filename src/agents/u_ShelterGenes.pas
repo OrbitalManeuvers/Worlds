@@ -5,10 +5,11 @@ interface
 uses u_AgentTypes, u_AgentGenome, u_SimQueriesIntf;
 
 type
-  // Gen A: instinctive shelter — darkness and lack of food signal dominate.
+  // Gen A: instinctive shelter — circadian cycle, darkness, and lack of food signal dominate.
   // A less evolved agent that hides at night because it can't reason about energy trends.
   TShelterEvaluator = class(TShelterEvalGene)
   public
+    class function oldEvaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionEvalResult; //override;
     class function Evaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionEvalResult; override;
   end;
 
@@ -23,7 +24,7 @@ type
 
 implementation
 
-uses System.Math;
+uses System.Math, u_Instincts, u_SimTypes;
 
 const
   // === Gen A: instinctive shelter constants ===
@@ -74,8 +75,38 @@ const
   SHELTER_MIN_VOTE_SCORE = 0.01;
 
 { TShelterEvaluator — Gen A: instinctive }
-
 class function TShelterEvaluator.Evaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionEvalResult;
+begin
+  Scratch := Default(TShelterEvalScratch);
+  Result.Score := 0.0;
+
+  // think in terms of [0 - 1] scores.
+  // 0.5 means "This action is about 50% urgent right now"
+  // 1.0 means "I can't need this action any more than I need it right now"
+  // A full range gives control back to congnition
+
+  // Removed: energy panic. This is negative voting based on someone else's criteria, and it's
+  // not an honest evaluation of our need to sleep - MY ONE JOB.
+
+  // this generation considers the darkness a good sign to sleep
+  if Input.SolarFlux <= 0.2 then
+    Result.Score := Result.Score + Instinct.DARKNESS_DISCOMFORT;
+
+  // No food signal reinforces the instinct — nothing to do out here.
+  if not Input.HasLocalFoodSignal then
+    Result.Score := Result.Score + Instinct.NO_FOOD_SLEEP_BONUS;
+
+  // The agent's own circadian cycle is the primary driver.
+  // Express pressure as a percentage of the global max [0.0 .. 1.0].
+  var fatigue := EnsureRange(Input.CircadianPressure / MAX_CIRCADIAN_PRESSURE, 0.0, 1.0);
+  Result.Score := Result.Score + fatigue;
+
+  // clean up the result
+  Result.Score := EnsureRange(Result.Score, 0.0, 1.0);
+  Result.Target.TType := ttNone;
+end;
+
+class function TShelterEvaluator.oldEvaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionEvalResult;
 begin
   Scratch := Default(TShelterEvalScratch);
   Result.Score := 0.0;

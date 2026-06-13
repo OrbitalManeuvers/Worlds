@@ -92,7 +92,6 @@ begin
     fController.Run(
       procedure(const Date: TSimDate; var CanContinue: Boolean)
       begin
-        Sleep(250);
         CanContinue := (not fCancelled) and (fEvaluator.StopCondition < 0);
         if fTicksExecuted mod 2 = 0 then
         begin

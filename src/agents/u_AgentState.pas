@@ -20,12 +20,15 @@ type
     // Lifecycle
     Age: Integer;  // in ticks
     Reserves: Single;  // energy
+    CircadianPressure: Single;  // builds towards global max at 1.0 per tick universally
+    CircadianRelief: Single;    // per-tick decrement to pressure while sleeping
 
     // Pressure signals
     ReserveDelta: Single;  // end-of-last-live-tick reserves minus prior tick reserves
     TicksSinceReproduction: Integer;
     TicksSinceForage: Integer;
-    TicksSinceShelter: Integer;
+
+    TicksSinceShelter: Integer; // replaced by CircadianPressure
 
     // Current action
     Action: TAgentAction;

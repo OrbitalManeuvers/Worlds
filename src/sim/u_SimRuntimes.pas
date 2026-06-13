@@ -13,6 +13,10 @@ const
   SHELTER_UPKEEP_MULTIPLIER = 0.35;
   AGENT_BASE_METABOLISM = 0.01;  // physics floor: applies to all agents regardless of genome
   GENE_GENERATION_COST = 0.005;  // upkeep added per generation above A for each gene slot
+
+  STASIS_ENERGY = 5.0;  // reserves granted on full sleep recovery; energy rebalance will revisit
+  DIG_TICKS = 3;        // ticks spent digging before action progresses
+  DIG_BASE_COST = 0.03; // per-tick energy cost of digging, scaled by cell mobility
   REPRODUCTION_DURATION_TICKS = 3;
   REPRODUCTION_CHILD_START_RESERVES = 2.0;
   REPRODUCTION_FATIGUE_BASE = 0.10;
@@ -285,22 +289,38 @@ function TSimRuntime.CalculateAgentTickCost(const State: TAgentState): Single;
     Result := REPRODUCTION_FATIGUE_BASE + ((aProgress - 1) * REPRODUCTION_FATIGUE_STEP);
   end;
 
+  function DigCost(aLocation: TCellIndex): Single;
+  begin
+    var terrainPenalty := EnsureRange(fEnvironment.Cells[aLocation].Mobility, 0.0, 1.0);
+    Result := DIG_BASE_COST * (1.0 + terrainPenalty);
+  end;
+
 begin
   Result := AGENT_BASE_METABOLISM;
   var flags: TGeneSlotFlags := [];
 
-  // special charges for shelter
+  // Shelter: two phases — digging (elevated cost) and underground (reduced metabolism)
   if State.Action = acShelter then
   begin
-    Result := Result * SHELTER_UPKEEP_MULTIPLIER;
-    flags := [gsfAlwaysOn];
+    if State.ActionAge < DIG_TICKS then
+      Result := Result + DigCost(State.Location)
+    else
+    begin
+      Result := Result * SHELTER_UPKEEP_MULTIPLIER;
+      flags := [gsfAlwaysOn];
+    end;
   end;
 
-  // special charges for reproduce
+  // Reproduce: same two-phase structure
   if State.Action = acReproduce then
   begin
-    Result := Result + GestationFatigueCost(State.GestationProgress);
-    flags := [gsfAlwaysOn];
+    if State.ActionAge < DIG_TICKS then
+      Result := Result + DigCost(State.Location)
+    else
+    begin
+      Result := Result + GestationFatigueCost(State.GestationProgress);
+      flags := [gsfAlwaysOn];
+    end;
   end;
 
   // and the cost everyone pays for their gene usage
@@ -424,6 +444,7 @@ begin
   event.DecisionTrace.ForageOutcome := ForageOutcome;
   event.DecisionTrace.Evaluations := Requested.Evaluations;
   event.DecisionTrace.Summary := Requested.Trace;
+
   fDiagnostics.Emit(event);
 end;
 
@@ -835,6 +856,24 @@ begin
   Inc(state.Age);
   Inc(state.TicksSinceReproduction);
   Inc(state.TicksSinceForage);
+
+  // Circadian pressure: accumulate while awake, relieve while sleeping underground
+  if (state.Action = acShelter) and (state.ActionAge >= DIG_TICKS) then
+  begin
+    // Underground and sleeping — relieve pressure
+    state.CircadianPressure := state.CircadianPressure - state.CircadianRelief;
+    if state.CircadianPressure < 0.0 then
+      state.CircadianPressure := 0.0;
+  end
+  else
+  begin
+    // Awake (or still digging) — pressure builds toward global max
+    state.CircadianPressure := state.CircadianPressure + CIRCADIAN_COST_PER_TICK;
+    if state.CircadianPressure > MAX_CIRCADIAN_PRESSURE then
+      state.CircadianPressure := MAX_CIRCADIAN_PRESSURE;
+  end;
+
+  // !! delete
   Inc(state.TicksSinceShelter);
 
   var reservesAtTickStart := state.Reserves;
@@ -857,10 +896,18 @@ begin
   end;
 
   var requested := fPopulation.Think(aIndex, Input);
+{$IFDEF AGENT_DEBUG_TRACE}
+  var decisionContext := fPopulation.LastDecisionContext;
+{$ENDIF}
   var forageOutcome := Default(TForageOutcome);
   var stateBeforeResolution := state^;
   var resolved := ResolveRequestedStep(aIndex, state^, requested, forageOutcome);
   state.ReserveDelta := state.Reserves - reservesAtTickStart;
+
+{$IFDEF AGENT_DEBUG_TRACE}
+  fPopulation.CaptureDecisionDebugTrace(aIndex, fCurrentGlobalTick,
+    decisionContext, requested, resolved, forageOutcome);
+{$ENDIF}
 
   // Post-resolution death (e.g. move cost or reproduction cost drained reserves)
   if state.Reserves <= 0.0 then
@@ -907,17 +954,30 @@ begin
     end;
   end;
 
-  var reflectInput: TBrainReflectInput;
-  reflectInput.ResolvedAction := resolved.RequestedAction;
-  reflectInput.ResolvedTarget := resolved.RequestedTarget;
-  reflectInput.ForageOutcome := forageOutcome;
-  reflectInput.GridWidth := fEnvironment.Dimensions.cx;
-  reflectInput.PreviousLocation := stateBeforeResolution.Location;
-  reflectInput.CurrentLocation := state.Location;
-  fPopulation.Reflect(aIndex, requested, reflectInput);
+  // Skip learning during sleep — agent learns what sleep did for them on the waking tick.
+  if not ((state.Action = acShelter) and (state.ActionAge >= DIG_TICKS)) then
+  begin
+    var reflectInput: TBrainReflectInput;
+    reflectInput.ResolvedAction := resolved.RequestedAction;
+    reflectInput.ResolvedTarget := resolved.RequestedTarget;
+    reflectInput.ForageOutcome := forageOutcome;
+    reflectInput.GridWidth := fEnvironment.Dimensions.cx;
+    reflectInput.PreviousLocation := stateBeforeResolution.Location;
+    reflectInput.CurrentLocation := state.Location;
+    fPopulation.Reflect(aIndex, requested, reflectInput);
+  end;
 
   EmitActionResolved(stateBeforeResolution, state^, requested, resolved);
   EmitDecisionTrace(state^, Input, requested, resolved, forageOutcome);
+
+  // Stasis reset on wake: when transitioning out of shelter after sleeping,
+  // grant reserves proportional to how much pressure was relieved.
+  if (state.Action = acShelter) and (state.ActionAge >= DIG_TICKS)
+    and (resolved.RequestedAction <> acShelter) then
+  begin
+    var recoveryRatio := 1.0 - EnsureRange(state.CircadianPressure / MAX_CIRCADIAN_PRESSURE, 0.0, 1.0);
+    state.Reserves := STASIS_ENERGY * recoveryRatio;
+  end;
 
   fPopulation.ApplyStep(aIndex, resolved);
 end;

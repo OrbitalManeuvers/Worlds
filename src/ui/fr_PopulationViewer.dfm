@@ -132,14 +132,13 @@ object PopulationViewFrame: TPopulationViewFrame
       AlignWithMargins = True
       Left = 547
       Top = 0
-      Width = 131
+      Width = 56
       Height = 22
       Margins.Left = 8
       Margins.Top = 0
       Margins.Right = 4
       Margins.Bottom = 0
       Align = alLeft
-      AutoSize = False
       Caption = 'tsr:0000'
       Font.Charset = ANSI_CHARSET
       Font.Color = clWhite
@@ -149,7 +148,7 @@ object PopulationViewFrame: TPopulationViewFrame
       ParentFont = False
       Layout = tlCenter
       StyleElements = [seClient, seBorder]
-      ExplicitLeft = 503
+      ExplicitHeight = 15
     end
     object lblAction: TLabel
       AlignWithMargins = True

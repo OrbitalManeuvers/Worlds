@@ -25,7 +25,7 @@ type
 implementation
 
 uses System.Math,
-  u_AgentState, u_AgentGenome, u_EnvironmentTypes;
+  u_AgentState, u_AgentGenome, u_EnvironmentTypes, u_SimTypes;
 
 const
   // converter efficiency scale (energy gain weighting)
@@ -34,14 +34,14 @@ const
   SMELL_RATING_FACTOR: array[TRating] of Single = (0.00, 0.35, 0.65, 1.00, 1.20, 1.40, 1.60);
   INITIAL_TICKS_SINCE_REPRODUCTION = 0;
 
-procedure ApplyDeltaGeneGates(var State: TAgentState);
-begin
-  if Assigned(State.Genome.GeneMap.Smell) and (State.Genome.GeneMap.Smell.GetGenerationCode = 'A') then
-    State.Genome.SmellRatings[Delta] := 0.0;
-
-  if Assigned(State.Genome.GeneMap.Converter) and (State.Genome.GeneMap.Converter.GetGenerationCode = 'A') then
-    State.Genome.ConverterRatings[Delta] := 0.0;
-end;
+//procedure ApplyDeltaGeneGates(var State: TAgentState);
+//begin
+//  if Assigned(State.Genome.GeneMap.Smell) and (State.Genome.GeneMap.Smell.GetGenerationCode = 'A') then
+//    State.Genome.SmellRatings[Delta] := 0.0;
+//
+//  if Assigned(State.Genome.GeneMap.Converter) and (State.Genome.GeneMap.Converter.GetGenerationCode = 'A') then
+//    State.Genome.ConverterRatings[Delta] := 0.0;
+//end;
 
 
 { TWorldPopulator }
@@ -259,7 +259,7 @@ begin
       end;
     end;
 
-    ApplyDeltaGeneGates(state^);
+//    ApplyDeltaGeneGates(state^);
 
     aPopulation.NotifyLocationChanged(i, INVALID_CELL, state.Location);
   end;
@@ -280,6 +280,7 @@ begin
   state.Location := aLocation;
   state.Reserves := 5.0;
   state.TicksSinceReproduction := INITIAL_TICKS_SINCE_REPRODUCTION;
+  state.CircadianRelief := STANDARD_CIRCADIAN_RELIEF_RATE;
 
   sequence.AsText := aGeneSequence;
   TGeneSequencer.Populate(state.Genome.GeneMap, sequence);
@@ -301,7 +302,7 @@ begin
     state.ForageMoleculeWeights[molecule] := 1.0; // neutral
   end;
 
-  ApplyDeltaGeneGates(state^);
+//  ApplyDeltaGeneGates(state^);
 end;
 
 end.

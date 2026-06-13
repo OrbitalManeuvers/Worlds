@@ -94,6 +94,14 @@ type
     function AsFields: TLogFields;
   end;
 
+  _smellReport = record helper for TSmellReport
+    function AsFields: TLogFields;
+  end;
+
+  _smellDetails = record helper for TSmellDetails
+    function AsFields: TLogFields;
+  end;
+
 implementation
 
 // DEV HACK. This needs to be formalized once the session manifest system
@@ -496,5 +504,57 @@ begin
   Result.Add('', Self.DayNumber.AsText(3) + ':' + Integer(Ord(Self.DayTick)).AsText(3));
 end;
 
+
+{ _smellReport }
+
+function _smellReport.AsFields: TLogFields;
+const
+  molecule_label: array[TMolecule] of string = ('mA', 'mB', 'mG', 'mD');
+begin
+  Result.Clear;
+  for var i := 0 to Length(Self.Details) - 1 do
+  begin
+    var detail := Self.Details[i];
+
+    var sub: TLogFields;
+    sub.Clear;
+    sub.Add('', detail.Cache.AsText);
+    sub.Add('dis', detail.Directions.Distance.ToString);
+
+    for var m := Low(TMolecule) to High(TMolecule) do
+    begin
+      if m in detail.MoleculesPresent then
+        sub.Add(molecule_label[m], detail.MoleculeStrength[m].AsText);
+    end;
+
+    Result.Add('[' + i.AsText(2) + ']', sub.AsFieldText);
+  end;
+
+(*
+  TSmellDetails = record
+    Cache: TCacheRef;
+    CellIndex: TCellIndex;
+    Directions: TDirections;
+    MoleculesPresent: TMolecules;
+    MoleculeStrength: array[TMolecule] of Single;
+
+*)
+end;
+
+{ _smellDetails }
+function _smellDetails.AsFields: TLogFields;
+const
+  molecule_label: array[TMolecule] of string = ('mA', 'mB', 'mG', 'mD');
+begin
+  Result.Clear;
+  Result.Add('cache', Self.Cache.AsText);
+  Result.Add('loc', CellIndex.AsText);
+  Result.Add('dis', Self.Directions.Distance.ToString);
+  for var m := Low(TMolecule) to High(TMolecule) do
+  begin
+    if m in MoleculesPresent then
+      Result.Add(molecule_label[m], MoleculeStrength[m].AsText);
+  end;
+end;
 
 end.

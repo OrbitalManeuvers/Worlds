@@ -19,6 +19,9 @@ implementation
 
 uses u_EnvironmentTypes;
 
+type
+  TMoveWeightMode = (mwUniform, mwLearned);
+
 const
   // While reproducing, movement toward remote food is heavily suppressed.
   // A very strong signal can still win, but routine smell-following won't interrupt gestation.
@@ -50,9 +53,21 @@ const
   // burning energy is a bad gamble when local food is available.
   MOVE_NEGATIVE_DELTA_EXTRA_SUPPRESSION = 0.50;
 
-{ TMoveEvaluator }
+function EvaluateMovement(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch;
+  WeightMode: TMoveWeightMode): TActionEvalResult;
 
-class function TMoveEvaluator.Evaluate(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TActionEvalResult;
+  function ResolveWeight(mol: TMolecule): Single;
+  begin
+    if WeightMode = mwLearned then
+    begin
+      Result := Input.MoleculeWeights[mol];
+      if Result < MOVE_WEIGHT_EPSILON then
+        Result := 0.0;
+    end
+    else
+      Result := 1.0;
+  end;
+
 begin
   Scratch := Default(TMoveEvalScratch);
   Result := Default(TActionEvalResult);
@@ -72,12 +87,7 @@ begin
     begin
       var weightedLocal := 0.0;
       for var mol := Low(TMolecule) to High(TMolecule) do
-      begin
-        var weight := Input.MoleculeWeights[mol];
-        if weight < MOVE_WEIGHT_EPSILON then
-          weight := 0.0;
-        weightedLocal := weightedLocal + detail.MoleculeStrength[mol] * weight;
-      end;
+        weightedLocal := weightedLocal + detail.MoleculeStrength[mol] * ResolveWeight(mol);
       if weightedLocal > 0.0 then
         hasLocalFood := True;
       Continue;
@@ -85,12 +95,7 @@ begin
 
     var targetSignal := 0.0;
     for var molecule := Low(TMolecule) to High(TMolecule) do
-    begin
-      var weight := Input.MoleculeWeights[molecule];
-      if weight < MOVE_WEIGHT_EPSILON then
-        weight := 0.0;
-      targetSignal := targetSignal + detail.MoleculeStrength[molecule] * weight;
-    end;
+      targetSignal := targetSignal + detail.MoleculeStrength[molecule] * ResolveWeight(molecule);
 
     // Distance discount: remote signals lose value with distance.
     // A cache 2 cells away is worth half its raw signal; 4 away is a third.
@@ -99,14 +104,6 @@ begin
     if adjustedSignal > Result.Score then
     begin
       Result.Score := adjustedSignal;
-      Result.Target.TType := ttCell;
-      Result.Target.Cell := detail.CellIndex;
-    end;
-
-    // Preserve a small remote-move affordance when composition exists but strengths are near zero.
-    if (adjustedSignal = 0.0) and (detail.MoleculesPresent <> []) and (Result.Score < 0.01) then
-    begin
-      Result.Score := 0.01;
       Result.Target.TType := ttCell;
       Result.Target.Cell := detail.CellIndex;
     end;
@@ -144,13 +141,20 @@ begin
           Result.Score := Result.Score + MOVE_PERSISTENCE_BONUS;
       end;
   end;
+end;
 
+{ TMoveEvaluator }
+
+class function TMoveEvaluator.Evaluate(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TActionEvalResult;
+begin
+  Result := EvaluateMovement(Input, Scratch, mwUniform);
 end;
 
 { TLearningMoveEvaluator }
+
 class function TLearningMoveEvaluator.Evaluate(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TActionEvalResult;
 begin
-  Result := TMoveEvaluator.Evaluate(Input, Scratch);
+  Result := EvaluateMovement(Input, Scratch, mwLearned);
 end;
 
 class function TLearningMoveEvaluator.GetGenerationCode: Char;
@@ -161,6 +165,5 @@ end;
 initialization
   GlobalGeneRegistry.RegisterGene(TMoveEvaluator);
   GlobalGeneRegistry.RegisterGene(TLearningMoveEvaluator);
-
 
 end.

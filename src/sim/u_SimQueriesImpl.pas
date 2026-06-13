@@ -69,9 +69,6 @@ procedure TSimQuery.FillLocalFoodCaches(Location: Integer; Range: Single; var Bu
 begin
   Count := 0;
 
-  if not Assigned(fEnvironment) then
-    Exit;
-
   var width := fEnvironment.Dimensions.cx;
   var height := fEnvironment.Dimensions.cy;
   if (width <= 0) or (height <= 0) then

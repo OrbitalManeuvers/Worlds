@@ -10,6 +10,12 @@ const
   NIGHT_TICKS_PER_DAY = (CLOCK_TICKS_PER_DAY * NIGHT_TICKS_NUMERATOR) div NIGHT_TICKS_DENOMINATOR;
   DAYLIGHT_TICKS_PER_DAY = CLOCK_TICKS_PER_DAY - NIGHT_TICKS_PER_DAY;
 
+  // normal conditions are 1.25 days worth of cycle when pressure builds @ 1.0 per tick
+  // This max applies to all agents universally.
+  MAX_CIRCADIAN_PRESSURE = CLOCK_TICKS_PER_DAY + (CLOCK_TICKS_PER_DAY div 4);
+  CIRCADIAN_COST_PER_TICK = 1.0;
+  STANDARD_CIRCADIAN_RELIEF_RATE: Single = MAX_CIRCADIAN_PRESSURE / NIGHT_TICKS_PER_DAY;
+
 type
   TDayTick = 0 .. (CLOCK_TICKS_PER_DAY - 1);           // time "today"
   TDaylightTicks = 0 .. (DAYLIGHT_TICKS_PER_DAY - 1);
@@ -23,6 +29,7 @@ type
     DayTick: TDayTick;
 
     procedure Clear;
+    procedure SetDate(aGlobalTick: Integer);
     function NextSunrise: TSimDate;
     function NextSunset: TSimDate;
     function AddTicks(aCount: Integer): TSimDate;
@@ -69,6 +76,12 @@ begin
     Result.DayNumber := DayNumber + 1;
     Result.DayTick   := DAYLIGHT_TICKS_PER_DAY;
   end;
+end;
+
+procedure TSimDate.SetDate(aGlobalTick: Integer);
+begin
+  DayNumber := Integer(aGlobalTick div CLOCK_TICKS_PER_DAY);
+  DayTick   := TDayTick(aGlobalTick mod CLOCK_TICKS_PER_DAY); 
 end;
 
 end.

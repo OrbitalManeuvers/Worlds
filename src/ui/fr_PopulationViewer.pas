@@ -157,9 +157,10 @@ begin
     state.ForageMoleculeWeights[Delta].AsText]
   );
 
-  lblPressures.Caption := Format('tsf:%.04d tsr:%.04d', [
+  lblPressures.Caption := Format('tsf:%.04d tsr:%.04d cp:%s', [
     state.TicksSinceForage,
-    state.TicksSinceReproduction
+    state.TicksSinceReproduction,
+    state.CircadianPressure.AsText
   ]);
 
   lblAction.Caption := state.Action.AsText;

@@ -202,6 +202,7 @@ begin
   Result.ReserveDelta := State.ReserveDelta;
   Result.IsNight := Context.IsNight;
   Result.SolarFlux := Context.SolarFlux;
+  Result.CircadianPressure := Context.CircadianPressure;
 
   Result.HasLocalFoodSignal := False;
   for var detail in Context.Smell.Details do
@@ -317,6 +318,7 @@ begin
   DecisionContext.CurrentAction := State.Action;
   DecisionContext.CurrentActionAge := State.ActionAge;
   DecisionContext.EnergyLevel := Low(TEnergyLevel);
+  DecisionContext.CircadianPressure := State.CircadianPressure;
 
   for var action := Low(TAgentAction) to High(TAgentAction) do
   begin

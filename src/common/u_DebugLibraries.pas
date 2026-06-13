@@ -116,7 +116,6 @@ const
   KEY_SIGHT = 'sight';
   KEY_SMELL = 'smell';
   KEY_SMELL_RATINGS = 'smellRatings';
-  KEY_WANDER = 'wander';
   KEY_X = 'x';
   KEY_Y = 'y';
   KEY_AMOUNT = 'amount';
@@ -134,7 +133,6 @@ const
   GENE_INDEX_REPRODUCE = 7;
   GENE_INDEX_COGNITION = 8;
   GENE_INDEX_CONVERT = 9;
-  GENE_INDEX_WANDER = 10;
 
 type
   family_loader = record helper for TDebugGeneFamily
@@ -196,7 +194,6 @@ begin
     ApplyCodeFromJSON(genes, KEY_REPRODUCE, GENE_INDEX_REPRODUCE, sequenceText);
     ApplyCodeFromJSON(genes, KEY_COGNITION, GENE_INDEX_COGNITION, sequenceText);
     ApplyCodeFromJSON(genes, KEY_CONVERT, GENE_INDEX_CONVERT, sequenceText);
-    ApplyCodeFromJSON(genes, KEY_WANDER, GENE_INDEX_WANDER, sequenceText);
   end;
 
   GeneSequence.AsText := sequenceText;
@@ -370,6 +367,7 @@ begin
   for var i := 0 to High(fGeneFamilies) do
     if SameText(fGeneFamilies[i].Name, aName) then
       Exit(fGeneFamilies[i]);
+  Assert(False, 'geneFamily: ' + aName);
 end;
 
 function TDebugLibrary.FindProfile(const aName: string): TDebugAgentProfile;
