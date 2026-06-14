@@ -14,8 +14,7 @@ type
   TResourceCache = record
     CellIndex: Integer;      // which cell this belongs to
     SubstanceIndex: Word;    // index into Substances array
-    Amount: Single;          // mutable simulation state
-    RegenDebt: Single;       // stacked recoil cooldown (in ticks) before regrowth resumes
+    Amount: Single;          // mutable simulation state — 0.0 means dead/unseeded for today
     GrowthRate: Single;      // incorporates Biome.GrowthRate and Food.GrowthRate
   end;
 
@@ -23,7 +22,6 @@ type
   TDeltaCache = record
     CellIndex: Integer;
     Amount: Single;
-    RegenDebt: Single;
   end;
 
   TDeltaUpkeepReport = record
@@ -85,6 +83,10 @@ type
     procedure ApplyDeltaSpawnPlan(const Cells: array of Integer; const Amounts: array of Single); overload;
     function UpdateDelta(const aDayTick: TDayTick): TDeltaUpkeepReport;
     function CleanupExtinctDeltaCaches: Integer;
+
+    // Strided resource seeder: plants a seed amount in caches starting at aStartIndex,
+    // stepping by aStride. Returns the number of caches seeded this pass.
+    function SeedResources(aStartIndex, aStride: Integer; aSeedAmount: Single): Integer;
 
     property Cells: TCellArray read fCells;
     property Resources: TResourceArray read fResources;
@@ -168,11 +170,9 @@ procedure TSimEnvironment.UpdateResources(const aDayTick: TDayTick);
 const
   // Growable molecules decay at a constant rate whenever there is no sunlight.
   GROWABLE_NO_SUNLIGHT_DECAY_PER_TICK = 0.056;
-  REGEN_DEBT_DECAY_PER_TICK = 1.0;
 begin
-  // Resource growth pass is driven by current SolarFlux and per-cell modifiers.
-  // Growth slows as a cache approaches max amount, making full-cap saturation rarer.
-  // Recoil cooldown blocks growth while active and decays each tick.
+  // Resource growth: only caches with amount > 0 are alive today.
+  // Caches at 0.0 are either unseeded (seeder hasn't visited yet) or eaten (dead for today).
 
   for var cellIndex := 0 to High(fCells) do
   begin
@@ -184,24 +184,19 @@ begin
     begin
       var resIndex := start + i;
       var amount := fResources[resIndex].Amount;
-      var debt := fResources[resIndex].RegenDebt;
+
+      // Dead/unseeded caches don't grow — waiting for the seeder.
+      if amount <= 0.0 then
+        Continue;
+
       var fill := EnsureRange(amount, 0.0, 1.0);
 
       // Soft cap: growth fades out as the cache fills.
       var growth := light * fResources[resIndex].GrowthRate * (1.0 - fill);
 
-      // Recoil cooldown: no regrowth while debt is active.
-      if debt > 0.0 then
-      begin
-        debt := debt - REGEN_DEBT_DECAY_PER_TICK;
-        growth := 0.0;
-      end;
-
       var decay := 0.0;
       if light <= 0 then
         decay := GROWABLE_NO_SUNLIGHT_DECAY_PER_TICK;
-
-      fResources[resIndex].RegenDebt := Max(0.0, debt);
 
       fResources[resIndex].Amount := EnsureRange(
         amount + growth - decay,
@@ -216,6 +211,22 @@ procedure TSimEnvironment.SetDimensions(aSize: TSize);
 begin
   fDimensions := aSize;
   SetLength(fCells, aSize.cx * aSize.cy);
+end;
+
+function TSimEnvironment.SeedResources(aStartIndex, aStride: Integer; aSeedAmount: Single): Integer;
+begin
+  Result := 0;
+  var total := Length(fResources);
+  if total = 0 then
+    Exit;
+
+  var idx := aStartIndex mod total;
+  while idx < total do
+  begin
+    fResources[idx].Amount := aSeedAmount;
+    Inc(Result);
+    Inc(idx, aStride);
+  end;
 end;
 
 procedure TSimEnvironment.SetResourceCount(aCount: Integer);
@@ -246,7 +257,6 @@ var
 begin
   NewCache.CellIndex := CellIndex;
   NewCache.Amount := EnsureRange(InitialAmount, 0.0, 1.0);
-  NewCache.RegenDebt := 0.0;
 
   SetLength(fDeltaCaches, Length(fDeltaCaches) + 1);
   fDeltaCaches[High(fDeltaCaches)] := NewCache;
@@ -277,34 +287,23 @@ function TSimEnvironment.UpdateDelta(const aDayTick: TDayTick): TDeltaUpkeepRepo
 const
   DELTA_GROWTH_RATE = 0.06;
   DELTA_NO_MOON_DECAY_PER_TICK = 0.088;
-  REGEN_DEBT_DECAY_PER_TICK = 1.0;
   DELTA_EXTINCTION_EPSILON = 0.001;
 begin
   Result := Default(TDeltaUpkeepReport);
   Result.UpdatedCount := Length(fDeltaCaches);
 
-  // Mirror core resource dynamics using lunar flux: soft-cap growth under moonlight,
-  // no-moon decay when flux is absent, and debt-gated regrowth.
   for var i := 0 to High(fDeltaCaches) do
   begin
     var amount := fDeltaCaches[i].Amount;
-    var debt   := fDeltaCaches[i].RegenDebt;
-    var fill   := EnsureRange(amount, 0.0, 1.0);
+    var fill := EnsureRange(amount, 0.0, 1.0);
 
     var growth := fLunarFlux * DELTA_GROWTH_RATE * (1.0 - fill);
-
-    if debt > 0.0 then
-    begin
-      debt   := debt - REGEN_DEBT_DECAY_PER_TICK;
-      growth := 0.0;
-    end;
 
     var decay := 0.0;
     if fLunarFlux <= 0.0 then
       decay := DELTA_NO_MOON_DECAY_PER_TICK;
 
-    fDeltaCaches[i].RegenDebt := Max(0.0, debt);
-    fDeltaCaches[i].Amount    := EnsureRange(amount + growth - decay, 0.0, 1.0);
+    fDeltaCaches[i].Amount := EnsureRange(amount + growth - decay, 0.0, 1.0);
   end;
 
   for var i := 0 to High(fDeltaCaches) do

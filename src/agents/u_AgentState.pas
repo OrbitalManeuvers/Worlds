@@ -2,7 +2,7 @@ unit u_AgentState;
 
 interface
 
-uses u_AgentTypes, u_AgentGenome, u_EnvironmentTypes;
+uses u_AgentTypes, u_AgentGenome, u_EnvironmentTypes, u_SimTypes;
 
 type
   TDecisionWeights = array[TDecisionAction, TDecisionEnergy, TDecisionFoodSignal, TDecisionDayPhase] of Single;
@@ -36,15 +36,30 @@ type
     ActionAge: Integer;          // number of ticks spent doing current action
     ActionProgress: Integer;  // progress made on action, post-entry phase
 
+    // Short-term memory
+    LastForageCell: TCellIndex;  // cell where last successful forage occurred
+
     // Learned state (decision weights)
     DecisionWeights: TDecisionWeights;
     ForageMoleculeWeights: TMoleculeFactors;  // learned preference per molecule
 
     // Heritable traits (for reproduction + mutation)
     Genome: TAgentGenome;
+
+    // Initialization
+    procedure InitAgent;
   end;
 
 
 implementation
+
+{ TAgentState }
+
+procedure TAgentState.InitAgent;
+begin
+  Self := Default(TAgentState);
+  LastForageCell := -1;
+  CircadianRelief := STANDARD_CIRCADIAN_RELIEF_RATE;
+end;
 
 end.

@@ -99,6 +99,8 @@ type
     Context: TDecisionContext;
     ActionEvaluations: TActionEvaluations;
     CurrentTarget: TTarget;
+    Reserves: Single;
+    LastForageCell: TCellIndex;
   end;
 
   TCognitionOutput = record

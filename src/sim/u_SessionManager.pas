@@ -329,7 +329,7 @@ begin
   fSession := rec;
   fHasSession := True;
 
-  BuildLaunchRequest(CommonParams, StandardParams);
+  BuildLaunchRequest(rec.CommonParams, StandardParams);
 
   NotifySessionSubmitted;
 end;

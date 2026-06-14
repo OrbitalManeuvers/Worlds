@@ -202,6 +202,7 @@ begin
   for var i := 0 to aPopulation.AgentCount - 1 do
   begin
     var state := aPopulation.GetAgentState(i);
+    state.InitAgent;
     state.AgentId := nextId;
     Inc(nextId);
 
@@ -275,12 +276,12 @@ var
   sequence: TGeneSequence;
 begin
   var state := aPopulation.GetAgentState(aAgentIndex);
+  state.InitAgent;
 
   state.AgentId := aAgentId;
   state.Location := aLocation;
   state.Reserves := 5.0;
   state.TicksSinceReproduction := INITIAL_TICKS_SINCE_REPRODUCTION;
-  state.CircadianRelief := STANDARD_CIRCADIAN_RELIEF_RATE;
 
   sequence.AsText := aGeneSequence;
   TGeneSequencer.Populate(state.Genome.GeneMap, sequence);

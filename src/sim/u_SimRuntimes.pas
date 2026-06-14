@@ -78,6 +78,7 @@ type
     fDeltaPlacementCycles: TCellIndexCycles;
     fDeltaPlacementAmounts: TCellAmountCycles;
     fDeltaPlacementCycleIndex: Integer;
+    fSeedIndex: Integer;  // strided seeder offset, incremented each seeding pass
     fLastDeltaSpawnCount: Integer;
     fDeltaCleanupGraceTicksRemaining: Integer;
 
@@ -551,7 +552,7 @@ end;
 function TSimRuntime.BuildOffspringState(const ParentState: TAgentState;
   const OffspringId: Integer): TAgentState;
 begin
-  Result := Default(TAgentState);
+  Result.InitAgent;
   Result.AgentId := OffspringId;
   Result.ParentId := ParentState.AgentId;
   Result.Generation := ParentState.Generation + 1;
@@ -835,6 +836,7 @@ begin
         end;
 
         State.TicksSinceForage := 0;
+        State.LastForageCell := State.Location;
 
         if cacheRef.Kind = ckDelta then
           EmitDeltaConsumed(State, cacheRef, ForageOutcome.Consumed, ForageOutcome.Gain);
@@ -1004,8 +1006,25 @@ begin
 end;
 
 procedure TSimRuntime.SetDayTick(const Value: TDayTick);
+const
+  SEED_STRIDE = 7;          // visit every 7th cache per pass — full coverage in 7 passes
+  SEED_INTERVAL = 5;        // seed every 5 ticks during the seeding window
+  SEED_AMOUNT = 0.05;       // initial sprout amount planted by the seeder
+  SEED_WINDOW = DAYLIGHT_TICKS_PER_DAY div 2;  // seed during first half of daylight
 begin
   var previousSolarFlux := fEnvironment.SolarFlux;
+
+  fCurrentDayTick := Value;
+  fEnvironment.DayTick := Value;
+
+  // Strided resource seeder: plant seed amounts in caches over the first half of the day.
+  if (Value < SEED_WINDOW) and (Value mod SEED_INTERVAL = 0) then
+  begin
+    fEnvironment.SeedResources(fSeedIndex, SEED_STRIDE, SEED_AMOUNT);
+    Inc(fSeedIndex);
+    if fSeedIndex >= SEED_STRIDE then
+      fSeedIndex := 0;
+  end;
 
   fCurrentDayTick := Value;
   fEnvironment.DayTick := Value;

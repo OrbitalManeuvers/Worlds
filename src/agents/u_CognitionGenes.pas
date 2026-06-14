@@ -36,7 +36,7 @@ type
 
 implementation
 
-uses System.Math, u_EnvironmentTypes, u_SimTypes;
+uses System.Math, u_EnvironmentTypes, u_SimTypes, u_Instincts;
 
 type
   TActionContinuationParams = record
@@ -175,6 +175,24 @@ begin
   // Avoid sticky carry-over actions when no action has positive support this tick.
   if bestScore <= 0.0 then
   begin
+    // Forage memory fallback: if the agent has nowhere to go and remembers where it
+    // last ate, head there. Comfortable agents wait a tick first (food might appear
+    // locally); hungry agents go immediately.
+    if (Input.LastForageCell >= 0)
+      and (Input.LastForageCell <> Input.Context.Location) then
+    begin
+      var patient := (Input.Reserves >= Instinct.ENERGY_COMFORT_LEVEL)
+        and (Input.Context.CurrentActionAge < 2);
+
+      if not patient then
+      begin
+        Result.RequestedAction := acMove;
+        Result.RequestedTarget.TType := ttCell;
+        Result.RequestedTarget.Cell := Input.LastForageCell;
+        Exit;
+      end;
+    end;
+
     Result.RequestedAction := acIdle;
     Result.RequestedTarget.TType := ttCell;
     Result.RequestedTarget.Cell := Input.Context.Location;

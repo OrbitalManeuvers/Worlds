@@ -27,12 +27,6 @@ implementation
 
 uses System.Math, u_AgentState, u_AgentTypes;
 
-const
-  // Recoil debt added per successful consume event.
-  // Debt is interpreted as cooldown ticks and is paid down by environment ticks.
-  CONSUMPTION_REGEN_DEBT_PER_CONSUME = 2.0;
-  CONSUMPTION_REGEN_DEBT_MAX = 6.0;
-
 
 { TSimCommand }
 
@@ -65,11 +59,6 @@ begin
 
         var remaining := available - consumed;
         fEnvironment.Resources[cacheIndex].Amount := remaining;
-
-        // Every successful bite adds recoil cooldown debt.
-        // Repeated/parallel foraging compounds this debt up to a cap.
-        var debt := fEnvironment.Resources[cacheIndex].RegenDebt + CONSUMPTION_REGEN_DEBT_PER_CONSUME;
-        fEnvironment.Resources[cacheIndex].RegenDebt := Min(CONSUMPTION_REGEN_DEBT_MAX, debt);
 
         Reply.ConsumedAmount := consumed;
         Reply.RemainingAmount := fEnvironment.Resources[cacheIndex].Amount;

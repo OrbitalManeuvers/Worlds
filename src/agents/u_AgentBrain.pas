@@ -224,11 +224,13 @@ begin
 end;
 
 function BuildCognitionInput(const Context: TDecisionContext; const ActionEvaluations: TActionEvaluations;
-  const CurrentTarget: TTarget): TCognitionInput;
+  const CurrentTarget: TTarget; const Reserves: Single; const LastForageCell: TCellIndex): TCognitionInput;
 begin
   Result.Context := Context;
   Result.ActionEvaluations := ActionEvaluations;
   Result.CurrentTarget := CurrentTarget;
+  Result.Reserves := Reserves;
+  Result.LastForageCell := LastForageCell;
 end;
 
 function BuildWeightedEvaluations(const State: TAgentState; const Buckets: TDecisionBuckets;
@@ -424,7 +426,8 @@ begin
   if Assigned(cognitionGene) then
   begin
     var weightedEvaluations := BuildWeightedEvaluations(State, Result.DecisionBuckets, Scratch.ActionEvaluations);
-    var cognitionInput := BuildCognitionInput(Scratch.DecisionContext, weightedEvaluations, State.ActionTarget);
+    var cognitionInput := BuildCognitionInput(Scratch.DecisionContext, weightedEvaluations,
+      State.ActionTarget, State.Reserves, State.LastForageCell);
     var cognitionOutput := cognitionGene.Decide(cognitionInput, Scratch.EvaluatorScratch.Cognition);
 
     Result.RequestedAction := cognitionOutput.RequestedAction;

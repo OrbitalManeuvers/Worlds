@@ -12,7 +12,7 @@ type
 
 implementation
 
-uses u_EnvironmentTypes, System.Math;
+uses u_EnvironmentTypes, System.Math, u_Instincts;
 
 const
   FORAGE_RESERVE_COMFORT_LEVEL = 8.0;   // above this, forage urgency fades
@@ -45,6 +45,11 @@ begin
         weight := 0.0;
       targetSignal := targetSignal + detail.MoleculeStrength[molecule] * weight;
     end;
+
+    // Instinct: ignore caches that aren't "ripe" yet — too small to be worth eating.
+    // Lets tiny caches grow into a real meal instead of being consumed immediately.
+    if targetSignal < Instinct.MIN_FORAGE_SIGNAL then
+      Continue;
 
     if targetSignal > Result.Score then
     begin
