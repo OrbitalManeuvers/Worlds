@@ -60,6 +60,10 @@ begin
         var remaining := available - consumed;
         fEnvironment.Resources[cacheIndex].Amount := remaining;
 
+        // Consumption adds recoil debt — the plant diverts energy to repair, blocking growth.
+        var debt := fEnvironment.Resources[cacheIndex].RegenDebt + 2.0;
+        fEnvironment.Resources[cacheIndex].RegenDebt := Min(6.0, debt);
+
         Reply.ConsumedAmount := consumed;
         Reply.RemainingAmount := fEnvironment.Resources[cacheIndex].Amount;
         Result := consumed > 0.0;
@@ -79,6 +83,10 @@ begin
 
         var remaining := available - consumed;
         fEnvironment.DeltaCaches[cacheIndex].Amount := remaining;
+
+        // Same recoil mechanic as regular resources.
+        var debt := fEnvironment.DeltaCaches[cacheIndex].RegenDebt + 2.0;
+        fEnvironment.DeltaCaches[cacheIndex].RegenDebt := Min(6.0, debt);
 
         Reply.ConsumedAmount := consumed;
         Reply.RemainingAmount := fEnvironment.DeltaCaches[cacheIndex].Amount;

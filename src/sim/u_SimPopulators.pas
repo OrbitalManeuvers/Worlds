@@ -183,7 +183,7 @@ begin
     aPopulation.SetCellCount(0);
 
   aPopulation.AgentCount := aParams.Population.AgentCount;
-  nextId := 1;
+  nextId := 0;
 
   sequence.Init;
   sequence.CognitionGen :='B';

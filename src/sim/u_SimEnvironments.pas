@@ -15,6 +15,7 @@ type
     CellIndex: Integer;      // which cell this belongs to
     SubstanceIndex: Word;    // index into Substances array
     Amount: Single;          // mutable simulation state — 0.0 means dead/unseeded for today
+    RegenDebt: Single;       // recoil cooldown (in ticks) before regrowth resumes after consumption
     GrowthRate: Single;      // incorporates Biome.GrowthRate and Food.GrowthRate
   end;
 
@@ -22,6 +23,7 @@ type
   TDeltaCache = record
     CellIndex: Integer;
     Amount: Single;
+    RegenDebt: Single;
   end;
 
   TDeltaUpkeepReport = record
@@ -168,12 +170,9 @@ end;
 
 procedure TSimEnvironment.UpdateResources(const aDayTick: TDayTick);
 const
-  // Growable molecules decay at a constant rate whenever there is no sunlight.
   GROWABLE_NO_SUNLIGHT_DECAY_PER_TICK = 0.056;
+  REGEN_DEBT_DECAY_PER_TICK = 1.0;
 begin
-  // Resource growth: only caches with amount > 0 are alive today.
-  // Caches at 0.0 are either unseeded (seeder hasn't visited yet) or eaten (dead for today).
-
   for var cellIndex := 0 to High(fCells) do
   begin
     var light := fSolarFlux * fCells[cellIndex].Sunlight;
@@ -185,24 +184,35 @@ begin
       var resIndex := start + i;
       var amount := fResources[resIndex].Amount;
 
-      // Dead/unseeded caches don't grow — waiting for the seeder.
+      // Dead/unseeded caches don't participate — waiting for the seeder.
       if amount <= 0.0 then
         Continue;
 
+      var debt := fResources[resIndex].RegenDebt;
       var fill := EnsureRange(amount, 0.0, 1.0);
 
       // Soft cap: growth fades out as the cache fills.
       var growth := light * fResources[resIndex].GrowthRate * (1.0 - fill);
 
+      // Regen debt: recoil from being consumed. Blocks growth while active, decays per tick.
+      if debt > 0.0 then
+      begin
+        debt := debt - REGEN_DEBT_DECAY_PER_TICK;
+        growth := 0.0;
+      end;
+
       var decay := 0.0;
       if light <= 0 then
         decay := GROWABLE_NO_SUNLIGHT_DECAY_PER_TICK;
 
-      fResources[resIndex].Amount := EnsureRange(
-        amount + growth - decay,
-        0.0,
-        1.0
-      );
+      var newAmount := EnsureRange(amount + growth - decay, 0.0, 1.0);
+
+      // When amount reaches zero, clear debt — cache is now pristine for next seeding.
+      if newAmount <= 0.0 then
+        debt := 0.0;
+
+      fResources[resIndex].RegenDebt := Max(0.0, debt);
+      fResources[resIndex].Amount := newAmount;
     end;
   end;
 end;
@@ -223,7 +233,12 @@ begin
   var idx := aStartIndex mod total;
   while idx < total do
   begin
-    fResources[idx].Amount := aSeedAmount;
+    // Only seed pristine caches (amount = 0 and no lingering debt)
+    if fResources[idx].Amount <= 0.0 then
+    begin
+      fResources[idx].Amount := aSeedAmount;
+      fResources[idx].RegenDebt := 0.0;
+    end;
     Inc(Result);
     Inc(idx, aStride);
   end;
@@ -257,6 +272,7 @@ var
 begin
   NewCache.CellIndex := CellIndex;
   NewCache.Amount := EnsureRange(InitialAmount, 0.0, 1.0);
+  NewCache.RegenDebt := 0.0;
 
   SetLength(fDeltaCaches, Length(fDeltaCaches) + 1);
   fDeltaCaches[High(fDeltaCaches)] := NewCache;
@@ -287,6 +303,7 @@ function TSimEnvironment.UpdateDelta(const aDayTick: TDayTick): TDeltaUpkeepRepo
 const
   DELTA_GROWTH_RATE = 0.06;
   DELTA_NO_MOON_DECAY_PER_TICK = 0.088;
+  REGEN_DEBT_DECAY_PER_TICK = 1.0;
   DELTA_EXTINCTION_EPSILON = 0.001;
 begin
   Result := Default(TDeltaUpkeepReport);
@@ -295,15 +312,23 @@ begin
   for var i := 0 to High(fDeltaCaches) do
   begin
     var amount := fDeltaCaches[i].Amount;
-    var fill := EnsureRange(amount, 0.0, 1.0);
+    var debt   := fDeltaCaches[i].RegenDebt;
+    var fill   := EnsureRange(amount, 0.0, 1.0);
 
     var growth := fLunarFlux * DELTA_GROWTH_RATE * (1.0 - fill);
+
+    if debt > 0.0 then
+    begin
+      debt   := debt - REGEN_DEBT_DECAY_PER_TICK;
+      growth := 0.0;
+    end;
 
     var decay := 0.0;
     if fLunarFlux <= 0.0 then
       decay := DELTA_NO_MOON_DECAY_PER_TICK;
 
-    fDeltaCaches[i].Amount := EnsureRange(amount + growth - decay, 0.0, 1.0);
+    fDeltaCaches[i].RegenDebt := Max(0.0, debt);
+    fDeltaCaches[i].Amount    := EnsureRange(amount + growth - decay, 0.0, 1.0);
   end;
 
   for var i := 0 to High(fDeltaCaches) do
