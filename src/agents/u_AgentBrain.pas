@@ -8,7 +8,7 @@ uses u_AgentTypes, u_AgentState, u_AgentGenome, u_SimQueriesIntf,
 type
   TBrainTraceSummary = record
     EnergyLevel: TEnergyLevel;
-    GestationProgress: Integer;
+    ActionProgress: Integer;
     ReserveDelta: Single;
     TicksSinceReproduction: Integer;
     LocalAgentCount: Integer;
@@ -149,7 +149,7 @@ function BuildTraceSummary(const State: TAgentState; const Context: TDecisionCon
   const LocalAgentCount: Integer): TBrainTraceSummary;
 begin
   Result.EnergyLevel := Context.EnergyLevel;
-  Result.GestationProgress := State.GestationProgress;
+  Result.ActionProgress := State.ActionProgress;
   Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
   Result.TicksSinceReproduction := State.TicksSinceReproduction;
@@ -178,8 +178,6 @@ function BuildForageEvalInput(const State: TAgentState; const Context: TDecision
 begin
   Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
-  Result.CurrentAction := Context.CurrentAction;
-  Result.CurrentActionAge := Context.CurrentActionAge;
   Result.Smell := Context.Smell;
   Result.MoleculeWeights := State.ForageMoleculeWeights;
 end;
@@ -188,16 +186,12 @@ function BuildMoveEvalInput(const State: TAgentState; const Context: TDecisionCo
 begin
   Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
-  Result.CurrentAction := Context.CurrentAction;
-  Result.CurrentActionAge := Context.CurrentActionAge;
   Result.Smell := Context.Smell;
   Result.MoleculeWeights := State.ForageMoleculeWeights;
 end;
 
 function BuildShelterEvalInput(const State: TAgentState; const Context: TDecisionContext): TShelterEvalInput;
 begin
-  Result.CurrentAction := Context.CurrentAction;
-  Result.CurrentActionAge := Context.CurrentActionAge;
   Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
   Result.IsNight := Context.IsNight;
@@ -220,11 +214,7 @@ begin
   Result.ReserveDelta := State.ReserveDelta;
   Result.TicksSinceReproduction := State.TicksSinceReproduction;
   Result.Age := State.Age;
-  Result.CurrentAction := Context.CurrentAction;
-  Result.CurrentActionAge := Context.CurrentActionAge;
   Result.LocalAgentCount := LocalAgentCount;
-  Result.TicksRemainingInGestation := Max(0, GestationDuration - State.GestationProgress);
-  Result.GestationDuration := GestationDuration;
   Result.DeltaWeight := State.ForageMoleculeWeights[Delta];
 end;
 
@@ -266,7 +256,7 @@ begin
   Result.PreviousLocation := Input.PreviousLocation;
   Result.CurrentLocation := Input.CurrentLocation;
   Result.CurrentReserves := State.Reserves;
-  Result.GestationProgress := State.GestationProgress;
+  Result.ActionProgress := State.ActionProgress;
 end;
 
 procedure ApplyDecisionWeightUpdate(var State: TAgentState; const Buckets: TDecisionBuckets;

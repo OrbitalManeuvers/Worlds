@@ -23,20 +23,6 @@ type
   TMoveWeightMode = (mwUniform, mwLearned);
 
 const
-  // While reproducing, movement toward remote food is heavily suppressed.
-  // A very strong signal can still win, but routine smell-following won't interrupt gestation.
-  MOVE_REPRODUCE_SUPPRESSION = 0.90;
-
-  // Action context modifiers.
-  // Foraging: don't abandon a meal for a distant smell.
-  // Sheltering: resting agent resists being pulled out by remote signals.
-  // Already moving: persistence bonus when no local food — stay the course.
-  //   But if local food exists, flip to a penalty: you arrived, stop and eat.
-  MOVE_FORAGE_PENALTY    = 0.04;
-  MOVE_SHELTER_PENALTY   = 0.05;
-  MOVE_PERSISTENCE_BONUS = 0.02;
-  MOVE_ARRIVAL_PENALTY   = 0.04;
-
   // Distance discount: remote signals are divided by (1 + distance * factor).
   // A cell 2 away is worth signal/2.0, a cell 4 away is signal/3.0.
   MOVE_DISTANCE_COST_FACTOR = 0.50;
@@ -119,27 +105,6 @@ begin
     // burning energy is especially risky.
     if Input.ReserveDelta < 0.0 then
       Result.Score := Result.Score * MOVE_NEGATIVE_DELTA_EXTRA_SUPPRESSION;
-  end;
-
-  // Gestating agents are committed — suppress movement toward remote food.
-  // Only an unusually strong signal will overcome this.
-  if Input.CurrentAction = acReproduce then
-    Result.Score := Result.Score * (1.0 - MOVE_REPRODUCE_SUPPRESSION);
-
-  // Action context shapes entry friction.
-  // Signal strength drives the base score; current action shapes how easy it is to act on it.
-  case Input.CurrentAction of
-    acForage:  Result.Score := Result.Score - MOVE_FORAGE_PENALTY;
-    acShelter: Result.Score := Result.Score - MOVE_SHELTER_PENALTY;
-    acMove:
-      begin
-        // If local food exists the agent has arrived — penalize continued movement
-        // so it stops and eats. Otherwise reward staying the course toward a target.
-        if hasLocalFood then
-          Result.Score := Result.Score - MOVE_ARRIVAL_PENALTY
-        else
-          Result.Score := Result.Score + MOVE_PERSISTENCE_BONUS;
-      end;
   end;
 end;
 

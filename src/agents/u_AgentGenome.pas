@@ -48,8 +48,6 @@ type
   TForageEvalInput = record
     Reserves: Single;
     ReserveDelta: Single;  // per-tick change in reserves; negative = losing energy, positive = gaining
-    CurrentAction: TAgentAction;
-    CurrentActionAge: Integer;
     Smell: TSmellReport;
     MoleculeWeights: TMoleculeFactors;  // learned preference per molecule (initialized to 1.0)
   end;
@@ -57,16 +55,12 @@ type
   TMoveEvalInput = record
     Reserves: Single;
     ReserveDelta: Single;
-    CurrentAction: TAgentAction;
-    CurrentActionAge: Integer;
     Smell: TSmellReport;
     MoleculeWeights: TMoleculeFactors;  // learned preference per molecule — used to judge local food value
   end;
 
   TShelterEvalInput = record
     CircadianPressure: Single;
-    CurrentAction: TAgentAction;
-    CurrentActionAge: Integer;
     Reserves: Single;
     ReserveDelta: Single;  // per-tick change in reserves; negative = losing energy, positive = gaining
     IsNight: Boolean;
@@ -79,11 +73,7 @@ type
     ReserveDelta: Single;
     TicksSinceReproduction: Integer;
     Age: Integer;
-    CurrentAction: TAgentAction;
-    CurrentActionAge: Integer;
     LocalAgentCount: Integer;
-    TicksRemainingInGestation: Integer; // ticks until birth; only meaningful when CurrentAction = acReproduce
-    GestationDuration: Integer;         // total gestation ticks; used to normalize commitment ratio
     DeltaWeight: Single;               // learned delta molecule preference; high values suppress reproduction
   end;
 
@@ -129,7 +119,7 @@ type
     PreviousLocation: Integer;
     CurrentLocation: Integer;
     CurrentReserves: Single;
-    GestationProgress: Integer;
+    ActionProgress: Integer;
   end;
 
   TCognitionReflectionOutput = record

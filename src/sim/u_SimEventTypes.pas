@@ -79,7 +79,7 @@ type
     ResolvedAction: TAgentAction;
     ResolvedTarget: TTarget;
     Reserves: Single;
-    GestationProgress: Integer;
+    ActionProgress: Integer;
   end;
 
   TDecisionTraceEvent = record

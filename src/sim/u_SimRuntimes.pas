@@ -318,7 +318,7 @@ begin
       Result := Result + DigCost(State.Location)
     else
     begin
-      Result := Result + GestationFatigueCost(State.GestationProgress);
+      Result := Result + GestationFatigueCost(State.ActionProgress);
       flags := [gsfAlwaysOn];
     end;
   end;
@@ -422,7 +422,7 @@ begin
   event.ActionResolved.ResolvedAction := Resolved.RequestedAction;
   event.ActionResolved.ResolvedTarget := Resolved.RequestedTarget;
   event.ActionResolved.Reserves := State.Reserves;
-  event.ActionResolved.GestationProgress := State.GestationProgress;
+  event.ActionResolved.ActionProgress := State.ActionProgress;
 
   fDiagnostics.Emit(event);
 end;
@@ -562,7 +562,7 @@ begin
   Result.TicksSinceReproduction := 0;
   Result.Action := acIdle;
   Result.ActionAge := 0;
-  Result.GestationProgress := 0;
+  Result.ActionProgress := 0;
   Result.ActionTarget.TType := ttCell;
   Result.ActionTarget.Cell := ParentState.Location;
   Result.Genome := ParentState.Genome;
@@ -607,19 +607,19 @@ begin
   Result := Requested;
   ForageOutcome := Default(TForageOutcome);
 
-  if (State.Action = acReproduce) and (State.GestationProgress > 0) then
+  if (State.Action = acReproduce) and (State.ActionProgress > 0) then
   begin
     Result.RequestedTarget.TType := ttCell;
     Result.RequestedTarget.Cell := State.Location;
 
-    if State.GestationProgress > REPRODUCTION_DURATION_TICKS then
+    if State.ActionProgress > REPRODUCTION_DURATION_TICKS then
     begin
       var offspringState := BuildOffspringState(State, NextAgentId);
       State.Reserves := State.Reserves - REPRODUCTION_PARENT_COST;
       if State.Reserves < 0.0 then
         State.Reserves := 0.0;
       State.TicksSinceReproduction := 0;
-      State.GestationProgress := 0;
+      State.ActionProgress := 0;
 
       fPopulation.AppendAgent(offspringState);
       Inc(fPopulationSummary.NewBirths);
@@ -639,7 +639,7 @@ begin
       Exit;
     end;
 
-    Inc(State.GestationProgress);
+    Inc(State.ActionProgress);
     Result.RequestedAction := acReproduce;
     Exit;
   end;
@@ -657,7 +657,7 @@ begin
         Exit;
       end;
 
-      State.GestationProgress := 1;
+      State.ActionProgress := 1;
       Result.RequestedAction := acReproduce;
       Exit;
     end;
@@ -825,6 +825,15 @@ begin
         ForageOutcome.Gain := CalculateForageGain(State, reply);
         ForageOutcome.Substance := reply.Substance;
         State.Reserves := State.Reserves + ForageOutcome.Gain;
+
+        // Delta buys a small amount of circadian runway after net energy gain is applied.
+        var deltaConsumed := reply.ConsumedAmount * (reply.Substance[Delta] / 100.0);
+        if deltaConsumed > 0.0 then
+        begin
+          var deltaRelief := deltaConsumed * DELTA_CIRCADIAN_RELIEF_RATE;
+          State.CircadianPressure := Max(0.0, State.CircadianPressure - deltaRelief);
+        end;
+
         State.TicksSinceForage := 0;
 
         if cacheRef.Kind = ckDelta then
@@ -885,7 +894,7 @@ begin
     state.ReserveDelta := state.Reserves - reservesAtTickStart;
     state.Action := acIdle;
     state.ActionAge := 0;
-    state.GestationProgress := 0;
+    state.ActionProgress := 0;
     EmitAgentDied(state^, reservesBeforeUpkeep);
     Inc(fPopulationSummary.NewDeaths);
     Dec(fPopulationSummary.Living);

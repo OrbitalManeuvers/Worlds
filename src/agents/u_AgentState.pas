@@ -34,7 +34,7 @@ type
     Action: TAgentAction;
     ActionTarget: TTarget;
     ActionAge: Integer;          // number of ticks spent doing current action
-    GestationProgress: Integer;  // ticks spent in gestation
+    ActionProgress: Integer;  // progress made on action, post-entry phase
 
     // Learned state (decision weights)
     DecisionWeights: TDecisionWeights;

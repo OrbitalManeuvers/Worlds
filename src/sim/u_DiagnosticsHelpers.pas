@@ -265,7 +265,7 @@ begin
   Result.Clear;
   Result.Add('rsrv', Self.Reserves.AsText);
   Result.Add('rsrvDel', Self.ReserveDelta.AsText);
-  Result.Add('gest', Self.GestationProgress.AsText);
+  Result.Add('gest', Self.ActionProgress.AsText);
   Result.Add('hadSm', Self.HadSmellTarget.AsText);
   Result.Add('smSig', Self.StrongestSmellSignal.AsText);
   Result.Add('smCnt', Self.SmellCandidateCount.AsText);
@@ -346,7 +346,7 @@ begin
   Result.Add('RQ', RequestedAction.AsText + '(' + RequestedTarget.AsText + ')');
   Result.Add('RS', ResolvedAction.AsText + '(' + ResolvedTarget.AsText + ')');
   Result.Add('E', Reserves.AsText);
-  Result.Add('GP', GestationProgress.AsText);
+  Result.Add('AP', ActionProgress.AsText);
 end;
 
 
