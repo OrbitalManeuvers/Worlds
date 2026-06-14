@@ -82,6 +82,7 @@ type
 
     CurrentAction: TAgentAction;
     CurrentActionAge: Integer;
+    ActionProgress: Integer;
   end;
 
 

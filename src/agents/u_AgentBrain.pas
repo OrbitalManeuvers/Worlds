@@ -307,6 +307,7 @@ begin
   DecisionContext.SolarFluxDelta := Input.SolarFluxDelta;
   DecisionContext.CurrentAction := State.Action;
   DecisionContext.CurrentActionAge := State.ActionAge;
+  DecisionContext.ActionProgress := State.ActionProgress;
   DecisionContext.EnergyLevel := Low(TEnergyLevel);
   DecisionContext.CircadianPressure := State.CircadianPressure;
 

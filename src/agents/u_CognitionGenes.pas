@@ -36,7 +36,25 @@ type
 
 implementation
 
-uses System.Math, u_EnvironmentTypes;
+uses System.Math, u_EnvironmentTypes, u_SimTypes;
+
+type
+  TActionContinuationParams = record
+    MaxDampening: Single;       // ceiling — how much competing scores can be suppressed
+    RampRate: Single;           // dampening increase per tick of ActionProgress
+    PressureWeighted: Boolean;  // if true, dampening scales with CircadianPressure ratio
+  end;
+
+const
+  // Continuation dampening table: defines how strongly each action resists interruption
+  // once ActionProgress > 0 (i.e. past the dig/entry phase).
+  ActionContinuation: array[TAgentAction] of TActionContinuationParams = (
+    (MaxDampening: 0.0;  RampRate: 0.0;  PressureWeighted: False),  // acMove — no progressive phase
+    (MaxDampening: 0.0;  RampRate: 0.0;  PressureWeighted: False),  // acForage — no progressive phase
+    (MaxDampening: 0.95; RampRate: 0.08; PressureWeighted: True),   // acShelter — deep, scales with fatigue
+    (MaxDampening: 0.70; RampRate: 0.05; PressureWeighted: False),  // acReproduce — linear commitment ramp
+    (MaxDampening: 0.0;  RampRate: 0.0;  PressureWeighted: False)   // acIdle — nothing
+  );
 
 const
   // Keep an in-flight move target unless a new option is meaningfully stronger.
@@ -95,17 +113,38 @@ end;
 { TBasicCognition }
 
 class function TBasicCognition.Decide(const Input: TCognitionInput; var Scratch: TCognitionScratch): TCognitionOutput;
+var
+  effectiveEvals: TActionEvaluations;
 begin
   Scratch := Default(TCognitionScratch);
 
+  // Start from raw evaluator scores
+  effectiveEvals := Input.ActionEvaluations;
+
+  // Continuation pressure: when ActionProgress > 0, the agent is invested in a
+  // progressive action (past the dig/entry phase). Dampen competing scores so that
+  // only genuinely strong signals can interrupt.
+  if Input.Context.ActionProgress > 0 then
+  begin
+    var params := ActionContinuation[Input.Context.CurrentAction];
+    var dampening := Min(params.RampRate * Input.Context.ActionProgress, params.MaxDampening);
+    if params.PressureWeighted then
+      dampening := dampening * EnsureRange(
+        Input.Context.CircadianPressure / MAX_CIRCADIAN_PRESSURE, 0.0, 1.0);
+
+    for var action := Low(TAgentAction) to High(TAgentAction) do
+      if action <> Input.Context.CurrentAction then
+        effectiveEvals[action].Score := effectiveEvals[action].Score * (1.0 - dampening);
+  end;
+
   var bestAction := Input.Context.CurrentAction;
-  var bestScore := Input.ActionEvaluations[bestAction].Score;
+  var bestScore := effectiveEvals[bestAction].Score;
 
   for var action := Low(TAgentAction) to High(TAgentAction) do
-    if Input.ActionEvaluations[action].Score > bestScore then
+    if effectiveEvals[action].Score > bestScore then
     begin
       bestAction := action;
-      bestScore := Input.ActionEvaluations[action].Score;
+      bestScore := effectiveEvals[action].Score;
     end;
 
   // Require a modest lead for move decisions to avoid oscillation on near-ties.
@@ -119,10 +158,10 @@ begin
       if action = acMove then
         Continue;
 
-      if Input.ActionEvaluations[action].Score > bestNonMoveScore then
+      if effectiveEvals[action].Score > bestNonMoveScore then
       begin
         bestNonMoveAction := action;
-        bestNonMoveScore := Input.ActionEvaluations[action].Score;
+        bestNonMoveScore := effectiveEvals[action].Score;
       end;
     end;
 
@@ -143,7 +182,7 @@ begin
   end;
 
   Result.RequestedAction := bestAction;
-  Result.RequestedTarget := Input.ActionEvaluations[bestAction].Target;
+  Result.RequestedTarget := effectiveEvals[bestAction].Target;
 
   // Move-target affinity: maintain destination continuity across ticks unless
   // a new move candidate is clearly better.
@@ -160,7 +199,7 @@ begin
     var anchorSignal := SmellSignalForCell(Input.Context.Smell, Input.CurrentTarget.Cell);
     if anchorSignal > 0.0 then
     begin
-      var newSignal := Input.ActionEvaluations[acMove].Score;
+      var newSignal := effectiveEvals[acMove].Score;
       var switchThreshold := Max(anchorSignal * MOVE_TARGET_SWITCH_RATIO,
         anchorSignal + MOVE_TARGET_SWITCH_ABS_MARGIN);
 
