@@ -6,7 +6,7 @@ uses u_AgentTypes, u_AgentGenome, u_SimQueriesIntf;
 
 type
   TForageEvaluator = class(TForageEvalGene)
-    class function Evaluate(const Input: TForageEvalInput; var Scratch: TForageEvalScratch): TActionEvalResult; override;
+    class function BuildReport(const Input: TForageEvalInput; var Scratch: TForageEvalScratch): TForageReport; override;
   end;
 
 
@@ -15,18 +15,40 @@ implementation
 uses u_EnvironmentTypes, System.Math, u_Instincts;
 
 const
-  FORAGE_RESERVE_COMFORT_LEVEL = 8.0;   // above this, forage urgency fades
-  FORAGE_HIGH_RESERVE_DISCOUNT = 0.20;  // minimum score multiplier when reserves are full
   FORAGE_WEIGHT_EPSILON = 0.01;         // weights below this are treated as zero (learning asymptote)
 
 { TForagingGene }
 
-class function TForageEvaluator.Evaluate(const Input: TForageEvalInput; var Scratch: TForageEvalScratch): TActionEvalResult;
+class function TForageEvaluator.BuildReport(const Input: TForageEvalInput; var Scratch: TForageEvalScratch): TForageReport;
+
+  procedure InsertForageOption(const Cache: TCacheRef; const CellIndex: TCellIndex;
+    const Distance: Word; const Opportunity: Single);
+  begin
+    if Opportunity <= 0.0 then
+      Exit;
+
+    var insertAt := Result.Count;
+    while (insertAt > 0) and (Opportunity > Result.Options[insertAt - 1].Opportunity) do
+      Dec(insertAt);
+
+    if (Result.Count >= Length(Result.Options)) and (insertAt >= Length(Result.Options)) then
+      Exit;
+
+    if Result.Count < Length(Result.Options) then
+      Inc(Result.Count);
+
+    for var idx := Result.Count - 1 downto insertAt + 1 do
+      Result.Options[idx] := Result.Options[idx - 1];
+
+    Result.Options[insertAt].Cache := Cache;
+    Result.Options[insertAt].CellIndex := CellIndex;
+    Result.Options[insertAt].Distance := Distance;
+    Result.Options[insertAt].Opportunity := Opportunity;
+  end;
+
 begin
   Scratch := Default(TForageEvalScratch);
-  Result := Default(TActionEvalResult);
-  Result.Score := 0.0;
-  Result.Target.TType := ttNone;
+  Result := Default(TForageReport);
 
   if Input.Smell.Count <= 0 then
     Exit;
@@ -51,23 +73,9 @@ begin
     if targetSignal < Instinct.MIN_FORAGE_SIGNAL then
       Continue;
 
-    if targetSignal > Result.Score then
-    begin
-      Result.Score := targetSignal;
-      Result.Target.TType := ttCache;
-      Result.Target.Cache := detail.Cache;
-    end;
-
-    if Result.Score >= 1.0 then
-      Break;
+    InsertForageOption(detail.Cache, detail.CellIndex, detail.Directions.Distance, targetSignal);
   end;
 
-  // Continuous reserve discount: urgency fades as reserves fill.
-  // At comfort level and above, score is scaled down to FORAGE_HIGH_RESERVE_DISCOUNT.
-  // Below comfort level the full signal competes normally.
-  var reserveRatio := EnsureRange(Input.Reserves / FORAGE_RESERVE_COMFORT_LEVEL, 0.0, 1.0);
-  var discount := 1.0 - (reserveRatio * (1.0 - FORAGE_HIGH_RESERVE_DISCOUNT));
-  Result.Score := Result.Score * discount;
 end;
 
 initialization

@@ -90,7 +90,7 @@ type
     ResolvedAction: TAgentAction;
     ResolvedTarget: TTarget;
     ForageOutcome: TForageOutcome;
-    Evaluations: TActionEvaluations;
+    Scores: TActionScores;
     Summary: TBrainTraceSummary;
   end;
 

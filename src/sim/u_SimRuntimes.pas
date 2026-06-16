@@ -51,7 +51,7 @@ type
     ResolvedAction: TAgentAction;
     ResolvedTarget: TTarget;
     ForageOutcome: TForageOutcome;
-    Evaluations: TActionEvaluations;
+    Scores: TActionScores;
     Summary: TBrainTraceSummary;
   end;
 
@@ -443,7 +443,7 @@ begin
   event.DecisionTrace.ResolvedAction := Resolved.RequestedAction;
   event.DecisionTrace.ResolvedTarget := Resolved.RequestedTarget;
   event.DecisionTrace.ForageOutcome := ForageOutcome;
-  event.DecisionTrace.Evaluations := Requested.Evaluations;
+  event.DecisionTrace.Scores := Requested.Scores;
   event.DecisionTrace.Summary := Requested.Trace;
 
   fDiagnostics.Emit(event);
@@ -573,7 +573,7 @@ begin
 
   // Offspring inherit parent's learned molecule preferences — same genome means
   // same conversion chemistry, so parent's experience is the best prior.
-  Result.ForageMoleculeWeights := ParentState.ForageMoleculeWeights;
+  Result.Genome.ForageMoleculeWeights := ParentState.Genome.ForageMoleculeWeights;
 end;
 
 function TSimRuntime.NextAgentId: Integer;

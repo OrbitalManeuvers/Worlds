@@ -37,7 +37,7 @@ type
   TBrainTickOutput = record
     RequestedAction: TAgentAction;
     RequestedTarget: TTarget;
-    Evaluations: TActionEvaluations;
+    Scores: TActionScores;
     Trace: TBrainTraceSummary;
     DecisionBuckets: TDecisionBuckets;
   end;
@@ -58,7 +58,7 @@ type
     SensorScratch: TSensorScanScratch;
     EvaluatorScratch: TEvaluatorScratch;
     DecisionContext: TDecisionContext;
-    ActionEvaluations: TActionEvaluations;
+    ActionScores: TActionScores;
     procedure BeginTick(const State: TAgentState; const Input: TBrainTickInput);
   end;
 
@@ -179,7 +179,7 @@ begin
   Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
   Result.Smell := Context.Smell;
-  Result.MoleculeWeights := State.ForageMoleculeWeights;
+  Result.MoleculeWeights := State.Genome.ForageMoleculeWeights;
 end;
 
 function BuildMoveEvalInput(const State: TAgentState; const Context: TDecisionContext): TMoveEvalInput;
@@ -187,7 +187,7 @@ begin
   Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
   Result.Smell := Context.Smell;
-  Result.MoleculeWeights := State.ForageMoleculeWeights;
+  Result.MoleculeWeights := State.Genome.ForageMoleculeWeights;
 end;
 
 function BuildShelterEvalInput(const State: TAgentState; const Context: TDecisionContext): TShelterEvalInput;
@@ -215,7 +215,7 @@ begin
   Result.TicksSinceReproduction := State.TicksSinceReproduction;
   Result.Age := State.Age;
   Result.LocalAgentCount := LocalAgentCount;
-  Result.DeltaWeight := State.ForageMoleculeWeights[Delta];
+  Result.DeltaWeight := State.Genome.ForageMoleculeWeights[Delta];
 end;
 
 function BuildEnergyInput(const State: TAgentState): TEnergyInput;
@@ -223,20 +223,25 @@ begin
   Result.Reserves := State.Reserves;
 end;
 
-function BuildCognitionInput(const Context: TDecisionContext; const ActionEvaluations: TActionEvaluations;
-  const CurrentTarget: TTarget; const Reserves: Single; const LastForageCell: TCellIndex): TCognitionInput;
+function BuildCognitionInput(const Context: TDecisionContext; const ActionScores: TActionScores;
+  const CurrentTarget: TTarget; const Reserves: Single; const ReserveDelta: Single;
+  const LastForageCell: TCellIndex;
+  const ForageReport: TForageReport; const MoveReport: TMoveReport): TCognitionInput;
 begin
   Result.Context := Context;
-  Result.ActionEvaluations := ActionEvaluations;
+  Result.ActionScores := ActionScores;
   Result.CurrentTarget := CurrentTarget;
   Result.Reserves := Reserves;
+  Result.ReserveDelta := ReserveDelta;
   Result.LastForageCell := LastForageCell;
+  Result.ForageReport := ForageReport;
+  Result.MoveReport := MoveReport;
 end;
 
-function BuildWeightedEvaluations(const State: TAgentState; const Buckets: TDecisionBuckets;
-  const BaseEvaluations: TActionEvaluations): TActionEvaluations;
+function BuildWeightedScores(const State: TAgentState; const Buckets: TDecisionBuckets;
+  const BaseScores: TActionScores): TActionScores;
 begin
-  Result := BaseEvaluations;
+  Result := BaseScores;
 
   for var action := Low(TDecisionAction) to High(TDecisionAction) do
     Result[action].Score := Result[action].Score
@@ -251,7 +256,7 @@ begin
   Result.RequestedTarget := Decision.RequestedTarget;
   Result.ResolvedAction := Input.ResolvedAction;
   Result.ResolvedTarget := Input.ResolvedTarget;
-  Result.Evaluations := Decision.Evaluations;
+  Result.Scores := Decision.Scores;
   Result.ReserveDelta := State.ReserveDelta;
   Result.ForageOutcome := Input.ForageOutcome;
   Result.GridWidth := Input.GridWidth;
@@ -288,9 +293,9 @@ begin
     if not (molecule in Reflection.MoleculesPresent) then
       Continue;
 
-    var expected := State.ForageMoleculeWeights[molecule];
+    var expected := State.Genome.ForageMoleculeWeights[molecule];
     var error := Reflection.MoleculeOutcomes[molecule] - expected;
-    State.ForageMoleculeWeights[molecule] := expected + (MOLECULE_WEIGHT_LEARNING_RATE * error);
+    State.Genome.ForageMoleculeWeights[molecule] := expected + (MOLECULE_WEIGHT_LEARNING_RATE * error);
   end;
 end;
 
@@ -315,8 +320,7 @@ begin
 
   for var action := Low(TAgentAction) to High(TAgentAction) do
   begin
-    ActionEvaluations[action].Score := 0.0;
-    ActionEvaluations[action].Target.TType := ttNone;
+    ActionScores[action].Score := 0.0;
   end;
 end;
 
@@ -370,32 +374,39 @@ begin
   // Evaluation stage: score available actions.
 
   // 1. Movement
-  var bestMove := Default(TActionEvalResult);
-  bestMove.Score := 0.0;
-  bestMove.Target.TType := ttNone;
+  var moveReport := Default(TMoveReport);
   var moveEval := State.Genome.GeneMap.MoveEval;
   if Assigned(moveEval) then
   begin
     var moveInput := BuildMoveEvalInput(State, Scratch.DecisionContext);
-    bestMove := moveEval.Evaluate(moveInput, Scratch.EvaluatorScratch.Movement);
+    moveReport := moveEval.BuildReport(moveInput, Scratch.EvaluatorScratch.Movement);
   end;
 
-  Scratch.ActionEvaluations[acMove] := bestMove;
+  // Report-aware projection: move score comes from curated report, not legacy target collapse.
+  Scratch.ActionScores[acMove].Score := 0.0;
+  if moveReport.Count > 0 then
+    Scratch.ActionScores[acMove].Score := moveReport.Options[0].Opportunity;
 
   // 2. Foraging
+  var forageReport := Default(TForageReport);
   var forageEval := State.Genome.GeneMap.ForageEval;
   if Assigned(forageEval) then
   begin
     var forageInput := BuildForageEvalInput(State, Scratch.DecisionContext);
-    Scratch.ActionEvaluations[acForage] := forageEval.Evaluate(forageInput, Scratch.EvaluatorScratch.Forage);
+    forageReport := forageEval.BuildReport(forageInput, Scratch.EvaluatorScratch.Forage);
   end;
+
+  // Report-aware projection: forage score comes from curated report, not legacy target collapse.
+  Scratch.ActionScores[acForage].Score := 0.0;
+  if forageReport.Count > 0 then
+    Scratch.ActionScores[acForage].Score := forageReport.Options[0].Opportunity;
 
   // 3. Shelter
   var shelterEval := State.Genome.GeneMap.ShelterEval;
   if Assigned(shelterEval) then
   begin
     var shelterInput := BuildShelterEvalInput(State, Scratch.DecisionContext);
-    Scratch.ActionEvaluations[acShelter] := shelterEval.Evaluate(shelterInput, Scratch.EvaluatorScratch.Shelter);
+    Scratch.ActionScores[acShelter] := shelterEval.Evaluate(shelterInput, Scratch.EvaluatorScratch.Shelter);
   end;
 
   // 4. Reproduction
@@ -417,7 +428,7 @@ begin
     end;
 
     var reproduceInput := BuildReproduceEvalInput(State, Scratch.DecisionContext, localAgentCount, Input.GestationDuration);
-    Scratch.ActionEvaluations[acReproduce] := reproduceEval.Evaluate(reproduceInput, Scratch.EvaluatorScratch.Reproduce);
+    Scratch.ActionScores[acReproduce] := reproduceEval.Evaluate(reproduceInput, Scratch.EvaluatorScratch.Reproduce);
   end;
 
 
@@ -425,9 +436,9 @@ begin
   var cognitionGene := State.Genome.GeneMap.Cognition;
   if Assigned(cognitionGene) then
   begin
-    var weightedEvaluations := BuildWeightedEvaluations(State, Result.DecisionBuckets, Scratch.ActionEvaluations);
-    var cognitionInput := BuildCognitionInput(Scratch.DecisionContext, weightedEvaluations,
-      State.ActionTarget, State.Reserves, State.LastForageCell);
+    var weightedScores := BuildWeightedScores(State, Result.DecisionBuckets, Scratch.ActionScores);
+    var cognitionInput := BuildCognitionInput(Scratch.DecisionContext, weightedScores,
+      State.ActionTarget, State.Reserves, State.ReserveDelta, State.LastForageCell, forageReport, moveReport);
     var cognitionOutput := cognitionGene.Decide(cognitionInput, Scratch.EvaluatorScratch.Cognition);
 
     Result.RequestedAction := cognitionOutput.RequestedAction;
@@ -439,7 +450,7 @@ begin
     Result.RequestedTarget := State.ActionTarget;
   end;
 
-  Result.Evaluations := Scratch.ActionEvaluations;
+  Result.Scores := Scratch.ActionScores;
   Result.Trace := BuildTraceSummary(State, Scratch.DecisionContext, localAgentCount);
 end;
 

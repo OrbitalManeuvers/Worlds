@@ -9,7 +9,7 @@ type
   // A less evolved agent that hides at night because it can't reason about energy trends.
   TShelterEvaluator = class(TShelterEvalGene)
   public
-    class function Evaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionEvalResult; override;
+    class function Evaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionScore; override;
   end;
 
   // Gen B: energy-aware shelter — driven by reserve economics.
@@ -17,7 +17,7 @@ type
   TEnergyShelterEvaluator = class(TShelterEvalGene)
   public
     class function GetGenerationCode: Char; override;
-    class function Evaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionEvalResult; override;
+    class function Evaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionScore; override;
   end;
 
 
@@ -42,7 +42,7 @@ const
   SHELTER_MIN_VOTE_SCORE = 0.01;
 
 { TShelterEvaluator — Gen A: instinctive }
-class function TShelterEvaluator.Evaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionEvalResult;
+class function TShelterEvaluator.Evaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionScore;
 begin
   Scratch := Default(TShelterEvalScratch);
   Result.Score := 0.0;
@@ -70,7 +70,6 @@ begin
 
   // clean up the result
   Result.Score := EnsureRange(Result.Score, 0.0, 1.0);
-  Result.Target.TType := ttNone;
 end;
 
 { TEnergyShelterEvaluator — Gen B: energy-aware }
@@ -80,7 +79,7 @@ begin
   Result := 'B';
 end;
 
-class function TEnergyShelterEvaluator.Evaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionEvalResult;
+class function TEnergyShelterEvaluator.Evaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionScore;
 begin
   Scratch := Default(TShelterEvalScratch);
   Result.Score := 0.0;
@@ -116,7 +115,6 @@ begin
     Result.Score := 0.0;
 
   Result.Score := EnsureRange(Result.Score, 0.0, 1.0);
-  Result.Target.TType := ttNone;
 end;
 
 initialization

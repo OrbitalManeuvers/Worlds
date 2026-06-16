@@ -6,13 +6,13 @@ uses u_AgentTypes, u_AgentGenome;
 
 type
   TMoveEvaluator = class(TMoveEvalGene)
-    class function Evaluate(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TActionEvalResult; override;
+    class function BuildReport(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TMoveReport; override;
   end;
 
   TLearningMoveEvaluator = class(TMoveEvalGene)
   public
     class function GetGenerationCode: Char; override;
-    class function Evaluate(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TActionEvalResult; override;
+    class function BuildReport(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TMoveReport; override;
   end;
 
 implementation
@@ -31,16 +31,52 @@ const
   // Prevents near-zero asymptotic weights from creating phantom local food signals.
   MOVE_WEIGHT_EPSILON = 0.01;
 
-  // Local food suppression: when edible food is in the current cell, remote
-  // movement scores are heavily discounted. A bird in the hand...
-  MOVE_LOCAL_FOOD_SUPPRESSION = 0.35;
-
-  // Extra suppression when reserves are declining — chasing remote food while
-  // burning energy is a bad gamble when local food is available.
-  MOVE_NEGATIVE_DELTA_EXTRA_SUPPRESSION = 0.50;
-
 function EvaluateMovement(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch;
-  WeightMode: TMoveWeightMode): TActionEvalResult;
+  WeightMode: TMoveWeightMode): TMoveReport;
+
+  procedure InsertMoveOption(const Cell: TCellIndex; const Distance: Word; const Opportunity: Single);
+  begin
+    if Opportunity <= 0.0 then
+      Exit;
+
+    // Deduplicate by cell, keeping the strongest opportunity for that cell.
+    for var i := 0 to Result.Count - 1 do
+      if Result.Options[i].Cell = Cell then
+      begin
+        if Opportunity <= Result.Options[i].Opportunity then
+          Exit;
+
+        Result.Options[i].Opportunity := Opportunity;
+        Result.Options[i].Distance := Distance;
+
+        var j := i;
+        while (j > 0) and (Result.Options[j].Opportunity > Result.Options[j - 1].Opportunity) do
+        begin
+          var tmp := Result.Options[j - 1];
+          Result.Options[j - 1] := Result.Options[j];
+          Result.Options[j] := tmp;
+          Dec(j);
+        end;
+        Exit;
+      end;
+
+    var insertAt := Result.Count;
+    while (insertAt > 0) and (Opportunity > Result.Options[insertAt - 1].Opportunity) do
+      Dec(insertAt);
+
+    if (Result.Count >= Length(Result.Options)) and (insertAt >= Length(Result.Options)) then
+      Exit;
+
+    if Result.Count < Length(Result.Options) then
+      Inc(Result.Count);
+
+    for var idx := Result.Count - 1 downto insertAt + 1 do
+      Result.Options[idx] := Result.Options[idx - 1];
+
+    Result.Options[insertAt].Cell := Cell;
+    Result.Options[insertAt].Distance := Distance;
+    Result.Options[insertAt].Opportunity := Opportunity;
+  end;
 
   function ResolveWeight(mol: TMolecule): Single;
   begin
@@ -56,28 +92,16 @@ function EvaluateMovement(const Input: TMoveEvalInput; var Scratch: TMoveEvalScr
 
 begin
   Scratch := Default(TMoveEvalScratch);
-  Result := Default(TActionEvalResult);
-  Result.Score := 0.0;
-  Result.Target.TType := ttNone;
+  Result := Default(TMoveReport);
 
   if Input.Smell.Count <= 0 then
     Exit;
 
-  // Single pass: detect local food and score remote candidates simultaneously.
-  // Local food only counts if its weighted signal is positive — a cache the agent
-  // has learned to ignore (molecule weight = 0) should not suppress movement.
-  var hasLocalFood := False;
+  // Score remote movement candidates from smell opportunities.
   for var detail in Input.Smell.Details do
   begin
     if detail.Directions.Distance = 0 then
-    begin
-      var weightedLocal := 0.0;
-      for var mol := Low(TMolecule) to High(TMolecule) do
-        weightedLocal := weightedLocal + detail.MoleculeStrength[mol] * ResolveWeight(mol);
-      if weightedLocal > 0.0 then
-        hasLocalFood := True;
       Continue;
-    end;
 
     var targetSignal := 0.0;
     for var molecule := Low(TMolecule) to High(TMolecule) do
@@ -87,37 +111,20 @@ begin
     // A cache 2 cells away is worth half its raw signal; 4 away is a third.
     var adjustedSignal := targetSignal / (1.0 + detail.Directions.Distance * MOVE_DISTANCE_COST_FACTOR);
 
-    if adjustedSignal > Result.Score then
-    begin
-      Result.Score := adjustedSignal;
-      Result.Target.TType := ttCell;
-      Result.Target.Cell := detail.CellIndex;
-    end;
-  end;
-
-  // Local food suppression: when there's food right here, remote movement is a gamble.
-  // The agent can still chase a truly strong remote signal, but weak ones lose hard.
-  if hasLocalFood then
-  begin
-    Result.Score := Result.Score * MOVE_LOCAL_FOOD_SUPPRESSION;
-
-    // Extra suppression when reserves are declining — leaving known food while
-    // burning energy is especially risky.
-    if Input.ReserveDelta < 0.0 then
-      Result.Score := Result.Score * MOVE_NEGATIVE_DELTA_EXTRA_SUPPRESSION;
+    InsertMoveOption(detail.CellIndex, detail.Directions.Distance, adjustedSignal);
   end;
 end;
 
 { TMoveEvaluator }
 
-class function TMoveEvaluator.Evaluate(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TActionEvalResult;
+class function TMoveEvaluator.BuildReport(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TMoveReport;
 begin
   Result := EvaluateMovement(Input, Scratch, mwUniform);
 end;
 
 { TLearningMoveEvaluator }
 
-class function TLearningMoveEvaluator.Evaluate(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TActionEvalResult;
+class function TLearningMoveEvaluator.BuildReport(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TMoveReport;
 begin
   Result := EvaluateMovement(Input, Scratch, mwLearned);
 end;

@@ -6,6 +6,9 @@
         <Projects Include="Worlds.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="WorldsServer.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -23,14 +26,23 @@
     <Target Name="Worlds:Make">
         <MSBuild Projects="Worlds.dproj" Targets="Make"/>
     </Target>
+    <Target Name="WorldsServer">
+        <MSBuild Projects="WorldsServer.dproj"/>
+    </Target>
+    <Target Name="WorldsServer:Clean">
+        <MSBuild Projects="WorldsServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="WorldsServer:Make">
+        <MSBuild Projects="WorldsServer.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="Worlds"/>
+        <CallTarget Targets="Worlds;WorldsServer"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="Worlds:Clean"/>
+        <CallTarget Targets="Worlds:Clean;WorldsServer:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="Worlds:Make"/>
+        <CallTarget Targets="Worlds:Make;WorldsServer:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

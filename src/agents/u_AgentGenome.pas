@@ -89,18 +89,50 @@ type
     Substance: TSubstance;
   end;
 
-  TActionEvalResult = record
-    Score: Single;
-    Target: TTarget;
+// eval-cleanup
+  TForageOption = record
+    Cache: TCacheRef;
+    CellIndex: TCellIndex;
+    Opportunity: Single;   // evaluator-owned quality signal
+    Distance: Word;
   end;
-  TActionEvaluations = array[TAgentAction] of TActionEvalResult;
+
+  TForageOptionArray = array[0..2] of TForageOption;
+  TForageReport = record
+    Count: Integer;
+    Options: TForageOptionArray;
+  end;
+
+  TMoveOption = record
+    Cell: TCellIndex;
+    Opportunity: Single;   // evaluator-owned quality signal
+    Distance: Word;
+  end;
+
+  TMoveOptionArray = array[0..2] of TMoveOption;
+  TMoveReport = record
+    Count: Integer;
+    Options: TMoveOptionArray;
+  end;
+// eval-cleanup ^
+
+
+
+  TActionScore = record
+    Score: Single;
+  end;
+  TActionScores = array[TAgentAction] of TActionScore;
 
   TCognitionInput = record
     Context: TDecisionContext;
-    ActionEvaluations: TActionEvaluations;
+    ActionScores: TActionScores;
     CurrentTarget: TTarget;
     Reserves: Single;
+    ReserveDelta: Single;
     LastForageCell: TCellIndex;
+
+    ForageReport: TForageReport;
+    MoveReport: TMoveReport;
   end;
 
   TCognitionOutput = record
@@ -114,7 +146,7 @@ type
     RequestedTarget: TTarget;
     ResolvedAction: TAgentAction;
     ResolvedTarget: TTarget;
-    Evaluations: TActionEvaluations;
+    Scores: TActionScores;
     ReserveDelta: Single;
     ForageOutcome: TForageOutcome;
     GridWidth: Integer;
@@ -205,25 +237,25 @@ type
 
   // Move evaluation
   TMoveEvalGene = class(TGene)
-    class function Evaluate(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TActionEvalResult; virtual; abstract;
+    class function BuildReport(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TMoveReport; virtual; abstract;
   end;
   TMoveEvalGeneClass = class of TMoveEvalGene;
 
   // Forage evaluation
   TForageEvalGene = class(TGene)
-    class function Evaluate(const Input: TForageEvalInput; var Scratch: TForageEvalScratch): TActionEvalResult; virtual; abstract;
+    class function BuildReport(const Input: TForageEvalInput; var Scratch: TForageEvalScratch): TForageReport; virtual; abstract;
   end;
   TForageEvalGeneClass = class of TForageEvalGene;
 
   // Shelter evaluation
   TShelterEvalGene = class(TGene)
-    class function Evaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionEvalResult; virtual; abstract;
+    class function Evaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionScore; virtual; abstract;
   end;
   TShelterEvalGeneClass = class of TShelterEvalGene;
 
   // Reproduction evaluation
   TReproduceEvalGene = class(TGene)
-    class function Evaluate(const Input: TReproduceEvalInput; var Scratch: TReproduceEvalScratch): TActionEvalResult; virtual; abstract;
+    class function Evaluate(const Input: TReproduceEvalInput; var Scratch: TReproduceEvalScratch): TActionScore; virtual; abstract;
     class function MinimumAge: Integer; virtual; abstract;
   end;
   TReproduceEvalGeneClass = class of TReproduceEvalGene;
@@ -310,9 +342,10 @@ type
     GeneMap: TGeneMap;
 
     // Data parameters: continuous variation within a generation
+    ForageMoleculeWeights: TMoleculeFactors;  // learned preference per molecule
     ConverterRatings: TMoleculeFactors;
     SmellRatings: TMoleculeFactors;
-    SightRange: Single;
+//    SightRange: Single;
   end;
 
 

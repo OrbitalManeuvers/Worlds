@@ -151,10 +151,10 @@ begin
   lblReserves.Caption := state.Reserves.AsText + ' (' + state.ReserveDelta.AsText + ')';
   lblMoleculeWeights.Caption := Format(
     'A:%s B:%s G:%s D:%s',
-    [state.ForageMoleculeWeights[Alpha].AsText,
-    state.ForageMoleculeWeights[Beta].AsText,
-    state.ForageMoleculeWeights[Gamma].AsText,
-    state.ForageMoleculeWeights[Delta].AsText]
+    [state.Genome.ForageMoleculeWeights[Alpha].AsText,
+    state.Genome.ForageMoleculeWeights[Beta].AsText,
+    state.Genome.ForageMoleculeWeights[Gamma].AsText,
+    state.Genome.ForageMoleculeWeights[Delta].AsText]
   );
 
   lblPressures.Caption := Format('tsf:%.04d tsr:%.04d cp:%s', [

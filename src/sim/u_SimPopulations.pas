@@ -307,7 +307,7 @@ begin
   Result.ReserveDelta := fAgents[aAgentId].ReserveDelta;
   Result.GeneSequence := TGeneSequencer.GetSequence(fAgents[aAgentId].Genome.GeneMap);
   Result.MoleculeFactors := fAgents[aAgentId].Genome.ConverterRatings;
-  Result.ForageMoleculeWeights := fAgents[aAgentId].ForageMoleculeWeights;
+  Result.ForageMoleculeWeights := fAgents[aAgentId].Genome.ForageMoleculeWeights;
   Result.DecisionWeights := fAgents[aAgentId].DecisionWeights;
 end;
 

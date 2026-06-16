@@ -222,7 +222,7 @@ begin
     begin
       state.Genome.SmellRatings[molecule] := SMELL_RATING_FACTOR[Normal];
       state.Genome.ConverterRatings[molecule] := CONVERTER_RATING_FACTOR[Normal];
-      state.ForageMoleculeWeights[molecule] := 1.0; // neutral
+      state.Genome.ForageMoleculeWeights[molecule] := 1.0; // neutral
     end;
 
     var targetsApplied: TRuleTargets := [];
@@ -300,7 +300,7 @@ begin
       value := CONVERTER_RATING_FACTOR[aConverterRatings[molecule]];
     state.Genome.ConverterRatings[molecule] := value;
 
-    state.ForageMoleculeWeights[molecule] := 1.0; // neutral
+    state.Genome.ForageMoleculeWeights[molecule] := 1.0; // neutral
   end;
 
 //  ApplyDeltaGeneGates(state^);

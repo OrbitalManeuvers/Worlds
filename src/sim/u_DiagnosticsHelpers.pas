@@ -148,7 +148,7 @@ type
   end;
 
 
-  _ActionEvalResult = record helper for TActionEvalResult
+  _ActionScore = record helper for TActionScore
     function AsFields: TLogFields;
   end;
 
@@ -250,11 +250,10 @@ begin
   Result := energyLevelStrs[Self];
 end;
 
-{ _actionEvalResult }
-function _ActionEvalResult.AsFields: TLogFields;
+{ _actionScore }
+function _ActionScore.AsFields: TLogFields;
 begin
   Result.Add('score', Score.AsText);
-  Result.Add('tg', Self.Target.AsText);
 end;
 
 
@@ -281,14 +280,9 @@ end;
 function _decisionTraceEvent.AsEvaluations: TLogFields;
 begin
   Result.Clear;
-  for var action := Low(Self.Evaluations) to High(Self.Evaluations) do
+  for var action := Low(Self.Scores) to High(Self.Scores) do
   begin
-    var fldName := action.AsText;
-
-    // does the action have a target?
-    if Self.Evaluations[action].Target.TType in [ttCell, ttCache] then
-      fldName := fldName + '(' + Self.Evaluations[action].Target.AsText + ')';
-    Result.Add(fldName, Self.Evaluations[action].Score.AsText);
+    Result.Add(action.AsText, Self.Scores[action].Score.AsText);
   end;
 end;
 
@@ -472,7 +466,7 @@ function _agentState.AsMoleculeWeights: TLogFields;
 begin
   Result.Clear;
   for var molecule := Low(TMolecule) to High(TMolecule) do
-    Result.Add(molecule.AsText, Self.ForageMoleculeWeights[molecule].AsText);
+    Result.Add(molecule.AsText, Self.Genome.ForageMoleculeWeights[molecule].AsText);
 end;
 
 function _agentState.AsWatchAction: TLogFields;

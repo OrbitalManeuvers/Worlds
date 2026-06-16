@@ -79,6 +79,12 @@ const
   // better than the alternative, so silence is more honest than punishment.
   SHELTER_REFLECT_RECOVERY_OUTCOME = 0.04;
 
+  // Opportunity arbitration moved from evaluators into cognition.
+  FORAGE_RESERVE_COMFORT_LEVEL = 8.0;
+  FORAGE_HIGH_RESERVE_DISCOUNT = 0.20;
+  MOVE_LOCAL_FOOD_SUPPRESSION = 0.35;
+  MOVE_NEGATIVE_DELTA_EXTRA_SUPPRESSION = 0.50;
+
 function SmellSignalForCell(const Smell: TSmellReport; const CellIndex: Integer): Single;
 begin
   Result := 0.0;
@@ -93,6 +99,20 @@ begin
 
     Exit;
   end;
+end;
+
+function TryGetMoveOpportunity(const Report: TMoveReport; const CellIndex: TCellIndex;
+  out Opportunity: Single): Boolean;
+begin
+  for var i := 0 to Report.Count - 1 do
+    if Report.Options[i].Cell = CellIndex then
+    begin
+      Opportunity := Report.Options[i].Opportunity;
+      Exit(True);
+    end;
+
+  Opportunity := 0.0;
+  Result := False;
 end;
 
 function CellDistance(const FromCell, ToCell, GridWidth: Integer): Integer;
@@ -110,16 +130,37 @@ begin
     Result := Abs(toY - fromY);
 end;
 
+procedure ApplyOpportunityArbitration(const Input: TCognitionInput;
+  var EffectiveScores: TActionScores);
+begin
+  // Forage urgency fades as reserves fill.
+  var reserveRatio := EnsureRange(Input.Reserves / FORAGE_RESERVE_COMFORT_LEVEL, 0.0, 1.0);
+  var forageDiscount := 1.0 - (reserveRatio * (1.0 - FORAGE_HIGH_RESERVE_DISCOUNT));
+  EffectiveScores[acForage].Score := EffectiveScores[acForage].Score * forageDiscount;
+
+  // When viable local forage exists, remote movement is a gamble.
+  if Input.ForageReport.Count > 0 then
+  begin
+    EffectiveScores[acMove].Score := EffectiveScores[acMove].Score * MOVE_LOCAL_FOOD_SUPPRESSION;
+    if Input.ReserveDelta < 0.0 then
+      EffectiveScores[acMove].Score := EffectiveScores[acMove].Score * MOVE_NEGATIVE_DELTA_EXTRA_SUPPRESSION;
+  end;
+end;
+
 { TBasicCognition }
 
 class function TBasicCognition.Decide(const Input: TCognitionInput; var Scratch: TCognitionScratch): TCognitionOutput;
 var
-  effectiveEvals: TActionEvaluations;
+  effectiveScores: TActionScores;
 begin
   Scratch := Default(TCognitionScratch);
 
   // Start from raw evaluator scores
-  effectiveEvals := Input.ActionEvaluations;
+  effectiveScores := Input.ActionScores;
+
+  // Opportunity arbitration belongs in cognition: evaluators report what is available,
+  // cognition decides what matters given current body state.
+  ApplyOpportunityArbitration(Input, effectiveScores);
 
   // Continuation pressure: when ActionProgress > 0, the agent is invested in a
   // progressive action (past the dig/entry phase). Dampen competing scores so that
@@ -134,17 +175,17 @@ begin
 
     for var action := Low(TAgentAction) to High(TAgentAction) do
       if action <> Input.Context.CurrentAction then
-        effectiveEvals[action].Score := effectiveEvals[action].Score * (1.0 - dampening);
+        effectiveScores[action].Score := effectiveScores[action].Score * (1.0 - dampening);
   end;
 
   var bestAction := Input.Context.CurrentAction;
-  var bestScore := effectiveEvals[bestAction].Score;
+  var bestScore := effectiveScores[bestAction].Score;
 
   for var action := Low(TAgentAction) to High(TAgentAction) do
-    if effectiveEvals[action].Score > bestScore then
+    if effectiveScores[action].Score > bestScore then
     begin
       bestAction := action;
-      bestScore := effectiveEvals[action].Score;
+      bestScore := effectiveScores[action].Score;
     end;
 
   // Require a modest lead for move decisions to avoid oscillation on near-ties.
@@ -158,10 +199,10 @@ begin
       if action = acMove then
         Continue;
 
-      if effectiveEvals[action].Score > bestNonMoveScore then
+      if effectiveScores[action].Score > bestNonMoveScore then
       begin
         bestNonMoveAction := action;
-        bestNonMoveScore := effectiveEvals[action].Score;
+        bestNonMoveScore := effectiveScores[action].Score;
       end;
     end;
 
@@ -200,7 +241,31 @@ begin
   end;
 
   Result.RequestedAction := bestAction;
-  Result.RequestedTarget := effectiveEvals[bestAction].Target;
+  Result.RequestedTarget.TType := ttNone;
+
+  case bestAction of
+    acMove:
+      begin
+        if Input.MoveReport.Count > 0 then
+        begin
+          Result.RequestedTarget.TType := ttCell;
+          Result.RequestedTarget.Cell := Input.MoveReport.Options[0].Cell;
+        end;
+      end;
+    acForage:
+      begin
+        if Input.ForageReport.Count > 0 then
+        begin
+          Result.RequestedTarget.TType := ttCache;
+          Result.RequestedTarget.Cache := Input.ForageReport.Options[0].Cache;
+        end;
+      end;
+  else
+    begin
+      Result.RequestedTarget.TType := ttCell;
+      Result.RequestedTarget.Cell := Input.Context.Location;
+    end;
+  end;
 
   // Move-target affinity: maintain destination continuity across ticks unless
   // a new move candidate is clearly better.
@@ -214,10 +279,21 @@ begin
     // 1. In transit (target ≠ location): keep heading to current target unless new is much better.
     // 2. Just arrived (target = location): the agent chose to come here — require a strong
     //    signal to leave immediately, using the local smell as the anchor.
-    var anchorSignal := SmellSignalForCell(Input.Context.Smell, Input.CurrentTarget.Cell);
-    if anchorSignal > 0.0 then
+    var anchorSignal: Single := 0.0;
+    var hasAnchor := TryGetMoveOpportunity(Input.MoveReport, Input.CurrentTarget.Cell, anchorSignal);
+    if (not hasAnchor) then
     begin
-      var newSignal := effectiveEvals[acMove].Score;
+      // Fallback for in-transit targets that may have fallen outside the curated list.
+      anchorSignal := SmellSignalForCell(Input.Context.Smell, Input.CurrentTarget.Cell);
+      hasAnchor := anchorSignal > 0.0;
+    end;
+
+    if hasAnchor then
+    begin
+      var newSignal: Single := effectiveScores[acMove].Score;
+      if not TryGetMoveOpportunity(Input.MoveReport, Result.RequestedTarget.Cell, newSignal) then
+        newSignal := effectiveScores[acMove].Score;
+
       var switchThreshold := Max(anchorSignal * MOVE_TARGET_SWITCH_RATIO,
         anchorSignal + MOVE_TARGET_SWITCH_ABS_MARGIN);
 

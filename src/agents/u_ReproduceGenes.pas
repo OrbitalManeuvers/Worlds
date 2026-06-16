@@ -6,7 +6,7 @@ uses u_AgentTypes, u_AgentGenome;
 
 type
   TReproduceEvaluator = class(TReproduceEvalGene)
-    class function Evaluate(const Input: TReproduceEvalInput; var Scratch: TReproduceEvalScratch): TActionEvalResult; override;
+    class function Evaluate(const Input: TReproduceEvalInput; var Scratch: TReproduceEvalScratch): TActionScore; override;
     class function MinimumAge: Integer; override;
   end;
 
@@ -33,11 +33,10 @@ const
 { TReproduceEvaluator }
 
 class function TReproduceEvaluator.Evaluate(const Input: TReproduceEvalInput;
-  var Scratch: TReproduceEvalScratch): TActionEvalResult;
+  var Scratch: TReproduceEvalScratch): TActionScore;
 begin
   Scratch := Default(TReproduceEvalScratch);
   Result.Score := 0.0;
-  Result.Target.TType := ttNone;
 
   // Do not ask for reproduction when runtime would reject it on reserve floor alone.
   if Input.Reserves < REPRODUCTION_MIN_ATTEMPT_RESERVES then

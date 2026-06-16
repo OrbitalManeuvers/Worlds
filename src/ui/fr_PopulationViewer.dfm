@@ -133,7 +133,7 @@ object PopulationViewFrame: TPopulationViewFrame
       Left = 547
       Top = 0
       Width = 56
-      Height = 22
+      Height = 15
       Margins.Left = 8
       Margins.Top = 0
       Margins.Right = 4
@@ -148,7 +148,6 @@ object PopulationViewFrame: TPopulationViewFrame
       ParentFont = False
       Layout = tlCenter
       StyleElements = [seClient, seBorder]
-      ExplicitHeight = 15
     end
     object lblAction: TLabel
       AlignWithMargins = True
