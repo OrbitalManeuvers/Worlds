@@ -23,8 +23,8 @@ const
 
 class function TBasicEnergy.EvaluateEnergyLevel(const Input: TEnergyInput): TEnergyLevel;
 begin
-  if Input.Reserves <= 0.0 then
-    Exit(elEmpty);
+//  if Input.Reserves <= 0.0 then
+//    Exit(elEmpty);
 
   if Input.Reserves < ENERGY_LOW_THRESHOLD then
     Exit(elLow);

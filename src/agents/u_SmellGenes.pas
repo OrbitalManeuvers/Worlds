@@ -11,11 +11,6 @@ type
       var Scratch: TSmellScanScratch): TSmellReport; override;
   end;
 
-  TDeltaSmell = class(TBasicSmell)
-  public
-    class function GetGenerationCode: Char; override;
-  end;
-
 implementation
 
 uses System.SysUtils, System.Math, u_EnvironmentTypes;
@@ -299,15 +294,8 @@ begin
   end;
 end;
 
-{ TDeltaSmell }
-
-class function TDeltaSmell.GetGenerationCode: Char;
-begin
-  Result := 'B';
-end;
 
 initialization
   GlobalGeneRegistry.RegisterGene(TBasicSmell);
-  GlobalGeneRegistry.RegisterGene(TDeltaSmell);
 
 end.

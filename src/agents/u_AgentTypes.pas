@@ -13,8 +13,8 @@ type
   TAgentAction = (acMove, acForage, acShelter, acReproduce, acIdle);
   TDecisionAction = acMove..acReproduce;
 
-  TEnergyLevel = (elEmpty, elLow, elMedium, elHigh, elFull);
-  TDecisionEnergy = elLow..elFull;
+  TEnergyLevel = (elLow, elMedium, elHigh, elFull);
+  TDecisionEnergy = TEnergyLevel; //elLow..elFull;
 
   TDecisionFoodSignal = (dfsNone, dfsWeak, dfsStrong);
   TDecisionDayPhase = (ddDay, ddNight);
@@ -45,16 +45,6 @@ type
     Distance: Word;
   end;
 
-  TSightDetails = record
-    // consider what else can be "seen" about agents
-    Directions: TDirections;
-  end;
-
-  TSightReport = record
-    Count: Integer;
-    Details: array of TSightDetails;
-  end;
-
   // what the agent detects about a resource cache.
   TSmellDetails = record
     Cache: TCacheRef;
@@ -78,7 +68,6 @@ type
     EnergyLevel: TEnergyLevel;
     CircadianPressure: Single;
     Smell: TSmellReport;
-//    Sight: TSightReport;
 
     CurrentAction: TAgentAction;
     CurrentActionAge: Integer;

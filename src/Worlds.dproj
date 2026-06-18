@@ -193,7 +193,6 @@
         <DCCReference Include="agents\u_AgentTypes.pas"/>
         <DCCReference Include="common\u_BiologyTypes.pas"/>
         <DCCReference Include="agents\u_AgentGenome.pas"/>
-        <DCCReference Include="agents\u_SightGenes.pas"/>
         <DCCReference Include="sim\u_SimQueriesIntf.pas"/>
         <DCCReference Include="agents\u_SmellGenes.pas"/>
         <DCCReference Include="agents\u_AgentState.pas"/>

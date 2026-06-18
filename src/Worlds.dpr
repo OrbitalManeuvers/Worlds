@@ -34,7 +34,6 @@ uses
   u_AgentTypes in 'agents\u_AgentTypes.pas',
   u_BiologyTypes in 'common\u_BiologyTypes.pas',
   u_AgentGenome in 'agents\u_AgentGenome.pas',
-  u_SightGenes in 'agents\u_SightGenes.pas',
   u_SimQueriesIntf in 'sim\u_SimQueriesIntf.pas',
   u_SmellGenes in 'agents\u_SmellGenes.pas',
   u_AgentState in 'agents\u_AgentState.pas',

@@ -20,7 +20,6 @@ type
     SolarFlux: Single;
     SolarFluxDelta: Single;
     HadSmellTarget: Boolean;
-//    HadSightTarget: Boolean;
     Reserves: Single;
   end;
 
@@ -31,6 +30,7 @@ type
     SolarFluxDelta: Single;
     Query: ISimQuery;
     GestationDuration: Integer; // total ticks for gestation; supplied by runtime
+    GeneMap: TGeneMap;          // resolved from agent's gene sequence by the runtime
   end;
 
   // Result returned by the brain to the population/sim tick routine.
@@ -50,6 +50,7 @@ type
     GridWidth: Integer;
     PreviousLocation: Integer;
     CurrentLocation: Integer;
+    GeneMap: TGeneMap;
   end;
 
   // Caller-owned per-agent scratch state reused across ticks.
@@ -162,7 +163,6 @@ begin
   Result.SolarFlux := Context.SolarFlux;
   Result.SolarFluxDelta := Context.SolarFluxDelta;
   Result.HadSmellTarget := Context.Smell.Count > 0;
-//  Result.HadSightTarget := Context.Sight.Count > 0;
 
   // Smell details are sorted by the smell gene; detail[0] is the chosen/most salient candidate.
   if Length(Context.Smell.Details) > 0 then
@@ -304,7 +304,6 @@ end;
 procedure TAgentScratch.BeginTick(const State: TAgentState; const Input: TBrainTickInput);
 begin
   SensorScratch.Smell.Count := 0;
-  SensorScratch.Sight.Count := 0;
   EvaluatorScratch := Default(TEvaluatorScratch);
 
   DecisionContext := Default(TDecisionContext);
@@ -332,19 +331,19 @@ begin
 
   // remove this eventually, but for now make sure what we expect is here.
   // There should not be any unassigned genes (eventually), all should have a Basic implementation.
-  Assert(Assigned(State.Genome.GeneMap.Energy));
-  Assert(Assigned(State.Genome.GeneMap.Smell));
-  Assert(Assigned(State.Genome.GeneMap.ForageEval));
-  Assert(Assigned(State.Genome.GeneMap.MoveEval));
-  Assert(Assigned(State.Genome.GeneMap.Cognition));
-  Assert(Assigned(State.Genome.GeneMap.ReproduceEval));
+  Assert(Assigned(Input.GeneMap.Energy));
+  Assert(Assigned(Input.GeneMap.Smell));
+  Assert(Assigned(Input.GeneMap.ForageEval));
+  Assert(Assigned(Input.GeneMap.MoveEval));
+  Assert(Assigned(Input.GeneMap.Cognition));
+  Assert(Assigned(Input.GeneMap.ReproduceEval));
 
 
   // Observation stage: enrich context from available genes.
 
   // 1. Energy
   var energyInput := BuildEnergyInput(State);
-  Scratch.DecisionContext.EnergyLevel := State.Genome.GeneMap.Energy.EvaluateEnergyLevel(energyInput);
+  Scratch.DecisionContext.EnergyLevel := Input.GeneMap.Energy.EvaluateEnergyLevel(energyInput);
 
   // 2. Smell
   // allow parameters to adjust the gene's operation
@@ -352,30 +351,17 @@ begin
   smellParams.Ratings := State.Genome.SmellRatings;
 
   // activate the gene and save its reply
-  var smellGene := State.Genome.GeneMap.Smell;
+  var smellGene := Input.GeneMap.Smell;
   var smellReport := smellGene.Scan(State.Location, smellParams, Input.Query, Scratch.SensorScratch.Smell);
 
   Scratch.DecisionContext.Smell := smellReport;
-
-  // 3. Sight
-//  if Assigned(State.Genome.GeneMap.Sight) then
-//  begin
-    // for now, sight is being mothballed. for *lack of vision*
-    // it may return someday so for now we leave it in the framework, but ignore it
-
-//    var sightGene := State.Genome.GeneMap.Sight;
-//    var sightReport := sightGene.Scan(State.Location, State.Genome.SightRange, Input.Query, Scratch.SensorScratch.Sight);
-
-//    Scratch.DecisionContext.Sight := Default(TSightReport);
-//  end;
-
   Result.DecisionBuckets := BuildDecisionBuckets(Scratch.DecisionContext);
 
   // Evaluation stage: score available actions.
 
   // 1. Movement
   var moveReport := Default(TMoveReport);
-  var moveEval := State.Genome.GeneMap.MoveEval;
+  var moveEval := Input.GeneMap.MoveEval;
   if Assigned(moveEval) then
   begin
     var moveInput := BuildMoveEvalInput(State, Scratch.DecisionContext);
@@ -389,7 +375,7 @@ begin
 
   // 2. Foraging
   var forageReport := Default(TForageReport);
-  var forageEval := State.Genome.GeneMap.ForageEval;
+  var forageEval := Input.GeneMap.ForageEval;
   if Assigned(forageEval) then
   begin
     var forageInput := BuildForageEvalInput(State, Scratch.DecisionContext);
@@ -402,7 +388,7 @@ begin
     Scratch.ActionScores[acForage].Score := forageReport.Options[0].Opportunity;
 
   // 3. Shelter
-  var shelterEval := State.Genome.GeneMap.ShelterEval;
+  var shelterEval := Input.GeneMap.ShelterEval;
   if Assigned(shelterEval) then
   begin
     var shelterInput := BuildShelterEvalInput(State, Scratch.DecisionContext);
@@ -411,7 +397,7 @@ begin
 
   // 4. Reproduction
   var localAgentCount := 0;
-  var reproduceEval := State.Genome.GeneMap.ReproduceEval;
+  var reproduceEval := Input.GeneMap.ReproduceEval;
   if Assigned(reproduceEval) and (State.Action <> acShelter) then
   begin
     // don't run the sight query if it's not needed
@@ -433,7 +419,7 @@ begin
 
 
   // finally, Cognition
-  var cognitionGene := State.Genome.GeneMap.Cognition;
+  var cognitionGene := Input.GeneMap.Cognition;
   if Assigned(cognitionGene) then
   begin
     var weightedScores := BuildWeightedScores(State, Result.DecisionBuckets, Scratch.ActionScores);
@@ -457,7 +443,7 @@ end;
 class procedure TAgentBrain.Reflect(var State: TAgentState; const Decision: TBrainTickOutput;
   const Input: TBrainReflectInput; var Scratch: TAgentScratch);
 begin
-  var cognitionGene := State.Genome.GeneMap.Cognition;
+  var cognitionGene := Input.GeneMap.Cognition;
   if not Assigned(cognitionGene) then
     Exit;
 

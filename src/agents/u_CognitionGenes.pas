@@ -6,18 +6,9 @@ uses u_AgentGenome, u_AgentTypes;
 
 type
   TBasicCognition = class(TCognitionGene)
-  public
-    class function Decide(const Input: TCognitionInput; var Scratch: TCognitionScratch): TCognitionOutput; override;
-    class function Reflect(const Input: TCognitionReflectionInput; var Scratch: TReflectionScratch): TCognitionReflectionOutput; override;
-  end;
-
-
-  // knows how to incorporate decision weights
-  TLearningCognition = class(TBasicCognition)
   private
     class function MoveReflection(const Input: TCognitionReflectionInput;
       var Scratch: TReflectionScratch): TCognitionReflectionOutput;
-
     class function ForageReflection(const Input: TCognitionReflectionInput;
       var Scratch: TReflectionScratch): TCognitionReflectionOutput;
     class function ShelterReflection(const Input: TCognitionReflectionInput;
@@ -25,13 +16,16 @@ type
     class function ReproduceReflection(const Input: TCognitionReflectionInput;
       var Scratch: TReflectionScratch): TCognitionReflectionOutput;
   public
-    class function GetGenerationCode: Char; override;
-    class function Reflect(const Input: TCognitionReflectionInput;
-      var Scratch: TReflectionScratch): TCognitionReflectionOutput; override;
+    class function Decide(const Input: TCognitionInput; var Scratch: TCognitionScratch): TCognitionOutput; override;
+    class function Reflect(const Input: TCognitionReflectionInput; var Scratch: TReflectionScratch): TCognitionReflectionOutput; override;
   end;
 
-  // knows how to explore in good times
-  TExploringCognition = class(TCognitionGene);
+  // 'X' - reflection disabled, pure instinct
+  TDebugCognition = class(TBasicCognition)
+  public
+    class function GetGenerationCode: Char; override;
+    class function Reflect(const Input: TCognitionReflectionInput; var Scratch: TReflectionScratch): TCognitionReflectionOutput; override;
+  end;
 
 
 implementation
@@ -353,22 +347,6 @@ class function TBasicCognition.Reflect(const Input: TCognitionReflectionInput;
 begin
   Scratch := Default(TReflectionScratch);
   Result := Default(TCognitionReflectionOutput);
-end;
-
-
-
-{ TLearningCognition }
-
-class function TLearningCognition.GetGenerationCode: Char;
-begin
-  Result := 'B';
-end;
-
-class function TLearningCognition.Reflect(const Input: TCognitionReflectionInput;
-  var Scratch: TReflectionScratch): TCognitionReflectionOutput;
-begin
-  Scratch := Default(TReflectionScratch);
-  Result := Default(TCognitionReflectionOutput);
 
   case Input.RequestedAction of
     acMove: Result := MoveReflection(Input, Scratch);
@@ -381,7 +359,7 @@ begin
   end;
 end;
 
-class function TLearningCognition.ForageReflection(
+class function TBasicCognition.ForageReflection(
   const Input: TCognitionReflectionInput;
   var Scratch: TReflectionScratch): TCognitionReflectionOutput;
 begin
@@ -430,7 +408,7 @@ begin
     Result.HasMoleculeUpdate := False;
 end;
 
-class function TLearningCognition.MoveReflection(
+class function TBasicCognition.MoveReflection(
   const Input: TCognitionReflectionInput;
   var Scratch: TReflectionScratch): TCognitionReflectionOutput;
 begin
@@ -463,7 +441,7 @@ begin
     Result.Outcome := MOVE_REFLECT_NO_PROGRESS_OUTCOME;
 end;
 
-class function TLearningCognition.ReproduceReflection(
+class function TBasicCognition.ReproduceReflection(
   const Input: TCognitionReflectionInput;
   var Scratch: TReflectionScratch): TCognitionReflectionOutput;
 begin
@@ -472,7 +450,7 @@ begin
   Result.HasWeightUpdate := False;
 end;
 
-class function TLearningCognition.ShelterReflection(
+class function TBasicCognition.ShelterReflection(
   const Input: TCognitionReflectionInput;
   var Scratch: TReflectionScratch): TCognitionReflectionOutput;
 begin
@@ -497,8 +475,21 @@ begin
     Result.HasWeightUpdate := False;
 end;
 
+{ TDebugCognition }
+
+class function TDebugCognition.GetGenerationCode: Char;
+begin
+  Result := 'X';
+end;
+
+class function TDebugCognition.Reflect(const Input: TCognitionReflectionInput;
+  var Scratch: TReflectionScratch): TCognitionReflectionOutput;
+begin
+  Scratch := Default(TReflectionScratch);
+  Result := Default(TCognitionReflectionOutput);
+end;
+
 initialization
   GlobalGeneRegistry.RegisterGene(TBasicCognition);
-  GlobalGeneRegistry.RegisterGene(TLearningCognition);
-
+  GlobalGeneRegistry.RegisterGene(TDebugCognition);
 end.

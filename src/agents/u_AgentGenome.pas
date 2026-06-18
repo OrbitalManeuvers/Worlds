@@ -11,7 +11,7 @@ const
   // but evaluators should not ask for reproduction below this legal minimum.
   REPRODUCTION_MIN_ATTEMPT_RESERVES = 6.0;
 
-  GENE_SEQUENCE_LENGTH = 9; // at least for today!
+  GENE_SEQUENCE_LENGTH = 8; // at least for today!
 
 // In this simulated universe, a "gene" is just an upgradable bit of agent that makes them tick. Every tick.
 
@@ -28,15 +28,9 @@ type
     Count: Integer;
   end;
 
-  // Caller-owned workspace reused across ticks for sight scan queries.
-  TSightScanScratch = record
-    Buffer: TSightInfos;
-    Count: Integer;
-  end;
-
+  // !! get rid of this record
   TSensorScanScratch = record
     Smell: TSmellScanScratch;
-    Sight: TSightScanScratch;
   end;
 
   // Self-state observed by the Energy module.
@@ -89,7 +83,6 @@ type
     Substance: TSubstance;
   end;
 
-// eval-cleanup
   TForageOption = record
     Cache: TCacheRef;
     CellIndex: TCellIndex;
@@ -114,9 +107,6 @@ type
     Count: Integer;
     Options: TMoveOptionArray;
   end;
-// eval-cleanup ^
-
-
 
   TActionScore = record
     Score: Single;
@@ -222,15 +212,6 @@ type
   end;
   TSmellGeneClass = class of TSmellGene;
 
-  // Sight
-  TSightGene = class(TGene)
-  public
-    class function Scan(Location: Integer; Range: Single; const Query: ISimQuery;
-      var Scratch: TSightScanScratch): TSightReport; virtual; abstract;
-  end;
-  TSightGeneClass = class of TSightGene;
-
-
   // ===================
   // Evaluation Genes
   // ===================
@@ -286,16 +267,12 @@ type
   TGeneMap = record
     Energy: TEnergyGeneClass;
     Smell: TSmellGeneClass;
-    Sight: TSightGeneClass;
     MoveEval: TMoveEvalGeneClass;
     ForageEval: TForageEvalGeneClass;
     ShelterEval: TShelterEvalGeneClass;
     ReproduceEval: TReproduceEvalGeneClass;
     Cognition: TCognitionGeneClass;
     Converter: TConverterGeneClass;
-    function SumGenerationCost(const aCostPerGeneration: Single;
-      const aRequiredFlags: TGeneSlotFlags = [];
-      const aExcludedFlags: TGeneSlotFlags = []): Single;
   end;
 
   // record of an agent's gene sequence
@@ -303,7 +280,6 @@ type
   private
     Energy: Char;
     Smell: Char;
-    Sight: Char;
     Movement: Char;
     Forage: Char;
     Shelter: Char;
@@ -336,16 +312,14 @@ type
     function FindGeneration(aClass: TGeneClass; aGen: Char): TGeneClass;
   end;
 
-
   TAgentGenome = record
-    // agent's genes
-    GeneMap: TGeneMap;
+    // agent's genes — stored as a compact sequence, resolved to class pointers at tick time
+    Sequence: TGeneSequence;
 
     // Data parameters: continuous variation within a generation
     ForageMoleculeWeights: TMoleculeFactors;  // learned preference per molecule
     ConverterRatings: TMoleculeFactors;
     SmellRatings: TMoleculeFactors;
-//    SightRange: Single;
   end;
 
 
@@ -371,46 +345,6 @@ class function TGene.GetGenerationCode: Char;
 begin
   Result := 'A';
 end;
-
-{ TGeneMap }
-
-function TGeneMap.SumGenerationCost(const aCostPerGeneration: Single;
-  const aRequiredFlags: TGeneSlotFlags; const aExcludedFlags: TGeneSlotFlags): Single;
-
-  function GeneGenerationCost(aGeneClass: TGeneClass): Single;
-  begin
-    if not Assigned(aGeneClass) then
-      Exit(0.0);
-
-    Result := (Ord(aGeneClass.GetGenerationCode) - Ord('A')) * aCostPerGeneration;
-    if Result < 0.0 then
-      Result := 0.0;
-  end;
-
-  procedure AddSlot(aGeneClass: TGeneClass; const aFlags: TGeneSlotFlags);
-  begin
-    if (aRequiredFlags - aFlags) <> [] then
-      Exit;
-
-    if (aFlags * aExcludedFlags) <> [] then
-      Exit;
-
-    Result := Result + GeneGenerationCost(aGeneClass);
-  end;
-begin
-  Result := 0.0;
-
-  AddSlot(Energy, [gsfAlwaysOn]);
-  AddSlot(Smell, []);
-  AddSlot(Sight, []);
-  AddSlot(MoveEval, []);
-  AddSlot(ForageEval, []);
-  AddSlot(ShelterEval, [gsfAlwaysOn]);
-  AddSlot(ReproduceEval, []);
-  AddSlot(Cognition, [gsfAlwaysOn]);
-  AddSlot(Converter, []);
-end;
-
 
 { TGeneRegistry }
 
@@ -481,7 +415,7 @@ end;
 
 function TGeneSequence.getAsText: string;
 begin
-  Result := Energy + Smell + Sight + Movement + Forage + Shelter + Reproduce +
+  Result := Energy + Smell + Movement + Forage + Shelter + Reproduce +
     Cognition + Convert;
   Assert(Result.Length = GENE_SEQUENCE_LENGTH);
 end;
@@ -497,13 +431,12 @@ begin
 
   Energy := aValue[1];
   Smell := aValue[2];
-  Sight := aValue[3];
-  Movement := aValue[4];
-  Forage := aValue[5];
-  Shelter := aValue[6];
-  Reproduce := aValue[7];
-  Cognition := aValue[8];
-  Convert := aValue[9];
+  Movement := aValue[3];
+  Forage := aValue[4];
+  Shelter := aValue[5];
+  Reproduce := aValue[6];
+  Cognition := aValue[7];
+  Convert := aValue[8];
 end;
 
 { TGeneSequencer }
@@ -512,7 +445,6 @@ class function TGeneSequencer.GetSequence(const aMap: TGeneMap): TGeneSequence;
 begin
   Result.Energy := aMap.Energy.GetGenerationCode;
   Result.Smell := aMap.Smell.GetGenerationCode;
-  Result.Sight := aMap.Sight.GetGenerationCode;
   Result.Movement := aMap.MoveEval.GetGenerationCode;
   Result.Forage := aMap.ForageEval.GetGenerationCode;
   Result.Shelter := aMap.ShelterEval.GetGenerationCode;
@@ -532,11 +464,7 @@ begin
   geneClass := GlobalGeneRegistry.FindGeneration(TSmellGene, aSequence.Smell);
   aMap.Smell := TSmellGeneClass(geneClass);
 
-  geneClass := GlobalGeneRegistry.FindGeneration(TSightGene, aSequence.Sight);
-  aMap.Sight := TSightGeneClass(geneClass);
-
-  // evaluation
-
+  // move evaluation
   geneClass := GlobalGeneRegistry.FindGeneration(TMoveEvalGene, aSequence.Movement);
   aMap.MoveEval := TMoveEvalGeneClass(geneClass);
 

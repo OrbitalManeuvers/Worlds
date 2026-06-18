@@ -30,6 +30,10 @@ begin
   var efficiency := 0.0;
   for var molecule := Low(TMolecule) to High(TMolecule) do
   begin
+    // Gen A biology cannot process delta — hard gate regardless of genome rating.
+    if molecule = Delta then
+      Continue;
+
     var share := Input.Substance[molecule] / 100.0;
     efficiency := efficiency + (share * Input.Ratings[molecule]);
   end;

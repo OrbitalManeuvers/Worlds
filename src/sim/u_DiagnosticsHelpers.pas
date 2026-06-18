@@ -245,7 +245,7 @@ end;
 { _energyLevel }
 function _energyLevel.AsText: string;
 const
-  energyLevelStrs: array[TEnergyLevel] of string = ('e', 'l', 'm', 'h', 'f');
+  energyLevelStrs: array[TEnergyLevel] of string = ('l', 'm', 'h', 'f');
 begin
   Result := energyLevelStrs[Self];
 end;

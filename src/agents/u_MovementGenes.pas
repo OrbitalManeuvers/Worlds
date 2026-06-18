@@ -6,10 +6,11 @@ uses u_AgentTypes, u_AgentGenome;
 
 type
   TMoveEvaluator = class(TMoveEvalGene)
+  public
     class function BuildReport(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TMoveReport; override;
   end;
 
-  TLearningMoveEvaluator = class(TMoveEvalGene)
+  TDebugMoveEvaluator = class(TMoveEvalGene)
   public
     class function GetGenerationCode: Char; override;
     class function BuildReport(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TMoveReport; override;
@@ -119,23 +120,23 @@ end;
 
 class function TMoveEvaluator.BuildReport(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TMoveReport;
 begin
-  Result := EvaluateMovement(Input, Scratch, mwUniform);
-end;
-
-{ TLearningMoveEvaluator }
-
-class function TLearningMoveEvaluator.BuildReport(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TMoveReport;
-begin
   Result := EvaluateMovement(Input, Scratch, mwLearned);
 end;
 
-class function TLearningMoveEvaluator.GetGenerationCode: Char;
+{ TDebugMoveEvaluator }
+
+class function TDebugMoveEvaluator.BuildReport(const Input: TMoveEvalInput; var Scratch: TMoveEvalScratch): TMoveReport;
 begin
-  Result := 'B';
+  Result := EvaluateMovement(Input, Scratch, mwUniform);
+end;
+
+class function TDebugMoveEvaluator.GetGenerationCode: Char;
+begin
+  Result := 'X';
 end;
 
 initialization
   GlobalGeneRegistry.RegisterGene(TMoveEvaluator);
-  GlobalGeneRegistry.RegisterGene(TLearningMoveEvaluator);
+  GlobalGeneRegistry.RegisterGene(TDebugMoveEvaluator);
 
 end.

@@ -305,7 +305,7 @@ begin
   Result.Age := fAgents[aAgentId].Age;
   Result.Reserves := fAgents[aAgentId].Reserves;
   Result.ReserveDelta := fAgents[aAgentId].ReserveDelta;
-  Result.GeneSequence := TGeneSequencer.GetSequence(fAgents[aAgentId].Genome.GeneMap);
+  Result.GeneSequence := fAgents[aAgentId].Genome.Sequence;
   Result.MoleculeFactors := fAgents[aAgentId].Genome.ConverterRatings;
   Result.ForageMoleculeWeights := fAgents[aAgentId].Genome.ForageMoleculeWeights;
   Result.DecisionWeights := fAgents[aAgentId].DecisionWeights;

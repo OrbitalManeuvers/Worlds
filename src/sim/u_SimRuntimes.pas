@@ -42,6 +42,12 @@ type
     AgentActivationTick: Integer;
   end;
 
+  TGeneMapHelper = record helper for TGeneMap
+    function SumGenerationCost(const aCostPerGeneration: Single;
+      const aRequiredFlags: TGeneSlotFlags = [];
+      const aExcludedFlags: TGeneSlotFlags = []): Single;
+  end;
+
   TDecisionTrace = record
     DayTick: TDayTick;
     AgentId: Integer;
@@ -100,14 +106,14 @@ type
     procedure BeginTickSummary;
     procedure FinalizeTickSummary;
 
-    function CalculateAgentTickCost(const State: TAgentState): Single;
+    function CalculateAgentTickCost(const State: TAgentState; const GeneMap: TGeneMap): Single;
     function CalculateMoveCost(FromCell, ToCell: Integer): Single;
-    function CalculateForageGain(const State: TAgentState; const Reply: TConsumeCacheReply): Single;
+    function CalculateForageGain(const State: TAgentState; const GeneMap: TGeneMap; const Reply: TConsumeCacheReply): Single;
     function BuildOffspringState(const ParentState: TAgentState; const OffspringId: Integer): TAgentState;
     function NextAgentId: Integer;
-    function ApplyAgentUpkeep(var State: TAgentState): Boolean;
-    function ResolveRequestedStep(AgentIndex: Integer; var State: TAgentState; const Requested: TBrainTickOutput;
-       out ForageOutcome: TForageOutcome): TBrainTickOutput;
+    function ApplyAgentUpkeep(var State: TAgentState; const GeneMap: TGeneMap): Boolean;
+    function ResolveRequestedStep(AgentIndex: Integer; var State: TAgentState; const GeneMap: TGeneMap;
+      const Requested: TBrainTickOutput; out ForageOutcome: TForageOutcome): TBrainTickOutput;
     procedure ProcessAgentTick(aIndex: Integer; const Input: TBrainTickInput);
     procedure NotifyPhase(const Phase: TSimTickPhase);
     procedure SetDayTick(const Value: TDayTick);
@@ -135,6 +141,45 @@ implementation
 
 uses System.Math, System.SysUtils,
   u_EnvironmentTypes, u_SimQueriesImpl, u_SimCommandsImpl;
+
+{ TGeneMapHelper }
+
+function TGeneMapHelper.SumGenerationCost(const aCostPerGeneration: Single;
+  const aRequiredFlags: TGeneSlotFlags; const aExcludedFlags: TGeneSlotFlags): Single;
+
+  function GeneGenerationCost(aGeneClass: TGeneClass): Single;
+  begin
+    if not Assigned(aGeneClass) then
+      Exit(0.0);
+
+    Result := (Ord(aGeneClass.GetGenerationCode) - Ord('A')) * aCostPerGeneration;
+    if Result < 0.0 then
+      Result := 0.0;
+  end;
+
+  procedure AddSlot(aGeneClass: TGeneClass; const aFlags: TGeneSlotFlags);
+  begin
+    if (aRequiredFlags - aFlags) <> [] then
+      Exit;
+
+    if (aFlags * aExcludedFlags) <> [] then
+      Exit;
+
+    Result := Result + GeneGenerationCost(aGeneClass);
+  end;
+
+begin
+  Result := 0.0;
+
+  AddSlot(Energy, [gsfAlwaysOn]);
+  AddSlot(Smell, []);
+  AddSlot(MoveEval, []);
+  AddSlot(ForageEval, []);
+  AddSlot(ShelterEval, [gsfAlwaysOn]);
+  AddSlot(ReproduceEval, []);
+  AddSlot(Cognition, [gsfAlwaysOn]);
+  AddSlot(Converter, []);
+end;
 
 { TSimRuntime }
 
@@ -283,7 +328,7 @@ begin
   fLastDeltaSpawnCount := 0;
 end;
 
-function TSimRuntime.CalculateAgentTickCost(const State: TAgentState): Single;
+function TSimRuntime.CalculateAgentTickCost(const State: TAgentState; const GeneMap: TGeneMap): Single;
 
   function GestationFatigueCost(aProgress: Integer): Single;
   begin
@@ -325,12 +370,12 @@ begin
   end;
 
   // and the cost everyone pays for their gene usage
-  Result := Result + State.Genome.GeneMap.SumGenerationCost(GENE_GENERATION_COST, flags);
+  Result := Result + GeneMap.SumGenerationCost(GENE_GENERATION_COST, flags);
 end;
 
-function TSimRuntime.ApplyAgentUpkeep(var State: TAgentState): Boolean;
+function TSimRuntime.ApplyAgentUpkeep(var State: TAgentState; const GeneMap: TGeneMap): Boolean;
 begin
-  State.Reserves := State.Reserves - CalculateAgentTickCost(State);
+  State.Reserves := State.Reserves - CalculateAgentTickCost(State, GeneMap);
   Result := State.Reserves > 0.0;
   if not Result then
     State.Reserves := 0.0;
@@ -534,9 +579,9 @@ begin
     fPopulationSummary.MaxLiving := fPopulationSummary.Living;
 end;
 
-function TSimRuntime.CalculateForageGain(const State: TAgentState; const Reply: TConsumeCacheReply): Single;
+function TSimRuntime.CalculateForageGain(const State: TAgentState; const GeneMap: TGeneMap; const Reply: TConsumeCacheReply): Single;
 begin
-  var converter := State.Genome.GeneMap.Converter;
+  var converter := GeneMap.Converter;
   if not Assigned(converter) then
     Exit(Reply.ConsumedAmount);
 
@@ -602,7 +647,7 @@ begin
 end;
 
 function TSimRuntime.ResolveRequestedStep(AgentIndex: Integer; var State: TAgentState;
-  const Requested: TBrainTickOutput; out ForageOutcome: TForageOutcome): TBrainTickOutput;
+  const GeneMap: TGeneMap; const Requested: TBrainTickOutput; out ForageOutcome: TForageOutcome): TBrainTickOutput;
 begin
   // Runtime resolution hook: adjust or reject requested actions based on world rules.
   Result := Requested;
@@ -823,16 +868,19 @@ begin
       if forageCommand.TryConsumeCache(request, reply) then
       begin
         ForageOutcome.Consumed := reply.ConsumedAmount;
-        ForageOutcome.Gain := CalculateForageGain(State, reply);
+        ForageOutcome.Gain := CalculateForageGain(State, GeneMap, reply);
         ForageOutcome.Substance := reply.Substance;
         State.Reserves := State.Reserves + ForageOutcome.Gain;
 
         // Delta buys a small amount of circadian runway after net energy gain is applied.
-        var deltaConsumed := reply.ConsumedAmount * (reply.Substance[Delta] / 100.0);
-        if deltaConsumed > 0.0 then
+        if ForageOutcome.Gain > 0.0 then
         begin
-          var deltaRelief := deltaConsumed * DELTA_CIRCADIAN_RELIEF_RATE;
-          State.CircadianPressure := Max(0.0, State.CircadianPressure - deltaRelief);
+          var deltaConsumed := reply.ConsumedAmount * (reply.Substance[Delta] / 100.0);
+          if deltaConsumed > 0.0 then
+          begin
+            var deltaRelief := deltaConsumed * DELTA_CIRCADIAN_RELIEF_RATE;
+            State.CircadianPressure := Max(0.0, State.CircadianPressure - deltaRelief);
+          end;
         end;
 
         State.TicksSinceForage := 0;
@@ -853,12 +901,18 @@ begin
 end;
 
 procedure TSimRuntime.ProcessAgentTick(aIndex: Integer; const Input: TBrainTickInput);
+var
+  agentInput: TBrainTickInput;
 begin
   var state := fPopulation.GetAgentState(aIndex);
 
   // Dead agents remain in population data but do not age or think.
   if state.Reserves <= 0.0 then
     Exit;
+
+  // Resolve gene sequence to class pointers for this agent's tick.
+  agentInput := Input;
+  TGeneSequencer.Populate(agentInput.GeneMap, state.Genome.Sequence);
 
   // This agent is alive at tick start — count it.
   Inc(fPopulationSummary.Living);
@@ -890,7 +944,7 @@ begin
   var reservesAtTickStart := state.Reserves;
   var reservesBeforeUpkeep := state.Reserves;
 
-  if not ApplyAgentUpkeep(state^) then
+  if not ApplyAgentUpkeep(state^, agentInput.GeneMap) then
   begin
     // Dead agents do not think or request actions.
     state.ReserveDelta := state.Reserves - reservesAtTickStart;
@@ -906,13 +960,13 @@ begin
     Exit;
   end;
 
-  var requested := fPopulation.Think(aIndex, Input);
+  var requested := fPopulation.Think(aIndex, agentInput);
 {$IFDEF AGENT_DEBUG_TRACE}
   var decisionContext := fPopulation.LastDecisionContext;
 {$ENDIF}
   var forageOutcome := Default(TForageOutcome);
   var stateBeforeResolution := state^;
-  var resolved := ResolveRequestedStep(aIndex, state^, requested, forageOutcome);
+  var resolved := ResolveRequestedStep(aIndex, state^, agentInput.GeneMap, requested, forageOutcome);
   state.ReserveDelta := state.Reserves - reservesAtTickStart;
 
 {$IFDEF AGENT_DEBUG_TRACE}
@@ -975,6 +1029,7 @@ begin
     reflectInput.GridWidth := fEnvironment.Dimensions.cx;
     reflectInput.PreviousLocation := stateBeforeResolution.Location;
     reflectInput.CurrentLocation := state.Location;
+    reflectInput.GeneMap := agentInput.GeneMap;
     fPopulation.Reflect(aIndex, requested, reflectInput);
   end;
 

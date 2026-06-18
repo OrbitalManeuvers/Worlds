@@ -215,7 +215,7 @@ begin
     state.Birthplace := state.Location;
     state.Reserves := 5.0;
     state.TicksSinceReproduction := INITIAL_TICKS_SINCE_REPRODUCTION;
-    TGeneSequencer.Populate(state.Genome.GeneMap, sequence);
+    state.Genome.Sequence := sequence;
 
     // assign default smell, digestion, and learning profiles
     for var molecule := Low(TMolecule) to High(TMolecule) do
@@ -284,23 +284,24 @@ begin
   state.TicksSinceReproduction := INITIAL_TICKS_SINCE_REPRODUCTION;
 
   sequence.AsText := aGeneSequence;
-  TGeneSequencer.Populate(state.Genome.GeneMap, sequence);
+  state.Genome.Sequence := sequence;
 
   for var molecule := Low(TMolecule) to High(TMolecule) do
   begin
-    // smell
+    // smell - defaults to normal all 4
     var value: Single := SMELL_RATING_FACTOR[Normal];
     if Assigned(aSmellRatings) then
       value := SMELL_RATING_FACTOR[aSmellRatings[molecule]];
     state.Genome.SmellRatings[molecule] := value;
 
-    // converter
-    value := CONVERTER_RATING_FACTOR[Normal];
+    // converter - defaults to normal growable, 0 delta
+    // delta conversion requires a mutation
+    if molecule = Delta then value := 0
+    else value := CONVERTER_RATING_FACTOR[Normal];
     if Assigned(aConverterRatings) then
       value := CONVERTER_RATING_FACTOR[aConverterRatings[molecule]];
     state.Genome.ConverterRatings[molecule] := value;
-
-    state.Genome.ForageMoleculeWeights[molecule] := 1.0; // neutral
+    state.Genome.ForageMoleculeWeights[molecule] := 1.0; // neutral starting point
   end;
 
 //  ApplyDeltaGeneGates(state^);
