@@ -59,21 +59,6 @@ type
     Details: array of TSmellDetails;
   end;
 
-  TDecisionContext = record
-    Location: Integer;
-    IsNight: Boolean;
-    SolarFlux: Single;
-    SolarFluxDelta: Single;
-
-    EnergyLevel: TEnergyLevel;
-    CircadianPressure: Single;
-    Smell: TSmellReport;
-
-    CurrentAction: TAgentAction;
-    CurrentActionAge: Integer;
-    ActionProgress: Integer;
-  end;
-
 
 implementation
 

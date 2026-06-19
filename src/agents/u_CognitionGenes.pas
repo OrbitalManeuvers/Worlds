@@ -1,4 +1,4 @@
-ï»¿unit u_CognitionGenes;
+unit u_CognitionGenes;
 
 interface
 
@@ -34,7 +34,7 @@ uses System.Math, u_EnvironmentTypes, u_SimTypes, u_Instincts;
 
 type
   TActionContinuationParams = record
-    MaxDampening: Single;       // ceiling â€” how much competing scores can be suppressed
+    MaxDampening: Single;       // ceiling — how much competing scores can be suppressed
     RampRate: Single;           // dampening increase per tick of ActionProgress
     PressureWeighted: Boolean;  // if true, dampening scales with CircadianPressure ratio
   end;
@@ -43,11 +43,11 @@ const
   // Continuation dampening table: defines how strongly each action resists interruption
   // once ActionProgress > 0 (i.e. past the dig/entry phase).
   ActionContinuation: array[TAgentAction] of TActionContinuationParams = (
-    (MaxDampening: 0.0;  RampRate: 0.0;  PressureWeighted: False),  // acMove â€” no progressive phase
-    (MaxDampening: 0.0;  RampRate: 0.0;  PressureWeighted: False),  // acForage â€” no progressive phase
-    (MaxDampening: 0.95; RampRate: 0.08; PressureWeighted: True),   // acShelter â€” deep, scales with fatigue
-    (MaxDampening: 0.70; RampRate: 0.05; PressureWeighted: False),  // acReproduce â€” linear commitment ramp
-    (MaxDampening: 0.0;  RampRate: 0.0;  PressureWeighted: False)   // acIdle â€” nothing
+    (MaxDampening: 0.0;  RampRate: 0.0;  PressureWeighted: False),  // acMove — no progressive phase
+    (MaxDampening: 0.0;  RampRate: 0.0;  PressureWeighted: False),  // acForage — no progressive phase
+    (MaxDampening: 0.95; RampRate: 0.08; PressureWeighted: True),   // acShelter — deep, scales with fatigue
+    (MaxDampening: 0.70; RampRate: 0.05; PressureWeighted: False),  // acReproduce — linear commitment ramp
+    (MaxDampening: 0.0;  RampRate: 0.0;  PressureWeighted: False)   // acIdle — nothing
   );
 
 const
@@ -69,7 +69,7 @@ const
   FORAGE_REFLECT_NO_GAIN_OUTCOME = -0.04;
 
   // Shelter reflection: reward when reserves are recovering while sheltered.
-  // No negative signal â€” flat/declining reserves while sheltered may still be
+  // No negative signal — flat/declining reserves while sheltered may still be
   // better than the alternative, so silence is more honest than punishment.
   SHELTER_REFLECT_RECOVERY_OUTCOME = 0.04;
 
@@ -159,20 +159,20 @@ begin
   // Continuation pressure: when ActionProgress > 0, the agent is invested in a
   // progressive action (past the dig/entry phase). Dampen competing scores so that
   // only genuinely strong signals can interrupt.
-  if Input.Context.ActionProgress > 0 then
+  if Input.ActionProgress > 0 then
   begin
-    var params := ActionContinuation[Input.Context.CurrentAction];
-    var dampening := Min(params.RampRate * Input.Context.ActionProgress, params.MaxDampening);
+    var params := ActionContinuation[Input.CurrentAction];
+    var dampening := Min(params.RampRate * Input.ActionProgress, params.MaxDampening);
     if params.PressureWeighted then
       dampening := dampening * EnsureRange(
-        Input.Context.CircadianPressure / MAX_CIRCADIAN_PRESSURE, 0.0, 1.0);
+        Input.CircadianPressure / MAX_CIRCADIAN_PRESSURE, 0.0, 1.0);
 
     for var action := Low(TAgentAction) to High(TAgentAction) do
-      if action <> Input.Context.CurrentAction then
+      if action <> Input.CurrentAction then
         effectiveScores[action].Score := effectiveScores[action].Score * (1.0 - dampening);
   end;
 
-  var bestAction := Input.Context.CurrentAction;
+  var bestAction := Input.CurrentAction;
   var bestScore := effectiveScores[bestAction].Score;
 
   for var action := Low(TAgentAction) to High(TAgentAction) do
@@ -214,10 +214,10 @@ begin
     // last ate, head there. Comfortable agents wait a tick first (food might appear
     // locally); hungry agents go immediately.
     if (Input.LastForageCell >= 0)
-      and (Input.LastForageCell <> Input.Context.Location) then
+      and (Input.LastForageCell <> Input.Location) then
     begin
       var patient := (Input.Reserves >= Instinct.ENERGY_COMFORT_LEVEL)
-        and (Input.Context.CurrentActionAge < 2);
+        and (Input.CurrentActionAge < 2);
 
       if not patient then
       begin
@@ -230,7 +230,7 @@ begin
 
     Result.RequestedAction := acIdle;
     Result.RequestedTarget.TType := ttCell;
-    Result.RequestedTarget.Cell := Input.Context.Location;
+    Result.RequestedTarget.Cell := Input.Location;
     Exit;
   end;
 
@@ -257,28 +257,28 @@ begin
   else
     begin
       Result.RequestedTarget.TType := ttCell;
-      Result.RequestedTarget.Cell := Input.Context.Location;
+      Result.RequestedTarget.Cell := Input.Location;
     end;
   end;
 
   // Move-target affinity: maintain destination continuity across ticks unless
   // a new move candidate is clearly better.
   if (Result.RequestedAction = acMove)
-    and (Input.Context.CurrentAction = acMove)
+    and (Input.CurrentAction = acMove)
     and (Input.CurrentTarget.TType = ttCell)
     and (Result.RequestedTarget.TType = ttCell)
     and (Input.CurrentTarget.Cell <> Result.RequestedTarget.Cell) then
   begin
     // Two cases:
-    // 1. In transit (target â‰  location): keep heading to current target unless new is much better.
-    // 2. Just arrived (target = location): the agent chose to come here â€” require a strong
+    // 1. In transit (target ? location): keep heading to current target unless new is much better.
+    // 2. Just arrived (target = location): the agent chose to come here — require a strong
     //    signal to leave immediately, using the local smell as the anchor.
     var anchorSignal: Single := 0.0;
     var hasAnchor := TryGetMoveOpportunity(Input.MoveReport, Input.CurrentTarget.Cell, anchorSignal);
     if (not hasAnchor) then
     begin
       // Fallback for in-transit targets that may have fallen outside the curated list.
-      anchorSignal := SmellSignalForCell(Input.Context.Smell, Input.CurrentTarget.Cell);
+      anchorSignal := SmellSignalForCell(Input.Smell, Input.CurrentTarget.Cell);
       hasAnchor := anchorSignal > 0.0;
     end;
 
@@ -294,14 +294,14 @@ begin
       if newSignal < switchThreshold then
       begin
         // In transit: keep the old target. At arrival: suppress movement entirely.
-        if Input.CurrentTarget.Cell <> Input.Context.Location then
+        if Input.CurrentTarget.Cell <> Input.Location then
           Result.RequestedTarget.Cell := Input.CurrentTarget.Cell
         else
         begin
-          // Arrived but nothing strong enough to justify leaving â€” don't move.
+          // Arrived but nothing strong enough to justify leaving — don't move.
           Result.RequestedAction := acIdle;
           Result.RequestedTarget.TType := ttCell;
-          Result.RequestedTarget.Cell := Input.Context.Location;
+          Result.RequestedTarget.Cell := Input.Location;
         end;
       end;
     end;
@@ -311,7 +311,7 @@ begin
   // Smell details are expected to arrive pre-sorted by the smell gene.
   // Forage execution is local-only: only distance-0 cache targets are actionable.
   // Guard: only fire when the evaluator produced a real base score (target assigned).
-  // If the evaluator returned ttNone, it found nothing worth eating â€” learned
+  // If the evaluator returned ttNone, it found nothing worth eating — learned
   // decision weights alone should not override that by grabbing the first local cache.
   if (bestAction = acForage)
     and (Result.RequestedTarget.TType = ttNone) then
@@ -319,7 +319,7 @@ begin
     // Evaluator didn't find viable food. Fall back to idle.
     Result.RequestedAction := acIdle;
     Result.RequestedTarget.TType := ttCell;
-    Result.RequestedTarget.Cell := Input.Context.Location;
+    Result.RequestedTarget.Cell := Input.Location;
   end;
 
   // Transitional fallback while evaluators are still wiring explicit targets.
@@ -331,14 +331,14 @@ begin
     else
     begin
       Result.RequestedTarget.TType := ttCell;
-      Result.RequestedTarget.Cell := Input.Context.Location;
+      Result.RequestedTarget.Cell := Input.Location;
     end;
   end;
 
   if Result.RequestedTarget.TType = ttNone then
   begin
     Result.RequestedTarget.TType := ttCell;
-    Result.RequestedTarget.Cell := Input.Context.Location;
+    Result.RequestedTarget.Cell := Input.Location;
   end;
 end;
 
@@ -366,7 +366,7 @@ begin
   Result := Default(TCognitionReflectionOutput);
   Result.LearnedAction := acForage;
 
-  // Skip update if the action was downgraded â€” agent didn't actually forage.
+  // Skip update if the action was downgraded — agent didn't actually forage.
   if Input.ResolvedAction <> acForage then
   begin
     Result.HasWeightUpdate := False;
@@ -383,7 +383,7 @@ begin
 
   // Molecule weight update: attribute conversion efficiency to each molecule present.
   // Efficiency = energy gained per unit consumed. Each molecule gets the overall
-  // efficiency as its outcome â€” the share weighting happens naturally because molecules
+  // efficiency as its outcome — the share weighting happens naturally because molecules
   // absent from the substance get skipped (their percentage is 0).
   // Zero or near-zero gain still produces a valid (low) efficiency signal, teaching
   // the agent that those molecules are poor food sources.
@@ -457,7 +457,7 @@ begin
   Result := Default(TCognitionReflectionOutput);
   Result.LearnedAction := acShelter;
 
-  // Skip update if the action was downgraded â€” agent didn't actually shelter.
+  // Skip update if the action was downgraded — agent didn't actually shelter.
   if Input.ResolvedAction <> acShelter then
   begin
     Result.HasWeightUpdate := False;
@@ -465,7 +465,7 @@ begin
   end;
 
   // Reward shelter when reserves are visibly recovering.
-  // Flat or negative delta gets silence â€” not a punishment.
+  // Flat or negative delta gets silence — not a punishment.
   if Input.ReserveDelta > 0.0 then
   begin
     Result.HasWeightUpdate := True;

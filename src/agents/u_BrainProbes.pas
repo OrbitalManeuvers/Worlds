@@ -9,9 +9,6 @@ type
   TBrainSnapshot = record
     AgentId: TAgentId;
 
-    // Observation phase
-    DecisionContext: TDecisionContext;
-
     // Evaluation phase
     ForageReport: TForageReport;
     MoveReport: TMoveReport;

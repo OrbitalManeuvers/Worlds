@@ -109,12 +109,21 @@ type
   TActionScores = array[TAgentAction] of TActionScore;
 
   TCognitionInput = record
-    Context: TDecisionContext;
     ActionScores: TActionScores;
     CurrentTarget: TTarget;
     Reserves: Single;
     ReserveDelta: Single;
     LastForageCell: TCellIndex;
+
+    // Agent state context for cognition decisions
+    Location: TCellIndex;
+    CurrentAction: TAgentAction;
+    CurrentActionAge: Integer;
+    ActionProgress: Integer;
+    CircadianPressure: Single;
+
+    // Smell retained for move-target anchor lookup
+    Smell: TSmellReport;
 
     ForageReport: TForageReport;
     MoveReport: TMoveReport;

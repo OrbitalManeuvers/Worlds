@@ -58,10 +58,8 @@ type
   TAgentScratch = record
     SmellScratch: TSmellScanScratch;
     EvaluatorScratch: TEvaluatorScratch;
-    DecisionContext: TDecisionContext;
     ActionScores: TActionScores;
     Probe: TBrainProbe;
-    procedure BeginTick(const State: TAgentState; const Input: TBrainTickInput);
   end;
 
   TAgentBrain = class
@@ -120,87 +118,89 @@ begin
   end;
 end;
 
-function BucketDecisionFoodSignal(const Context: TDecisionContext): TDecisionFoodSignal;
+function BucketDecisionFoodSignal(const SmellReport: TSmellReport): TDecisionFoodSignal;
 begin
-  if Context.Smell.Count <= 0 then
+  if SmellReport.Count <= 0 then
     Exit(dfsNone);
 
-  var strongestSignal := CalculateStrongestSmellSignal(Context.Smell);
+  var strongestSignal := CalculateStrongestSmellSignal(SmellReport);
   if strongestSignal >= FOOD_SIGNAL_STRONG_THRESHOLD then
     Exit(dfsStrong);
 
   Result := dfsWeak;
 end;
 
-function BucketDecisionDayPhase(const Context: TDecisionContext): TDecisionDayPhase;
+function BucketDecisionDayPhase(IsNight: Boolean): TDecisionDayPhase;
 begin
-  if Context.IsNight then
+  if IsNight then
     Exit(ddNight);
 
   Result := ddDay;
 end;
 
-function BuildDecisionBuckets(const Context: TDecisionContext): TDecisionBuckets;
+function BuildDecisionBuckets(EnergyLevel: TEnergyLevel; const SmellReport: TSmellReport; IsNight: Boolean): TDecisionBuckets;
 begin
-  Result.Energy := BucketDecisionEnergy(Context.EnergyLevel);
-  Result.FoodSignal := BucketDecisionFoodSignal(Context);
-  Result.DayPhase := BucketDecisionDayPhase(Context);
+  Result.Energy := BucketDecisionEnergy(EnergyLevel);
+  Result.FoodSignal := BucketDecisionFoodSignal(SmellReport);
+  Result.DayPhase := BucketDecisionDayPhase(IsNight);
 end;
 
-function BuildTraceSummary(const State: TAgentState; const Context: TDecisionContext;
+function BuildTraceSummary(const State: TAgentState; const Input: TBrainTickInput;
+  const SmellReport: TSmellReport; EnergyLevel: TEnergyLevel;
   const LocalAgentCount: Integer): TBrainTraceSummary;
 begin
-  Result.EnergyLevel := Context.EnergyLevel;
+  Result.EnergyLevel := EnergyLevel;
   Result.ActionProgress := State.ActionProgress;
   Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
   Result.TicksSinceReproduction := State.TicksSinceReproduction;
   Result.LocalAgentCount := LocalAgentCount;
-  Result.StrongestSmellSignal := CalculateStrongestSmellSignal(Context.Smell);
-  Result.SmellCandidateCount := Length(Context.Smell.Details);
+  Result.StrongestSmellSignal := CalculateStrongestSmellSignal(SmellReport);
+  Result.SmellCandidateCount := Length(SmellReport.Details);
   Result.TopSmellCache := Default(TCacheRef);
   Result.TopSmellDistance := -1;
   Result.TopSmellSignal := 0.0;
-  Result.SolarFlux := Context.SolarFlux;
-  Result.SolarFluxDelta := Context.SolarFluxDelta;
-  Result.HadSmellTarget := Context.Smell.Count > 0;
+  Result.SolarFlux := Input.SolarFlux;
+  Result.SolarFluxDelta := Input.SolarFluxDelta;
+  Result.HadSmellTarget := SmellReport.Count > 0;
 
   // Smell details are sorted by the smell gene; detail[0] is the chosen/most salient candidate.
-  if Length(Context.Smell.Details) > 0 then
+  if Length(SmellReport.Details) > 0 then
   begin
-    var top := Context.Smell.Details[0];
+    var top := SmellReport.Details[0];
     Result.TopSmellCache := top.Cache;
     Result.TopSmellDistance := top.Directions.Distance;
     Result.TopSmellSignal := CalculateDetailSignal(top);
   end;
 end;
 
-function BuildForageEvalInput(const State: TAgentState; const Context: TDecisionContext): TForageEvalInput;
+function BuildForageEvalInput(const State: TAgentState; const SmellReport: TSmellReport): TForageEvalInput;
 begin
   Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
-  Result.Smell := Context.Smell;
+  Result.Smell := SmellReport;
   Result.MoleculeWeights := State.Genome.ForageMoleculeWeights;
 end;
 
-function BuildMoveEvalInput(const State: TAgentState; const Context: TDecisionContext): TMoveEvalInput;
+function BuildMoveEvalInput(const State: TAgentState; const SmellReport: TSmellReport): TMoveEvalInput;
 begin
   Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
-  Result.Smell := Context.Smell;
+  Result.Smell := SmellReport;
   Result.MoleculeWeights := State.Genome.ForageMoleculeWeights;
 end;
 
-function BuildShelterEvalInput(const State: TAgentState; const Context: TDecisionContext): TShelterEvalInput;
+function BuildShelterEvalInput(const State: TAgentState; const Input: TBrainTickInput;
+  const SmellReport: TSmellReport): TShelterEvalInput;
 begin
   Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
-  Result.IsNight := Context.IsNight;
-  Result.SolarFlux := Context.SolarFlux;
-  Result.CircadianPressure := Context.CircadianPressure;
+  Result.IsNight := Input.IsNight;
+  Result.SolarFlux := Input.SolarFlux;
+  Result.CircadianPressure := State.CircadianPressure;
 
   Result.HasLocalFoodSignal := False;
-  for var detail in Context.Smell.Details do
+  for var detail in SmellReport.Details do
     if detail.Directions.Distance = 0 then
     begin
       Result.HasLocalFoodSignal := True;
@@ -208,7 +208,7 @@ begin
     end;
 end;
 
-function BuildReproduceEvalInput(const State: TAgentState; const Context: TDecisionContext;
+function BuildReproduceEvalInput(const State: TAgentState;
   const LocalAgentCount: Integer; const GestationDuration: Integer): TReproduceEvalInput;
 begin
   Result.Reserves := State.Reserves;
@@ -224,17 +224,23 @@ begin
   Result.Reserves := State.Reserves;
 end;
 
-function BuildCognitionInput(const Context: TDecisionContext; const ActionScores: TActionScores;
+function BuildCognitionInput(const State: TAgentState; const SmellReport: TSmellReport;
+  const ActionScores: TActionScores;
   const CurrentTarget: TTarget; const Reserves: Single; const ReserveDelta: Single;
   const LastForageCell: TCellIndex;
   const ForageReport: TForageReport; const MoveReport: TMoveReport): TCognitionInput;
 begin
-  Result.Context := Context;
   Result.ActionScores := ActionScores;
   Result.CurrentTarget := CurrentTarget;
   Result.Reserves := Reserves;
   Result.ReserveDelta := ReserveDelta;
   Result.LastForageCell := LastForageCell;
+  Result.Location := State.Location;
+  Result.CurrentAction := State.Action;
+  Result.CurrentActionAge := State.ActionAge;
+  Result.ActionProgress := State.ActionProgress;
+  Result.CircadianPressure := State.CircadianPressure;
+  Result.Smell := SmellReport;
   Result.ForageReport := ForageReport;
   Result.MoveReport := MoveReport;
 end;
@@ -300,77 +306,41 @@ begin
   end;
 end;
 
-{ TAgentScratch }
-
-procedure TAgentScratch.BeginTick(const State: TAgentState; const Input: TBrainTickInput);
-begin
-  SmellScratch.Count := 0;
-  EvaluatorScratch := Default(TEvaluatorScratch);
-
-  DecisionContext := Default(TDecisionContext);
-  DecisionContext.Location := State.Location;
-  DecisionContext.IsNight := Input.IsNight;
-  DecisionContext.SolarFlux := Input.SolarFlux;
-  DecisionContext.SolarFluxDelta := Input.SolarFluxDelta;
-  DecisionContext.CurrentAction := State.Action;
-  DecisionContext.CurrentActionAge := State.ActionAge;
-  DecisionContext.ActionProgress := State.ActionProgress;
-  DecisionContext.EnergyLevel := Low(TEnergyLevel);
-  DecisionContext.CircadianPressure := State.CircadianPressure;
-
-  for var action := Low(TAgentAction) to High(TAgentAction) do
-  begin
-    ActionScores[action].Score := 0.0;
-  end;
-end;
-
 { TAgentBrain }
 
 class function TAgentBrain.Think(const State: TAgentState; const Input: TBrainTickInput; var Scratch: TAgentScratch): TBrainTickOutput;
 begin
-  Scratch.BeginTick(State, Input);
-  // probe: state
+  Scratch.EvaluatorScratch := Default(TEvaluatorScratch);
+  Scratch.SmellScratch.Count := 0;
+  for var action := Low(TAgentAction) to High(TAgentAction) do
+    Scratch.ActionScores[action].Score := 0.0;
 
-  // remove this eventually, but for now make sure what we expect is here.
-  // There should not be any unassigned genes (eventually), all should have a Basic implementation.
-//  Assert(Assigned(Input.GeneMap.Energy));
-//  Assert(Assigned(Input.GeneMap.Smell));
-//  Assert(Assigned(Input.GeneMap.ForageEval));
-//  Assert(Assigned(Input.GeneMap.MoveEval));
-//  Assert(Assigned(Input.GeneMap.Cognition));
-//  Assert(Assigned(Input.GeneMap.ReproduceEval));
-
-
-  // Observation stage: enrich context from available genes.
+  // Observation stage
 
   // 1. Energy
   var energyInput := BuildEnergyInput(State);
-  Scratch.DecisionContext.EnergyLevel := Input.GeneMap.Energy.EvaluateEnergyLevel(energyInput);
+  var energyLevel := Input.GeneMap.Energy.EvaluateEnergyLevel(energyInput);
 
   // 2. Smell
-  // allow parameters to adjust the gene's operation
   var smellParams: TSmellParams;
   smellParams.Ratings := State.Genome.SmellRatings;
 
-  // activate the gene and save its reply
   var smellGene := Input.GeneMap.Smell;
   var smellReport := smellGene.Scan(State.Location, smellParams, Input.Query, Scratch.SmellScratch);
 
-  Scratch.DecisionContext.Smell := smellReport;
-  Result.DecisionBuckets := BuildDecisionBuckets(Scratch.DecisionContext);
+  Result.DecisionBuckets := BuildDecisionBuckets(energyLevel, smellReport, Input.IsNight);
 
-  // Evaluation stage: score available actions.
+  // Evaluation stage
 
   // 1. Movement
   var moveReport := Default(TMoveReport);
   var moveEval := Input.GeneMap.MoveEval;
   if Assigned(moveEval) then
   begin
-    var moveInput := BuildMoveEvalInput(State, Scratch.DecisionContext);
+    var moveInput := BuildMoveEvalInput(State, smellReport);
     moveReport := moveEval.BuildReport(moveInput, Scratch.EvaluatorScratch.Movement);
   end;
 
-  // Report-aware projection: move score comes from curated report, not legacy target collapse.
   Scratch.ActionScores[acMove].Score := 0.0;
   if moveReport.Count > 0 then
     Scratch.ActionScores[acMove].Score := moveReport.Options[0].Opportunity;
@@ -380,11 +350,10 @@ begin
   var forageEval := Input.GeneMap.ForageEval;
   if Assigned(forageEval) then
   begin
-    var forageInput := BuildForageEvalInput(State, Scratch.DecisionContext);
+    var forageInput := BuildForageEvalInput(State, smellReport);
     forageReport := forageEval.BuildReport(forageInput, Scratch.EvaluatorScratch.Forage);
   end;
 
-  // Report-aware projection: forage score comes from curated report, not legacy target collapse.
   Scratch.ActionScores[acForage].Score := 0.0;
   if forageReport.Count > 0 then
     Scratch.ActionScores[acForage].Score := forageReport.Options[0].Opportunity;
@@ -393,7 +362,7 @@ begin
   var shelterEval := Input.GeneMap.ShelterEval;
   if Assigned(shelterEval) then
   begin
-    var shelterInput := BuildShelterEvalInput(State, Scratch.DecisionContext);
+    var shelterInput := BuildShelterEvalInput(State, Input, smellReport);
     Scratch.ActionScores[acShelter] := shelterEval.Evaluate(shelterInput, Scratch.EvaluatorScratch.Shelter);
   end;
 
@@ -402,29 +371,27 @@ begin
   var reproduceEval := Input.GeneMap.ReproduceEval;
   if Assigned(reproduceEval) and (State.Action <> acShelter) then
   begin
-    // don't run the sight query if it's not needed
     if state.Age >= reproduceEval.MinimumAge then
     begin
       var crowdingQuery: IPopulationCrowdingQuery;
       if Supports(Input.Query, IPopulationCrowdingQuery, crowdingQuery) then
       begin
         localAgentCount := crowdingQuery.CountAgentsWithinRadius(State.Location, 1);
-        // Query counts local living agents in the source cell too, so drop self for social pressure.
         if localAgentCount > 0 then
           Dec(localAgentCount);
       end;
     end;
 
-    var reproduceInput := BuildReproduceEvalInput(State, Scratch.DecisionContext, localAgentCount, Input.GestationDuration);
+    var reproduceInput := BuildReproduceEvalInput(State, localAgentCount, Input.GestationDuration);
     Scratch.ActionScores[acReproduce] := reproduceEval.Evaluate(reproduceInput, Scratch.EvaluatorScratch.Reproduce);
   end;
 
-  // finally, Cognition
+  // Cognition
   var cognitionGene := Input.GeneMap.Cognition;
   if Assigned(cognitionGene) then
   begin
     var weightedScores := BuildWeightedScores(State, Result.DecisionBuckets, Scratch.ActionScores);
-    var cognitionInput := BuildCognitionInput(Scratch.DecisionContext, weightedScores,
+    var cognitionInput := BuildCognitionInput(State, smellReport, weightedScores,
       State.ActionTarget, State.Reserves, State.ReserveDelta, State.LastForageCell, forageReport, moveReport);
     var cognitionOutput := cognitionGene.Decide(cognitionInput, Scratch.EvaluatorScratch.Cognition);
 
@@ -444,19 +411,16 @@ begin
   end;
 
   Result.Scores := Scratch.ActionScores;
-  Result.Trace := BuildTraceSummary(State, Scratch.DecisionContext, localAgentCount);
+  Result.Trace := BuildTraceSummary(State, Input, smellReport, energyLevel, localAgentCount);
 
   if Scratch.Probe.Active then
   begin
-    Scratch.Probe.S.DecisionContext := Scratch.DecisionContext;
     Scratch.Probe.S.ForageReport := forageReport;
     Scratch.Probe.S.MoveReport := moveReport;
     Scratch.Probe.S.RawScores := Scratch.ActionScores;
     Scratch.Probe.S.FinalAction := Result.RequestedAction;
     Scratch.Probe.S.FinalTarget := Result.RequestedTarget;
   end;
-
-
 end;
 
 class procedure TAgentBrain.Reflect(var State: TAgentState; const Decision: TBrainTickOutput;
