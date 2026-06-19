@@ -409,20 +409,20 @@ procedure TAgentWatchFrame.UpdateWatchDetails;
 begin
   SetLength(WatchDetails, 0);
 
-  for var watchIndex := 0 to High(Watches) do
-  begin
-    if Watches[watchIndex].Selected then
-    begin
-      var debug := Runtime.Population.DecisionDebugTracePtr(Watches[watchIndex].AgentId);
-
-      var detailCount := debug.Context.Smell.Count;
-      SetLength(WatchDetails, detailCount);
-      for var i := 0 to detailCount - 1 do
-        WatchDetails[i] := debug.Context.Smell.Details[i].AsFields;
-      WatchDetailTick := debug.GlobalTick;
-      Break;
-    end;
-  end;
+//  for var watchIndex := 0 to High(Watches) do
+//  begin
+//    if Watches[watchIndex].Selected then
+//    begin
+//      var debug := Runtime.Population.DecisionDebugTracePtr(Watches[watchIndex].AgentId);
+//
+//      var detailCount := debug.Context.Smell.Count;
+//      SetLength(WatchDetails, detailCount);
+//      for var i := 0 to detailCount - 1 do
+//        WatchDetails[i] := debug.Context.Smell.Details[i].AsFields;
+//      WatchDetailTick := debug.GlobalTick;
+//      Break;
+//    end;
+//  end;
 
   DetailList.ItemCount := Length(WatchDetails);
 end;

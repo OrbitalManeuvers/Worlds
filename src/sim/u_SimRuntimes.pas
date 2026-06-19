@@ -965,18 +965,10 @@ begin
   end;
 
   var requested := fPopulation.Think(aIndex, agentInput);
-{$IFDEF AGENT_DEBUG_TRACE}
-  var decisionContext := fPopulation.LastDecisionContext;
-{$ENDIF}
   var forageOutcome := Default(TForageOutcome);
   var stateBeforeResolution := state^;
   var resolved := ResolveRequestedStep(aIndex, state^, agentInput.GeneMap, requested, forageOutcome);
   state.ReserveDelta := state.Reserves - reservesAtTickStart;
-
-{$IFDEF AGENT_DEBUG_TRACE}
-  fPopulation.CaptureDecisionDebugTrace(aIndex, fCurrentGlobalTick,
-    decisionContext, requested, resolved, forageOutcome);
-{$ENDIF}
 
   // Post-resolution death (e.g. move cost or reproduction cost drained reserves)
   if state.Reserves <= 0.0 then

@@ -2,34 +2,16 @@
 
 interface
 
-{.DEFINE AGENT_DEBUG_TRACE}
-
 uses u_AgentTypes, u_AgentGenome, u_AgentState, u_AgentBrain, u_BrainProbes,
   u_SimEventTypes;
 
 type
-{$IFDEF AGENT_DEBUG_TRACE}
-  PAgentDecisionDebugTrace = ^TAgentDecisionDebugTrace;
-  TAgentDecisionDebugTrace = record
-    GlobalTick: Integer;
-    AgentIndex: Integer;
-    Context: TDecisionContext;
-    Requested: TBrainTickOutput;
-    Resolved: TBrainTickOutput;
-    ForageOutcome: TForageOutcome;
-    HasValue: Boolean;
-  end;
-{$ENDIF}
-
   TSimPopulation = class
   private
     const INVALID_INDEX = -1;
   private
     fAgents: TArray<TAgentState>;
     fScratch: TAgentScratch;
-{$IFDEF AGENT_DEBUG_TRACE}
-    fDecisionDebugTraces: TArray<TAgentDecisionDebugTrace>;
-{$ENDIF}
     fCellAgents: TArray<TArray<Integer>>;
     fIndexedAgentCell: TArray<Integer>;
     fIndexedAgentSlot: TArray<Integer>;
@@ -40,9 +22,6 @@ type
     function IsValidCellIndex(aCellIndex: Integer): Boolean;
     procedure InitializeAgentIndexEntry(aAgentIndex: Integer);
     procedure ResizeIndexedAgents(aAgentCount: Integer);
-  {$IFDEF AGENT_DEBUG_TRACE}
-    procedure ResizeDecisionDebugTraces(aAgentCount: Integer);
-  {$ENDIF}
     procedure ResetLocationIndex;
     procedure AddAgentToCell(aAgentIndex, aCellIndex: Integer);
     procedure RemoveAgentFromCell(aAgentIndex: Integer);
@@ -68,12 +47,6 @@ type
 
     function GetMetabolicState(aAgentId: TAgentId): TMetabolicState;
     function StatePtr(aIndex: Integer): PAgentState;
-{$IFDEF AGENT_DEBUG_TRACE}
-    function LastDecisionContext: TDecisionContext;
-    procedure CaptureDecisionDebugTrace(aIndex, aGlobalTick: Integer; const Context: TDecisionContext;
-      const Requested, Resolved: TBrainTickOutput; const ForageOutcome: TForageOutcome);
-    function DecisionDebugTracePtr(aIndex: Integer): PAgentDecisionDebugTrace;
-{$ENDIF}
 
     property AgentCount: Integer read GetAgentCount write SetAgentCount;
     property Agents: TArray<TAgentState> read fAgents;
@@ -125,15 +98,6 @@ begin
     InitializeAgentIndexEntry(i);
 end;
 
-{$IFDEF AGENT_DEBUG_TRACE}
-procedure TSimPopulation.ResizeDecisionDebugTraces(aAgentCount: Integer);
-begin
-  if aAgentCount < 0 then
-    aAgentCount := 0;
-
-  SetLength(fDecisionDebugTraces, aAgentCount);
-end;
-{$ENDIF}
 
 procedure TSimPopulation.ResetLocationIndex;
 begin
@@ -177,9 +141,6 @@ begin
   Result := Length(fAgents);
   SetLength(fAgents, Result + 1);
   ResizeIndexedAgents(Result + 1);
-{$IFDEF AGENT_DEBUG_TRACE}
-  ResizeDecisionDebugTraces(Result + 1);
-{$ENDIF}
   fAgents[Result] := State;
   UpdateAgentLocation(Result, INVALID_INDEX, State.Location);
 end;
@@ -271,9 +232,6 @@ begin
 
   SetLength(fAgents, aCount);
   ResizeIndexedAgents(aCount);
-{$IFDEF AGENT_DEBUG_TRACE}
-  ResizeDecisionDebugTraces(aCount);
-{$ENDIF}
 end;
 
 function TSimPopulation.Think(aIndex: Integer; const Input: TBrainTickInput): TBrainTickOutput;
@@ -345,32 +303,5 @@ function TSimPopulation.StatePtr(aIndex: Integer): PAgentState;
 begin
   Result := @fAgents[aIndex];
 end;
-
-{$IFDEF AGENT_DEBUG_TRACE}
-function TSimPopulation.LastDecisionContext: TDecisionContext;
-begin
-  Result := fScratch.DecisionContext;
-end;
-
-procedure TSimPopulation.CaptureDecisionDebugTrace(aIndex, aGlobalTick: Integer;
-  const Context: TDecisionContext; const Requested, Resolved: TBrainTickOutput;
-  const ForageOutcome: TForageOutcome);
-begin
-  var trace: PAgentDecisionDebugTrace;
-  trace := @fDecisionDebugTraces[aIndex];
-  trace^.GlobalTick := aGlobalTick;
-  trace^.AgentIndex := aIndex;
-  trace^.Context := Context;
-  trace^.Requested := Requested;
-  trace^.Resolved := Resolved;
-  trace^.ForageOutcome := ForageOutcome;
-  trace^.HasValue := True;
-end;
-
-function TSimPopulation.DecisionDebugTracePtr(aIndex: Integer): PAgentDecisionDebugTrace;
-begin
-  Result := @fDecisionDebugTraces[aIndex];
-end;
-{$ENDIF}
 
 end.
