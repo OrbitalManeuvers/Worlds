@@ -21,6 +21,10 @@ type
     // no food nearby reinforces sleep instinct
     NO_FOOD_SLEEP_BONUS = 0.01;
 
+    // Fatigue is imperceptible until this fraction of the circadian cycle is spent.
+    // After this point, fatigue ramps steeply (quadratic curve).
+    FATIGUE_ONSET = 0.70;
+
   end;
 
 implementation

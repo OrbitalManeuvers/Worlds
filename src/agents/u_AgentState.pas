@@ -28,8 +28,6 @@ type
     TicksSinceReproduction: Integer;
     TicksSinceForage: Integer;
 
-    TicksSinceShelter: Integer; // replaced by CircadianPressure
-
     // Current action
     Action: TAgentAction;
     ActionTarget: TTarget;

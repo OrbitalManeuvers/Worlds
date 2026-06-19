@@ -25,14 +25,13 @@ type
 implementation
 
 uses System.Math,
-  u_AgentState, u_AgentGenome, u_EnvironmentTypes, u_SimTypes;
+  u_AgentState, u_AgentGenome, u_AgentTypes, u_EnvironmentTypes, u_SimTypes;
 
 const
   // converter efficiency scale (energy gain weighting)
   CONVERTER_RATING_FACTOR: array[TRating] of Single = (0.00, 0.20, 0.45, 0.75, 0.88, 0.95, 1.00);
   // smell sensitivity scale (detection weighting)
   SMELL_RATING_FACTOR: array[TRating] of Single = (0.00, 0.35, 0.65, 1.00, 1.20, 1.40, 1.60);
-  INITIAL_TICKS_SINCE_REPRODUCTION = 0;
 
 //procedure ApplyDeltaGeneGates(var State: TAgentState);
 //begin
@@ -214,7 +213,7 @@ begin
       state.Location := location;
     state.Birthplace := state.Location;
     state.Reserves := 5.0;
-    state.TicksSinceReproduction := INITIAL_TICKS_SINCE_REPRODUCTION;
+    state.TicksSinceReproduction := 0;
     state.Genome.Sequence := sequence;
 
     // assign default smell, digestion, and learning profiles
@@ -281,7 +280,12 @@ begin
   state.AgentId := aAgentId;
   state.Location := aLocation;
   state.Reserves := 5.0;
-  state.TicksSinceReproduction := INITIAL_TICKS_SINCE_REPRODUCTION;
+
+  state.Action := acShelter;
+  state.ActionAge := 5;
+  state.ActionProgress := 5;
+  state.CircadianPressure := 5.0;
+
 
   sequence.AsText := aGeneSequence;
   state.Genome.Sequence := sequence;

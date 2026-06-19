@@ -4,7 +4,8 @@ interface
 
 {.DEFINE AGENT_DEBUG_TRACE}
 
-uses u_AgentTypes, u_AgentGenome, u_AgentState, u_AgentBrain, u_SimEventTypes;
+uses u_AgentTypes, u_AgentGenome, u_AgentState, u_AgentBrain, u_BrainProbes,
+  u_SimEventTypes;
 
 type
 {$IFDEF AGENT_DEBUG_TRACE}
@@ -32,6 +33,7 @@ type
     fCellAgents: TArray<TArray<Integer>>;
     fIndexedAgentCell: TArray<Integer>;
     fIndexedAgentSlot: TArray<Integer>;
+    fProbe: TBrainProbe;
 
     procedure SetAgentCount(aCount: Integer);
     function GetAgentCount: Integer;
@@ -47,6 +49,7 @@ type
     procedure UpdateAgentLocation(aAgentIndex, aOldCell, aNewCell: Integer);
   public
     constructor Create;
+    destructor Destroy; override;
 
     procedure SetCellCount(aCellCount: Integer);
     function GetCellAgentCount(aCellIndex: Integer): Integer;
@@ -74,6 +77,7 @@ type
 
     property AgentCount: Integer read GetAgentCount write SetAgentCount;
     property Agents: TArray<TAgentState> read fAgents;
+    property Probe: TBrainProbe read fProbe;
   end;
 
 implementation
@@ -82,6 +86,13 @@ implementation
 
 constructor TSimPopulation.Create;
 begin
+  inherited;
+  fProbe := TBrainProbe.Create;
+end;
+
+destructor TSimPopulation.Destroy;
+begin
+  fProbe.Free;
   inherited;
 end;
 
@@ -267,12 +278,28 @@ end;
 
 function TSimPopulation.Think(aIndex: Integer; const Input: TBrainTickInput): TBrainTickOutput;
 begin
+  var agentId := fAgents[aIndex].AgentId;
+  if Assigned(fProbe) and fProbe.IsWatching(agentId) then
+    fProbe.BeforeTick(agentId);
+
+  fScratch.Probe := fProbe;
   Result := TAgentBrain.Think(fAgents[aIndex], Input, fScratch);
+
+  if Assigned(fProbe) and fProbe.IsWatching(agentId) then
+    fProbe.AfterTick(agentId);
 end;
 
 procedure TSimPopulation.Reflect(aIndex: Integer; const Decision: TBrainTickOutput; const Input: TBrainReflectInput);
 begin
+  var agentId := fAgents[aIndex].AgentId;
+  if Assigned(fProbe) and fProbe.IsWatching(agentId) then
+    fProbe.BeforeTick(agentId);
+
+  fScratch.Probe := fProbe;
   TAgentBrain.Reflect(fAgents[aIndex], Decision, Input, fScratch);
+
+  if Assigned(fProbe) and fProbe.IsWatching(agentId) then
+    fProbe.AfterTick(agentId);
 end;
 
 procedure TSimPopulation.ApplyStep(aIndex: Integer; const Output: TBrainTickOutput);
@@ -280,7 +307,10 @@ begin
   if fAgents[aIndex].Action = Output.RequestedAction then
     Inc(fAgents[aIndex].ActionAge)
   else
-    fAgents[aIndex].ActionAge := 0;
+  begin
+    fAgents[aIndex].ActionAge := 1;
+    fAgents[aIndex].ActionProgress := 0;
+  end;
 
   fAgents[aIndex].Action := Output.RequestedAction;
   fAgents[aIndex].ActionTarget := Output.RequestedTarget;

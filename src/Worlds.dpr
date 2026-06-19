@@ -90,7 +90,8 @@ uses
   fr_ConditionEditor in 'ui\fr_ConditionEditor.pas' {ConditionEditor: TFrame},
   d_ExplorationProgressDlg in 'ui\d_ExplorationProgressDlg.pas' {ExplorationProgressDlg},
   u_DiagnosticsIntf in 'common\u_DiagnosticsIntf.pas',
-  u_Instincts in 'agents\u_Instincts.pas';
+  u_Instincts in 'agents\u_Instincts.pas',
+  u_BrainProbes in 'agents\u_BrainProbes.pas';
 
 {$R *.res}
 

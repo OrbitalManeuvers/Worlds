@@ -12,7 +12,7 @@ const
 
   // normal conditions are 1.25 days worth of cycle when pressure builds @ 1.0 per tick
   // This max applies to all agents universally.
-  MAX_CIRCADIAN_PRESSURE = CLOCK_TICKS_PER_DAY + (CLOCK_TICKS_PER_DAY div 4);
+  MAX_CIRCADIAN_PRESSURE = DAYLIGHT_TICKS_PER_DAY + (DAYLIGHT_TICKS_PER_DAY div 4);
   CIRCADIAN_COST_PER_TICK = 1.0;
   STANDARD_CIRCADIAN_RELIEF_RATE: Single = MAX_CIRCADIAN_PRESSURE / NIGHT_TICKS_PER_DAY;
   DELTA_CIRCADIAN_RELIEF_RATE = 1.0;

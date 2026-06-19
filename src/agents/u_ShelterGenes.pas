@@ -5,18 +5,9 @@ interface
 uses u_AgentTypes, u_AgentGenome, u_SimQueriesIntf;
 
 type
-  // Gen A: instinctive shelter — circadian cycle, darkness, and lack of food signal dominate.
-  // A less evolved agent that hides at night because it can't reason about energy trends.
+  // Gen A: primarily circadian cycle-driven
   TShelterEvaluator = class(TShelterEvalGene)
   public
-    class function Evaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionScore; override;
-  end;
-
-  // Gen B: energy-aware shelter — driven by reserve economics.
-  // Darkness is a mild nudge, not a command. Allows nocturnal activity when food is available.
-  TEnergyShelterEvaluator = class(TShelterEvalGene)
-  public
-    class function GetGenerationCode: Char; override;
     class function Evaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionScore; override;
   end;
 
@@ -25,23 +16,7 @@ implementation
 
 uses System.Math, u_Instincts, u_SimTypes;
 
-const
-
-  // === Gen B: energy-aware shelter constants ===
-  SHELTER_RESERVE_COMFORT_LEVEL = 5.0;
-  SHELTER_RESERVE_PRESSURE = 0.12;
-  SHELTER_POSITIVE_DELTA_RANGE = 0.12;
-  SHELTER_POSITIVE_DELTA_RELIEF = 0.10;
-  SHELTER_NEGATIVE_DELTA_GRACE = 0.05;
-  SHELTER_NEGATIVE_DELTA_RANGE = 0.20;
-  SHELTER_NEGATIVE_DELTA_PRESSURE = 0.05;
-
-  SHELTER_NO_SOLAR_CEILING = 8.0;
-  SHELTER_NO_SOLAR_MAX_BONUS = 0.06;
-
-  SHELTER_MIN_VOTE_SCORE = 0.01;
-
-{ TShelterEvaluator — Gen A: instinctive }
+{ TShelterEvaluator — Gen A: circadian cycle-driven }
 class function TShelterEvaluator.Evaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionScore;
 begin
   Scratch := Default(TShelterEvalScratch);
@@ -64,61 +39,27 @@ begin
     Result.Score := Result.Score + Instinct.NO_FOOD_SLEEP_BONUS;
 
   // The agent's own circadian cycle is the primary driver.
-  // Express pressure as a percentage of the global max [0.0 .. 1.0].
-  var fatigue := EnsureRange(Input.CircadianPressure / MAX_CIRCADIAN_PRESSURE, 0.0, 1.0);
+  // Fatigue is imperceptible for the majority of the cycle, then ramps steeply.
+  var rawFatigue := EnsureRange(Input.CircadianPressure / MAX_CIRCADIAN_PRESSURE, 0.0, 1.0);
+
+  var fatigue: Single;
+  if rawFatigue < Instinct.FATIGUE_ONSET then
+    fatigue := 0.0
+  else
+  begin
+    // Remap [onset..1.0] → [0.0..1.0], then square for steep late ramp
+    var normalized := (rawFatigue - Instinct.FATIGUE_ONSET) / (1.0 - Instinct.FATIGUE_ONSET);
+    fatigue := normalized * normalized;
+  end;
+
   Result.Score := Result.Score + fatigue;
 
   // clean up the result
   Result.Score := EnsureRange(Result.Score, 0.0, 1.0);
 end;
 
-{ TEnergyShelterEvaluator — Gen B: energy-aware }
-
-class function TEnergyShelterEvaluator.GetGenerationCode: Char;
-begin
-  Result := 'B';
-end;
-
-class function TEnergyShelterEvaluator.Evaluate(const Input: TShelterEvalInput; var Scratch: TShelterEvalScratch): TActionScore;
-begin
-  Scratch := Default(TShelterEvalScratch);
-  Result.Score := 0.0;
-
-  var reserves := Max(Input.Reserves, 0.0);
-  var reservePressure := EnsureRange(
-    (SHELTER_RESERVE_COMFORT_LEVEL - reserves) / SHELTER_RESERVE_COMFORT_LEVEL,
-    0.0,
-    1.0);
-  var positiveRecovery := EnsureRange(Input.ReserveDelta / SHELTER_POSITIVE_DELTA_RANGE, 0.0, 1.0);
-  var negativeDrain := EnsureRange(
-    ((-Input.ReserveDelta) - SHELTER_NEGATIVE_DELTA_GRACE) / SHELTER_NEGATIVE_DELTA_RANGE,
-    0.0,
-    1.0);
-
-  // Shelter should be driven primarily by reserve state, not by darkness.
-  Result.Score := Result.Score + (reservePressure * SHELTER_RESERVE_PRESSURE);
-  Result.Score := Result.Score - (positiveRecovery * SHELTER_POSITIVE_DELTA_RELIEF);
-  Result.Score := Result.Score + (negativeDrain * SHELTER_NEGATIVE_DELTA_PRESSURE);
-
-  // No solar income: the environment is offering nothing right now.
-  // Bonus scales with reserve depletion — a well-fed agent barely feels it,
-  // a hungry one gets a meaningful push toward rest.
-  if Input.SolarFlux <= 0.0 then
-  begin
-    var noSolarPressure := EnsureRange(
-      1.0 - (reserves / SHELTER_NO_SOLAR_CEILING),
-      0.0, 1.0);
-    Result.Score := Result.Score + (noSolarPressure * SHELTER_NO_SOLAR_MAX_BONUS);
-  end;
-
-  if Result.Score < SHELTER_MIN_VOTE_SCORE then
-    Result.Score := 0.0;
-
-  Result.Score := EnsureRange(Result.Score, 0.0, 1.0);
-end;
 
 initialization
   GlobalGeneRegistry.RegisterGene(TShelterEvaluator);
-  GlobalGeneRegistry.RegisterGene(TEnergyShelterEvaluator);
 
 end.

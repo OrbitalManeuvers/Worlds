@@ -113,7 +113,6 @@ const
   KEY_SCENARIOS = 'scenarios';
   KEY_SEED = 'seed';
   KEY_SHELTER = 'shelter';
-  KEY_SIGHT = 'sight';
   KEY_SMELL = 'smell';
   KEY_SMELL_RATINGS = 'smellRatings';
   KEY_X = 'x';
@@ -126,13 +125,12 @@ const
 
   GENE_INDEX_ENERGY = 1;
   GENE_INDEX_SMELL = 2;
-  GENE_INDEX_SIGHT = 3;
-  GENE_INDEX_MOVEMENT = 4;
-  GENE_INDEX_FORAGE = 5;
-  GENE_INDEX_SHELTER = 6;
-  GENE_INDEX_REPRODUCE = 7;
-  GENE_INDEX_COGNITION = 8;
-  GENE_INDEX_CONVERT = 9;
+  GENE_INDEX_MOVEMENT = 3;
+  GENE_INDEX_FORAGE = 4;
+  GENE_INDEX_SHELTER = 5;
+  GENE_INDEX_REPRODUCE = 6;
+  GENE_INDEX_COGNITION = 7;
+  GENE_INDEX_CONVERT = 8;
 
 type
   family_loader = record helper for TDebugGeneFamily
@@ -187,7 +185,6 @@ begin
   begin
     ApplyCodeFromJSON(genes, KEY_ENERGY, GENE_INDEX_ENERGY, sequenceText);
     ApplyCodeFromJSON(genes, KEY_SMELL, GENE_INDEX_SMELL, sequenceText);
-    ApplyCodeFromJSON(genes, KEY_SIGHT, GENE_INDEX_SIGHT, sequenceText);
     ApplyCodeFromJSON(genes, KEY_MOVEMENT, GENE_INDEX_MOVEMENT, sequenceText);
     ApplyCodeFromJSON(genes, KEY_FORAGE, GENE_INDEX_FORAGE, sequenceText);
     ApplyCodeFromJSON(genes, KEY_SHELTER, GENE_INDEX_SHELTER, sequenceText);

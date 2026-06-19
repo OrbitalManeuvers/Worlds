@@ -2,7 +2,7 @@
 
 interface
 
-uses u_AgentTypes, u_AgentState, u_AgentGenome, u_SimQueriesIntf,
+uses u_AgentTypes, u_AgentState, u_AgentGenome, u_BrainProbes, u_SimQueriesIntf,
   u_SimEnvironments;
 
 type
@@ -56,10 +56,11 @@ type
   // Caller-owned per-agent scratch state reused across ticks.
   // This keeps the brain stateless while avoiding per-tick temp allocations.
   TAgentScratch = record
-    SensorScratch: TSensorScanScratch;
+    SmellScratch: TSmellScanScratch;
     EvaluatorScratch: TEvaluatorScratch;
     DecisionContext: TDecisionContext;
     ActionScores: TActionScores;
+    Probe: TBrainProbe;
     procedure BeginTick(const State: TAgentState; const Input: TBrainTickInput);
   end;
 
@@ -303,7 +304,7 @@ end;
 
 procedure TAgentScratch.BeginTick(const State: TAgentState; const Input: TBrainTickInput);
 begin
-  SensorScratch.Smell.Count := 0;
+  SmellScratch.Count := 0;
   EvaluatorScratch := Default(TEvaluatorScratch);
 
   DecisionContext := Default(TDecisionContext);
@@ -328,15 +329,16 @@ end;
 class function TAgentBrain.Think(const State: TAgentState; const Input: TBrainTickInput; var Scratch: TAgentScratch): TBrainTickOutput;
 begin
   Scratch.BeginTick(State, Input);
+  // probe: state
 
   // remove this eventually, but for now make sure what we expect is here.
   // There should not be any unassigned genes (eventually), all should have a Basic implementation.
-  Assert(Assigned(Input.GeneMap.Energy));
-  Assert(Assigned(Input.GeneMap.Smell));
-  Assert(Assigned(Input.GeneMap.ForageEval));
-  Assert(Assigned(Input.GeneMap.MoveEval));
-  Assert(Assigned(Input.GeneMap.Cognition));
-  Assert(Assigned(Input.GeneMap.ReproduceEval));
+//  Assert(Assigned(Input.GeneMap.Energy));
+//  Assert(Assigned(Input.GeneMap.Smell));
+//  Assert(Assigned(Input.GeneMap.ForageEval));
+//  Assert(Assigned(Input.GeneMap.MoveEval));
+//  Assert(Assigned(Input.GeneMap.Cognition));
+//  Assert(Assigned(Input.GeneMap.ReproduceEval));
 
 
   // Observation stage: enrich context from available genes.
@@ -352,7 +354,7 @@ begin
 
   // activate the gene and save its reply
   var smellGene := Input.GeneMap.Smell;
-  var smellReport := smellGene.Scan(State.Location, smellParams, Input.Query, Scratch.SensorScratch.Smell);
+  var smellReport := smellGene.Scan(State.Location, smellParams, Input.Query, Scratch.SmellScratch);
 
   Scratch.DecisionContext.Smell := smellReport;
   Result.DecisionBuckets := BuildDecisionBuckets(Scratch.DecisionContext);
@@ -417,7 +419,6 @@ begin
     Scratch.ActionScores[acReproduce] := reproduceEval.Evaluate(reproduceInput, Scratch.EvaluatorScratch.Reproduce);
   end;
 
-
   // finally, Cognition
   var cognitionGene := Input.GeneMap.Cognition;
   if Assigned(cognitionGene) then
@@ -426,6 +427,12 @@ begin
     var cognitionInput := BuildCognitionInput(Scratch.DecisionContext, weightedScores,
       State.ActionTarget, State.Reserves, State.ReserveDelta, State.LastForageCell, forageReport, moveReport);
     var cognitionOutput := cognitionGene.Decide(cognitionInput, Scratch.EvaluatorScratch.Cognition);
+
+    if Scratch.Probe.Active then
+    begin
+      Scratch.Probe.S.CognitionInput := cognitionInput;
+      Scratch.Probe.S.WeightedScores := weightedScores;
+    end;
 
     Result.RequestedAction := cognitionOutput.RequestedAction;
     Result.RequestedTarget := cognitionOutput.RequestedTarget;
@@ -438,6 +445,18 @@ begin
 
   Result.Scores := Scratch.ActionScores;
   Result.Trace := BuildTraceSummary(State, Scratch.DecisionContext, localAgentCount);
+
+  if Scratch.Probe.Active then
+  begin
+    Scratch.Probe.S.DecisionContext := Scratch.DecisionContext;
+    Scratch.Probe.S.ForageReport := forageReport;
+    Scratch.Probe.S.MoveReport := moveReport;
+    Scratch.Probe.S.RawScores := Scratch.ActionScores;
+    Scratch.Probe.S.FinalAction := Result.RequestedAction;
+    Scratch.Probe.S.FinalTarget := Result.RequestedTarget;
+  end;
+
+
 end;
 
 class procedure TAgentBrain.Reflect(var State: TAgentState; const Decision: TBrainTickOutput;

@@ -28,11 +28,6 @@ type
     Count: Integer;
   end;
 
-  // !! get rid of this record
-  TSensorScanScratch = record
-    Smell: TSmellScanScratch;
-  end;
-
   // Self-state observed by the Energy module.
   TEnergyInput = record
     Reserves: Single;

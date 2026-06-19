@@ -9,7 +9,6 @@ uses System.Types,
 const
   AGENT_BITE_SIZE = 0.1;  // temporary. move to sim params/genome
   AGENT_BASE_MOVE_COST = 0.05; // temporary. move to sim params/genome
-  SHELTER_ENTRY_COST = 0.02;
   SHELTER_UPKEEP_MULTIPLIER = 0.35;
   AGENT_BASE_METABOLISM = 0.01;  // physics floor: applies to all agents regardless of genome
   GENE_GENERATION_COST = 0.005;  // upkeep added per generation above A for each gene slot
@@ -713,14 +712,6 @@ begin
   begin
     Result.RequestedTarget.TType := ttCell;
     Result.RequestedTarget.Cell := State.Location;
-
-    if State.Action <> acShelter then
-    begin
-      State.Reserves := State.Reserves - SHELTER_ENTRY_COST;
-      if State.Reserves < 0.0 then
-        State.Reserves := 0.0;
-    end;
-
     Result.RequestedAction := acShelter;
     Exit;
   end;
@@ -923,23 +914,36 @@ begin
   Inc(state.TicksSinceForage);
 
   // Circadian pressure: accumulate while awake, relieve while sleeping underground
-  if (state.Action = acShelter) and (state.ActionAge >= DIG_TICKS) then
+  if (state.Action = acShelter) then
   begin
-    // Underground and sleeping — relieve pressure
-    state.CircadianPressure := state.CircadianPressure - state.CircadianRelief;
-    if state.CircadianPressure < 0.0 then
-      state.CircadianPressure := 0.0;
+    if state.ActionProgress > 0 then
+    begin
+      // Already underground — relieve pressure and advance sleep progress
+      state.CircadianPressure := state.CircadianPressure - state.CircadianRelief;
+      if state.CircadianPressure < 0.0 then
+        state.CircadianPressure := 0.0;
+      Inc(state.ActionProgress);
+    end
+    else if state.ActionAge >= DIG_TICKS then
+    begin
+      // Just finished digging — transition to underground
+      state.ActionProgress := 1;
+    end
+    else
+    begin
+      // Still digging — pressure builds normally
+      state.CircadianPressure := state.CircadianPressure + CIRCADIAN_COST_PER_TICK;
+      if state.CircadianPressure > MAX_CIRCADIAN_PRESSURE then
+        state.CircadianPressure := MAX_CIRCADIAN_PRESSURE;
+    end;
   end
   else
   begin
-    // Awake (or still digging) — pressure builds toward global max
+    // Awake and active — pressure builds toward global max
     state.CircadianPressure := state.CircadianPressure + CIRCADIAN_COST_PER_TICK;
     if state.CircadianPressure > MAX_CIRCADIAN_PRESSURE then
       state.CircadianPressure := MAX_CIRCADIAN_PRESSURE;
   end;
-
-  // !! delete
-  Inc(state.TicksSinceShelter);
 
   var reservesAtTickStart := state.Reserves;
   var reservesBeforeUpkeep := state.Reserves;
