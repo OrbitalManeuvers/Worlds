@@ -7,7 +7,7 @@ uses
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls,
   Vcl.ControlList, Vcl.Buttons, Vcl.StdCtrls, Vcl.Samples.Spin,
 
-  u_ControlRendering, u_LogTypes, u_SimEventTypes, u_AgentTypes,
+  u_ControlRendering, u_LogTypes, u_SimEventTypes,
   u_SimPopulations, u_SimTypes,
   u_SimRuntimes, u_MulticastEvents, u_DiagnosticsIntf, u_SimDiagnostics;
 
@@ -190,26 +190,7 @@ end;
 
 procedure TAgentWatchFrame.Consume(const Event: TSimEvent);
 begin
-
-  if Event.Header.Kind = sekDecisionTrace then
-  begin
-    // look for watch record and update
-    var index := IndexOf(Event.DecisionTrace.AgentId);
-    if index >= 0 then
-    begin
-      var data := Default(TWatchEvent);
-      data.Date.DayNumber := Event.Header.DayNumber;
-      data.Date.DayTick := Event.Header.DayTick;
-      data.Fields[0] := Event.DecisionTrace.AsAction;
-      data.Fields[1] := Event.DecisionTrace.AsEvaluations;
-
-      // write to ring buffer
-      Watches[index].History[Watches[index].WriteIndex] := data;
-      Watches[index].WriteIndex := (Watches[index].WriteIndex + 1) mod TICK_HISTORY_LENGTH;
-      if Watches[index].HistoryCount < TICK_HISTORY_LENGTH then
-        Inc(Watches[index].HistoryCount);
-    end;
-  end;
+  //
 end;
 
 procedure TAgentWatchFrame.edtAgentListKeyPress(Sender: TObject; var Key: Char);

@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls,
 
-  u_ExplorationTypes, u_AgentTypes;
+  u_ExplorationTypes, u_SimTypes, u_EnvironmentTypes;
 
 type
   TEditorStatus = (esOK, esError, esDisabled);
@@ -67,7 +67,8 @@ implementation
 
 {$R *.dfm}
 
-uses Vcl.Themes;
+uses Vcl.Themes,
+  u_RuntimeTypes;
 
 const
   GRID_WIDTH = 256; // well-established tech debt found several places

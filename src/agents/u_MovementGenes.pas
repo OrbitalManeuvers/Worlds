@@ -2,7 +2,7 @@
 
 interface
 
-uses u_AgentTypes, u_AgentGenome;
+uses u_AgentGenome, u_GeneTypes, u_RuntimeTypes;
 
 type
   TMoveEvaluator = class(TMoveEvalGene)

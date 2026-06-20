@@ -14,6 +14,15 @@ type
   TMolecules = set of TMolecule;
   TGrowableMolecule = TMolecule.Alpha .. TMolecule.Gamma;
 
+  // something that can be found on the ground
+  TSubstance = array[TMolecule] of TPercentage;
+
+  TCacheKind = (ckResource, ckDelta);
+  TCacheRef = record
+    Kind: TCacheKind;
+    Index: Integer;
+  end;
+
 type
   TEnvironmentObject = class
   private

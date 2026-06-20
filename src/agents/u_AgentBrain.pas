@@ -2,27 +2,10 @@
 
 interface
 
-uses u_AgentTypes, u_AgentState, u_AgentGenome, u_BrainProbes, u_SimQueriesIntf,
-  u_SimEnvironments;
+uses u_SimTypes, u_RuntimeTypes, u_BrainTypes, u_AgentState, u_AgentGenome, u_SimQueriesIntf,
+  u_GeneTypes;
 
 type
-  TBrainTraceSummary = record
-    EnergyLevel: TEnergyLevel;
-    ActionProgress: Integer;
-    ReserveDelta: Single;
-    TicksSinceReproduction: Integer;
-    LocalAgentCount: Integer;
-    StrongestSmellSignal: Single;
-    SmellCandidateCount: Integer;
-    TopSmellCache: TCacheRef;
-    TopSmellDistance: Integer;
-    TopSmellSignal: Single;
-    SolarFlux: Single;
-    SolarFluxDelta: Single;
-    HadSmellTarget: Boolean;
-    Reserves: Single;
-  end;
-
   // Runtime-owned inputs for one brain decision pass.
   TBrainTickInput = record
     SolarFlux: Single;
@@ -32,16 +15,6 @@ type
     GeneMap: TGeneMap;          // resolved from agent's gene sequence by the runtime
   end;
 
-  // Result returned by the brain to the population/sim tick routine.
-  TBrainTickOutput = record
-    RequestedAction: TAgentAction;
-    RequestedTarget: TTarget;
-    Scores: TActionScores;
-    Trace: TBrainTraceSummary;
-    DecisionBuckets: TDecisionBuckets;
-  end;
-
-  // Runtime-owned inputs for one post-resolution reflection pass.
   TBrainReflectInput = record
     ResolvedAction: TAgentAction;
     ResolvedTarget: TTarget;
@@ -50,15 +23,6 @@ type
     PreviousLocation: Integer;
     CurrentLocation: Integer;
     GeneMap: TGeneMap;
-  end;
-
-  // Caller-owned per-agent scratch state reused across ticks.
-  // This keeps the brain stateless while avoiding per-tick temp allocations.
-  TAgentScratch = record
-    SmellScratch: TSmellScanScratch;
-    EvaluatorScratch: TEvaluatorScratch;
-    ActionScores: TActionScores;
-    Probe: TBrainProbe;
   end;
 
   TAgentBrain = class
@@ -71,7 +35,8 @@ type
 
 implementation
 
-uses System.SysUtils, System.Math, u_EnvironmentTypes;
+uses System.SysUtils, System.Math,
+  u_EnvironmentTypes;
 
 const
   FOOD_SIGNAL_STRONG_THRESHOLD = 1.0;
@@ -144,35 +109,6 @@ begin
   Result.DayPhase := BucketDecisionDayPhase(IsNight);
 end;
 
-function BuildTraceSummary(const State: TAgentState; const Input: TBrainTickInput;
-  const SmellReport: TSmellReport; EnergyLevel: TEnergyLevel;
-  const LocalAgentCount: Integer): TBrainTraceSummary;
-begin
-  Result.EnergyLevel := EnergyLevel;
-  Result.ActionProgress := State.ActionProgress;
-  Result.Reserves := State.Reserves;
-  Result.ReserveDelta := State.ReserveDelta;
-  Result.TicksSinceReproduction := State.TicksSinceReproduction;
-  Result.LocalAgentCount := LocalAgentCount;
-  Result.StrongestSmellSignal := CalculateStrongestSmellSignal(SmellReport);
-  Result.SmellCandidateCount := Length(SmellReport.Details);
-  Result.TopSmellCache := Default(TCacheRef);
-  Result.TopSmellDistance := -1;
-  Result.TopSmellSignal := 0.0;
-  Result.SolarFlux := Input.SolarFlux;
-  Result.SolarFluxDelta := Input.SolarFluxDelta;
-  Result.HadSmellTarget := SmellReport.Count > 0;
-
-  // Smell details are sorted by the smell gene; detail[0] is the chosen/most salient candidate.
-  if Length(SmellReport.Details) > 0 then
-  begin
-    var top := SmellReport.Details[0];
-    Result.TopSmellCache := top.Cache;
-    Result.TopSmellDistance := top.Directions.Distance;
-    Result.TopSmellSignal := CalculateDetailSignal(top);
-  end;
-end;
-
 function BuildForageEvalInput(const State: TAgentState; const SmellReport: TSmellReport): TForageEvalInput;
 begin
   Result.Reserves := State.Reserves;
@@ -217,9 +153,9 @@ begin
   Result.DeltaWeight := State.Genome.ForageMoleculeWeights[Delta];
 end;
 
-function BuildEnergyInput(const State: TAgentState): TEnergyInput;
+function BuildEnergyInput(const State: TAgentState): TEnergyReserves;
 begin
-  Result.Reserves := State.Reserves;
+  Result := State.Reserves;
 end;
 
 function BuildCognitionInput(const State: TAgentState; const SmellReport: TSmellReport;
@@ -247,10 +183,9 @@ function BuildWeightedScores(const State: TAgentState; const Buckets: TDecisionB
   const BaseScores: TActionScores): TActionScores;
 begin
   Result := BaseScores;
-
   for var action := Low(TDecisionAction) to High(TDecisionAction) do
-    Result[action].Score := Result[action].Score
-      + State.DecisionWeights[action, Buckets.Energy, Buckets.FoodSignal, Buckets.DayPhase];
+    Result[action] := Result[action] +
+    State.DecisionWeights[action, Buckets.Energy, Buckets.FoodSignal, Buckets.DayPhase];
 end;
 
 function BuildCognitionReflectionInput(const State: TAgentState; const Decision: TBrainTickOutput;
@@ -311,7 +246,7 @@ begin
   Scratch.EvaluatorScratch := Default(TEvaluatorScratch);
   Scratch.SmellScratch.Count := 0;
   for var action := Low(TAgentAction) to High(TAgentAction) do
-    Scratch.ActionScores[action].Score := 0.0;
+    Scratch.ActionScores[action] := 0.0;
 
   // Observation stage
 
@@ -339,9 +274,9 @@ begin
     moveReport := moveEval.BuildReport(moveInput, Scratch.EvaluatorScratch.Movement);
   end;
 
-  Scratch.ActionScores[acMove].Score := 0.0;
+  Scratch.ActionScores[acMove] := 0.0;
   if moveReport.Count > 0 then
-    Scratch.ActionScores[acMove].Score := moveReport.Options[0].Opportunity;
+    Scratch.ActionScores[acMove] := moveReport.Options[0].Opportunity;
 
   // 2. Foraging
   var forageReport := Default(TForageReport);
@@ -352,9 +287,9 @@ begin
     forageReport := forageEval.BuildReport(forageInput, Scratch.EvaluatorScratch.Forage);
   end;
 
-  Scratch.ActionScores[acForage].Score := 0.0;
+  Scratch.ActionScores[acForage] := 0.0;
   if forageReport.Count > 0 then
-    Scratch.ActionScores[acForage].Score := forageReport.Options[0].Opportunity;
+    Scratch.ActionScores[acForage] := forageReport.Options[0].Opportunity;
 
   // 3. Shelter
   var shelterEval := Input.GeneMap.ShelterEval;
@@ -393,11 +328,9 @@ begin
       State.ActionTarget, State.Reserves, State.ReserveDelta, State.LastForageCell, forageReport, moveReport);
     var cognitionOutput := cognitionGene.Decide(cognitionInput, Scratch.EvaluatorScratch.Cognition);
 
-    if Scratch.Probe.Active then
-      Scratch.Probe.S.CognitionInput := cognitionInput;
-
     Result.RequestedAction := cognitionOutput.RequestedAction;
     Result.RequestedTarget := cognitionOutput.RequestedTarget;
+    Result.DampenedScores := cognitionOutput.DampenedScores;
   end
   else
   begin
@@ -406,16 +339,6 @@ begin
   end;
 
   Result.Scores := Scratch.ActionScores;
-  Result.Trace := BuildTraceSummary(State, Input, smellReport, energyLevel, localAgentCount);
-
-  if Scratch.Probe.Active then
-  begin
-    Scratch.Probe.S.ForageReport := forageReport;
-    Scratch.Probe.S.MoveReport := moveReport;
-    Scratch.Probe.S.RawScores := Scratch.ActionScores;
-    Scratch.Probe.S.FinalAction := Result.RequestedAction;
-    Scratch.Probe.S.FinalTarget := Result.RequestedTarget;
-  end;
 end;
 
 class procedure TAgentBrain.Reflect(var State: TAgentState; const Decision: TBrainTickOutput;

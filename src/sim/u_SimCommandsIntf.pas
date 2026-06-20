@@ -2,7 +2,7 @@ unit u_SimCommandsIntf;
 
 interface
 
-uses u_AgentTypes, u_SimEnvironments;
+uses u_EnvironmentTypes;
 
 type
   ISimCommand = interface

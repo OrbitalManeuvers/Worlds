@@ -110,7 +110,6 @@ function TEventLogView.EventMatchesFilter(const aEvent: TSimEvent): Boolean;
   begin
     case aEvent.Header.Kind of
       sekActionResolved:  Result := [aEvent.ActionResolved.AgentId];
-      sekDecisionTrace:   Result := [aEvent.DecisionTrace.AgentId];
       sekAgentBorn:       Result := [aEvent.AgentBorn.AgentId, aEvent.AgentBorn.ParentAgentId];
       sekAgentMoved:      Result := [aEvent.AgentMoved.AgentId];
       sekDeltaConsumed: Result := [aEvent.DeltaConsumed.AgentId];

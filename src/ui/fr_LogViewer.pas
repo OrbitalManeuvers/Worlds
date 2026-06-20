@@ -55,10 +55,9 @@ type
 const
   ar: TSupportedEventKind = (name:'Action Resolved'; kind: sekActionResolved);
 
-  SupportedEventKinds: array[0..2] of TSupportedEventKind = (
+  SupportedEventKinds: array[0..1] of TSupportedEventKind = (
     (name: 'Agent Moved'; kind: sekAgentMoved),
-    (name: 'Action Resolved'; kind: sekActionResolved),
-    (name: 'Decision Trace'; kind: sekDecisionTrace)
+    (name: 'Action Resolved'; kind: sekActionResolved)
 
   );
 
@@ -148,11 +147,11 @@ begin
     begin
       lblEventContent.Caption := eventFields.AsFieldText(1, eventFields.Count - 1);
 
-      var id := EventView.Events[AIndex].DecisionTrace.AgentId;
-      var colorIndex := id mod Length(agent_colors);
-      lblEventContent.Font.Color := StyleServices.GetSystemColor(agent_colors[colorIndex]);
-      lblDetailBelow.Font.Color := lblEventContent.Font.Color;
-      lblDetailBelow.Caption := event.DecisionTrace.Summary.AsFields.AsFieldText();
+//      var id := EventView.Events[AIndex].DecisionTrace.AgentId;
+//      var colorIndex := id mod Length(agent_colors);
+//      lblEventContent.Font.Color := StyleServices.GetSystemColor(agent_colors[colorIndex]);
+//      lblDetailBelow.Font.Color := lblEventContent.Font.Color;
+//      lblDetailBelow.Caption := event.DecisionTrace.Summary.AsFields.AsFieldText();
 
     end;
 
@@ -166,12 +165,12 @@ begin
   if EventList.ItemIndex <> -1 then
   begin
     var event := EventView.Events[EventList.ItemIndex];
-    if event.Header.Kind = sekDecisionTrace then
-    begin
-      SetLength(DetailRows, 2);
-      DetailRows[0] := event.DecisionTrace.Summary.AsFields;
-      DetailRows[1] := event.DecisionTrace.AsEvaluations;
-    end;
+//    if event.Header.Kind = sekDecisionTrace then
+//    begin
+//      SetLength(DetailRows, 2);
+//      DetailRows[0] := event.DecisionTrace.Summary.AsFields;
+//      DetailRows[1] := event.DecisionTrace.AsEvaluations;
+//    end;
 
   end;
 
@@ -200,12 +199,6 @@ begin
         end;
 
         case event.Header.Kind of
-          sekDecisionTrace:
-            begin
-              builder.AppendLine('  eval: ' + event.DecisionTrace.AsEvaluations.AsFieldText)
-                .AppendLine('  summ: ' + event.DecisionTrace.Summary.AsFields.AsFieldText)
-                .AppendLine;
-            end;
 
           sekAgentMoved:
             begin

@@ -2,7 +2,7 @@
 
 interface
 
-uses u_AgentTypes, u_AgentGenome;
+uses u_AgentGenome, u_GeneTypes, u_RuntimeTypes, u_SimTypes;
 
 type
   TReproduceEvaluator = class(TReproduceEvalGene)
@@ -14,7 +14,7 @@ type
 implementation
 
 uses System.Math,
-  u_SimTypes, u_SimClocks, u_EnvironmentTypes;
+  u_SimClocks, u_EnvironmentTypes;
 
 const
   REPRO_RESERVE_DELTA_RANGE = 0.15;
@@ -36,7 +36,7 @@ class function TReproduceEvaluator.Evaluate(const Input: TReproduceEvalInput;
   var Scratch: TReproduceEvalScratch): TActionScore;
 begin
   Scratch := Default(TReproduceEvalScratch);
-  Result.Score := 0.0;
+  Result := 0.0;
 
   // Do not ask for reproduction when runtime would reject it on reserve floor alone.
   if Input.Reserves < REPRODUCTION_MIN_ATTEMPT_RESERVES then
@@ -55,40 +55,40 @@ begin
   var energyPressure := EnsureRange(
     -0.20 + (Input.Reserves / 8.0) * 0.32,
     -0.20, 0.12);
-  Result.Score := Result.Score + energyPressure;
+  Result := Result + energyPressure;
 
   // ReserveDelta is a short-horizon body signal, not a learned history. Let a
   // declining reserve trend weigh more strongly than a rising trend helps.
   var reserveTrend := EnsureRange(Input.ReserveDelta / REPRO_RESERVE_DELTA_RANGE, -1.0, 1.0);
   if reserveTrend < 0.0 then
-    Result.Score := Result.Score + (reserveTrend * 0.05)
+    Result := Result + (reserveTrend * 0.05)
   else
-    Result.Score := Result.Score + (reserveTrend * 0.02);
+    Result := Result + (reserveTrend * 0.02);
 
   if Input.TicksSinceReproduction < REPRO_SETTLED_COOLDOWN_TICKS then
-    Result.Score := Result.Score - 0.02
+    Result := Result - 0.02
   else
-    Result.Score := Result.Score + 0.02;
+    Result := Result + 0.02;
 
   // For MVP, solitude remains neutral and crowding only dampens reproduction pressure.
   // This keeps crowding as a score modifier without turning it into a hard behavioral gate.
   if Input.LocalAgentCount > 0 then
   begin
     if Input.LocalAgentCount <= 2 then
-      Result.Score := Result.Score - REPRO_LIGHT_CROWDING_PENALTY
+      Result := Result - REPRO_LIGHT_CROWDING_PENALTY
     else if Input.LocalAgentCount <= 4 then
-      Result.Score := Result.Score - REPRO_MODERATE_CROWDING_PENALTY
+      Result := Result - REPRO_MODERATE_CROWDING_PENALTY
     else
-      Result.Score := Result.Score - REPRO_HEAVY_CROWDING_PENALTY;
+      Result := Result - REPRO_HEAVY_CROWDING_PENALTY;
   end;
 
   // Nocturnal selfishness: agents that have learned to rely on delta
   // become less willing to invest energy in reproduction.
   var deltaExcess := Max(0.0, Input.DeltaWeight - 1.0);
   var selfishnessPenalty := EnsureRange(deltaExcess * REPRO_DELTA_SELFISHNESS_SCALE, 0.0, REPRO_DELTA_SELFISHNESS_SCALE);
-  Result.Score := Result.Score - selfishnessPenalty;
+  Result := Result - selfishnessPenalty;
 
-  Result.Score := EnsureRange(Result.Score, 0.0, 1.0);
+  Result := EnsureRange(Result, 0.0, 1.0);
 end;
 
 class function TReproduceEvaluator.MinimumAge: Integer;

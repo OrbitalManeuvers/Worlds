@@ -3,12 +3,12 @@ unit u_SimEventTypes;
 interface
 
 uses System.Types,
-  u_agentState, u_AgentTypes, u_AgentBrain, u_AgentGenome, u_SimClocks, u_SimTypes;
+  u_RuntimeTypes, u_AgentState, u_AgentBrain, u_AgentGenome, u_SimClocks, u_SimTypes,
+  u_EnvironmentTypes;
 
 type
   TSimEventKind = (
     sekActionResolved,
-    sekDecisionTrace,
     sekAgentBorn,
     sekAgentMoved,
     sekDeltaConsumed,
@@ -82,18 +82,6 @@ type
     ActionProgress: Integer;
   end;
 
-  TDecisionTraceEvent = record
-    AgentId: TAgentId;
-    Cell: TCellIndex;
-    RequestedAction: TAgentAction;
-    RequestedTarget: TTarget;
-    ResolvedAction: TAgentAction;
-    ResolvedTarget: TTarget;
-    ForageOutcome: TForageOutcome;
-    Scores: TActionScores;
-    Summary: TBrainTraceSummary;
-  end;
-
   TAgentMovedEvent = record
     AgentId: TAgentId;
     FromCell: TCellIndex;
@@ -127,7 +115,6 @@ type
   TSimEvent = record
     Header: TSimEventHeader;
     ActionResolved: TActionResolvedEvent;
-    DecisionTrace: TDecisionTraceEvent;
     AgentBorn: TAgentBornEvent;
     AgentMoved: TAgentMovedEvent;
     DeltaConsumed: TDeltaConsumedEvent;

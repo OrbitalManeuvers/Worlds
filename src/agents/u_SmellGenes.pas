@@ -2,7 +2,7 @@ unit u_SmellGenes;
 
 interface
 
-uses u_AgentTypes, u_AgentGenome, u_SimQueriesIntf;
+uses u_AgentGenome, u_SimQueriesIntf, u_GeneTypes, u_RuntimeTypes;
 
 type
   TBasicSmell = class(TSmellGene)

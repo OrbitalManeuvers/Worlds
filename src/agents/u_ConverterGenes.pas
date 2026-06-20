@@ -1,8 +1,8 @@
-unit u_ConverterGenes;
+﻿unit u_ConverterGenes;
 
 interface
 
-uses u_AgentTypes, u_AgentGenome;
+uses u_AgentGenome, u_GeneTypes, u_RuntimeTypes;
 
 type
   TBasicConverter = class(TConverterGene)

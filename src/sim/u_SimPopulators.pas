@@ -25,7 +25,7 @@ type
 implementation
 
 uses System.Math,
-  u_AgentState, u_AgentGenome, u_AgentTypes, u_EnvironmentTypes, u_SimTypes;
+  u_AgentState, u_AgentGenome, u_EnvironmentTypes, u_SimTypes;
 
 const
   // converter efficiency scale (energy gain weighting)

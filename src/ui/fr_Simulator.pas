@@ -10,7 +10,7 @@ uses
 
   u_SessionComposerIntf, u_SimSessions, u_SimEventTypes, u_EventLogViews,
   fr_StepControls, fr_LogViewer, fr_ResourceVisualizer, u_SimVisualizer,
-  u_AgentGenome, u_AgentTypes, u_SimPopulations,
+  u_AgentGenome, u_SimPopulations,
   fr_PopulationViewer, fr_PopulationSummary,
   u_SessionParameters, u_ScratchRecorders,
   u_DiagnosticsIntf,

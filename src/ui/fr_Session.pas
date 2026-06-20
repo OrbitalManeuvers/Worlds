@@ -64,7 +64,7 @@ implementation
 
 uses System.Types, System.Math, Vcl.GraphUtil,
   u_EditorTypes, u_Foods,
-  u_Regions, u_AgentTypes, u_BiologyTypes, u_EnvironmentTypes,
+  u_Regions, u_BiologyTypes, u_EnvironmentTypes,
   u_SimEnvironments, u_SimEventTypes,
   u_DebugLibraries, u_SessionManager;
 

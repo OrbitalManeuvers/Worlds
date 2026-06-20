@@ -36,6 +36,17 @@ type
     function AddTicks(aCount: Integer): TSimDate;
   end;
 
+  TAgentId = type Integer;
+
+  TAgentAction = (acMove, acForage, acShelter, acReproduce, acIdle);
+  TActionScore = type Single;
+  TActionScores = array[TAgentAction] of TActionScore;
+
+
+
+  TEnergyReserves = type Single;
+  TEnergyLevel = (elLow, elMedium, elHigh, elFull);
+  TDecisionEnergy = type TEnergyLevel;
 
 implementation
 

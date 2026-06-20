@@ -2,7 +2,7 @@ unit u_SimQueriesIntf;
 
 interface
 
-uses u_AgentTypes, u_SimEnvironments;
+uses u_SimTypes, u_EnvironmentTypes, u_SimEnvironments;
 
 type
   ISimQuery = interface
@@ -29,6 +29,7 @@ type
 
   // Caller-owned buffer of smell cache infos. Caller can reuse the buffer across ticks to reduce allocations.
   TSmellCacheInfos = array of TSmellCacheInfo;
+
 
   // Smell contract for environment lookups.
   IEnvironmentSmellQuery = interface(IEnvironmentQuery)

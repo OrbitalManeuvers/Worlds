@@ -31,7 +31,6 @@ uses
   u_CellVisualizers in 'ui\u_CellVisualizers.pas',
   u_SimVisualizer in 'ui\u_SimVisualizer.pas',
   fr_BiologyEditor in 'ui\fr_BiologyEditor.pas' {BiologyEditor: TFrame},
-  u_AgentTypes in 'agents\u_AgentTypes.pas',
   u_BiologyTypes in 'common\u_BiologyTypes.pas',
   u_AgentGenome in 'agents\u_AgentGenome.pas',
   u_SimQueriesIntf in 'sim\u_SimQueriesIntf.pas',
@@ -91,7 +90,11 @@ uses
   d_ExplorationProgressDlg in 'ui\d_ExplorationProgressDlg.pas' {ExplorationProgressDlg},
   u_DiagnosticsIntf in 'common\u_DiagnosticsIntf.pas',
   u_Instincts in 'agents\u_Instincts.pas',
-  u_BrainProbes in 'agents\u_BrainProbes.pas';
+  u_BrainProbes in 'agents\u_BrainProbes.pas',
+  u_BrainTypes in 'common\u_BrainTypes.pas',
+  u_RuntimeTypes in 'common\u_RuntimeTypes.pas',
+  u_InputTypes in 'common\u_InputTypes.pas',
+  u_GeneTypes in 'common\u_GeneTypes.pas';
 
 {$R *.res}
 

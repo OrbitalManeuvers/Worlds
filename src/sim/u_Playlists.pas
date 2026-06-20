@@ -3,7 +3,7 @@ unit u_Playlists;
 interface
 
 uses System.Generics.Collections,
-  u_SimTypes, u_SimEventTypes, u_AgentTypes;
+  u_SimTypes, u_SimEventTypes;
 
 type
   TEndAction = (eaContinue, eaStop);

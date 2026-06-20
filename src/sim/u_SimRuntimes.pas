@@ -4,7 +4,8 @@ interface
 
 uses System.Types,
   u_AgentState, u_SimEventTypes, u_SimEnvironments, u_SimPopulations, u_SimClocks, u_SimQueriesIntf,
-  u_SimCommandsIntf, u_AgentBrain, u_AgentTypes, u_SimTypes, u_AgentGenome;
+  u_SimCommandsIntf, u_AgentBrain, u_SimTypes, u_GeneTypes, u_BrainTypes,
+  u_EnvironmentTypes, u_RuntimeTypes;
 
 const
   AGENT_BITE_SIZE = 0.1;  // temporary. move to sim params/genome
@@ -47,18 +48,6 @@ type
       const aExcludedFlags: TGeneSlotFlags = []): Single;
   end;
 
-  TDecisionTrace = record
-    DayTick: TDayTick;
-    AgentId: Integer;
-    RequestedAction: TAgentAction;
-    RequestedTarget: TTarget;
-    ResolvedAction: TAgentAction;
-    ResolvedTarget: TTarget;
-    ForageOutcome: TForageOutcome;
-    Scores: TActionScores;
-    Summary: TBrainTraceSummary;
-  end;
-
   TSimRuntime = class
   private const
     DEFAULT_DEATH_BIOMASS_AMOUNT = 1.0;   // currently unused
@@ -94,8 +83,6 @@ type
     procedure InjectDeltaAtNightfall;
     procedure HandleDeltaCleanupPolicy(const Report: TDeltaUpkeepReport);
     procedure EmitActionResolved(const StateBeforeResolution, State: TAgentState; const Requested, Resolved: TBrainTickOutput);
-    procedure EmitDecisionTrace(const State: TAgentState; const Input: TBrainTickInput;
-      const Requested, Resolved: TBrainTickOutput; const ForageOutcome: TForageOutcome);
     procedure EmitAgentBorn(const OffspringState: TAgentState; const ParentAgentId: Integer);
     procedure EmitAgentDied(const State: TAgentState; const ReservesBeforeDeath: Single);
     procedure EmitAgentMoved(const State: TAgentState; const FromCell, ToCell: Integer; const MoveCost: Single);
@@ -138,7 +125,7 @@ type
 implementation
 
 uses System.Math, System.SysUtils,
-  u_EnvironmentTypes, u_SimQueriesImpl, u_SimCommandsImpl;
+  u_SimQueriesImpl, u_SimCommandsImpl, u_AgentGenome;
 
 { TGeneMapHelper }
 
@@ -467,27 +454,6 @@ begin
   event.ActionResolved.ResolvedTarget := Resolved.RequestedTarget;
   event.ActionResolved.Reserves := State.Reserves;
   event.ActionResolved.ActionProgress := State.ActionProgress;
-
-  fDiagnostics.Emit(event);
-end;
-
-procedure TSimRuntime.EmitDecisionTrace(const State: TAgentState; const Input: TBrainTickInput;
-  const Requested, Resolved: TBrainTickOutput; const ForageOutcome: TForageOutcome);
-begin
-  if not Assigned(fDiagnostics) then
-    Exit;
-
-  var event := Default(TSimEvent);
-  event.Header := BuildEventHeader(sekDecisionTrace, stpPostAgents);
-  event.DecisionTrace.AgentId := State.AgentId;
-  event.DecisionTrace.Cell := State.Location;
-  event.DecisionTrace.RequestedAction := Requested.RequestedAction;
-  event.DecisionTrace.RequestedTarget := Requested.RequestedTarget;
-  event.DecisionTrace.ResolvedAction := Resolved.RequestedAction;
-  event.DecisionTrace.ResolvedTarget := Resolved.RequestedTarget;
-  event.DecisionTrace.ForageOutcome := ForageOutcome;
-  event.DecisionTrace.Scores := Requested.Scores;
-  event.DecisionTrace.Summary := Requested.Trace;
 
   fDiagnostics.Emit(event);
 end;
@@ -1029,7 +995,6 @@ begin
   end;
 
   EmitActionResolved(stateBeforeResolution, state^, requested, resolved);
-  EmitDecisionTrace(state^, Input, requested, resolved, forageOutcome);
 
   // Stasis reset on wake: when transitioning out of shelter after sleeping,
   // grant reserves proportional to how much pressure was relieved.

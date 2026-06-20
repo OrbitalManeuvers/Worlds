@@ -1,4 +1,4 @@
-unit u_SimEnvironments;
+﻿unit u_SimEnvironments;
 
 interface
 
@@ -7,9 +7,6 @@ uses System.Types,
   u_SimTypes, u_SimClocks, u_EnvironmentTypes;
 
 type
-  // something that can be found on the ground
-  TSubstance = array[TMolecule] of TPercentage;
-
   // how natural resources are tracked and managed. upscaler sets this up
   TResourceCache = record
     CellIndex: Integer;      // which cell this belongs to

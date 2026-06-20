@@ -2,8 +2,8 @@
 
 interface
 
-uses u_AgentTypes, u_AgentGenome, u_AgentState, u_AgentBrain, u_BrainProbes,
-  u_SimEventTypes;
+uses u_SimTypes, u_AgentGenome, u_AgentState, u_AgentBrain, u_BrainProbes,
+  u_SimEventTypes, u_RuntimeTypes, u_BrainTypes;
 
 type
   TSimPopulation = class
@@ -237,19 +237,25 @@ end;
 function TSimPopulation.Think(aIndex: Integer; const Input: TBrainTickInput): TBrainTickOutput;
 begin
   var agentId := fAgents[aIndex].AgentId;
-  if Assigned(fProbe) and fProbe.IsWatching(agentId) then
-    fProbe.BeforeTick(agentId);
+  fProbe.BeforeTick(agentId);
 
-  fScratch.Probe := fProbe;
   Result := TAgentBrain.Think(fAgents[aIndex], Input, fScratch);
+
+  if fProbe.Active then
+  begin
+    fProbe.S.RawScores := Result.Scores;
+    fProbe.S.DampenedScores := Result.DampenedScores;
+    fProbe.S.FinalAction := Result.RequestedAction;
+    fProbe.S.FinalTarget := Result.RequestedTarget;
+  end;
 end;
 
 procedure TSimPopulation.Reflect(aIndex: Integer; const Decision: TBrainTickOutput; const Input: TBrainReflectInput);
 begin
   TAgentBrain.Reflect(fAgents[aIndex], Decision, Input, fScratch);
+
   var agentId := fAgents[aIndex].AgentId;
-  if Assigned(fProbe) and fProbe.IsWatching(agentId) then
-    fProbe.AfterTick(agentId);
+  fProbe.AfterTick(agentId);
 end;
 
 procedure TSimPopulation.ApplyStep(aIndex: Integer; const Output: TBrainTickOutput);

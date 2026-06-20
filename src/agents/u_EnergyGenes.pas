@@ -2,12 +2,12 @@ unit u_EnergyGenes;
 
 interface
 
-uses u_AgentGenome, u_AgentTypes;
+uses u_AgentGenome, u_GeneTypes, u_RuntimeTypes, u_SimTypes;
 
 type
   TBasicEnergy = class(TEnergyGene)
   public
-    class function EvaluateEnergyLevel(const Input: TEnergyInput): TEnergyLevel; override;
+    class function EvaluateEnergyLevel(const Input: TEnergyReserves): TEnergyLevel; override;
   end;
 
 implementation
@@ -21,18 +21,18 @@ const
 
 { TBasicEnergy }
 
-class function TBasicEnergy.EvaluateEnergyLevel(const Input: TEnergyInput): TEnergyLevel;
+class function TBasicEnergy.EvaluateEnergyLevel(const Input: TEnergyReserves): TEnergyLevel;
 begin
 //  if Input.Reserves <= 0.0 then
 //    Exit(elEmpty);
 
-  if Input.Reserves < ENERGY_LOW_THRESHOLD then
+  if Input < ENERGY_LOW_THRESHOLD then
     Exit(elLow);
 
-  if Input.Reserves < ENERGY_MEDIUM_THRESHOLD then
+  if Input < ENERGY_MEDIUM_THRESHOLD then
     Exit(elMedium);
 
-  if Input.Reserves < ENERGY_HIGH_THRESHOLD then
+  if Input < ENERGY_HIGH_THRESHOLD then
     Exit(elHigh);
 
   Result := elFull;

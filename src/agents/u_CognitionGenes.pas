@@ -1,8 +1,8 @@
-unit u_CognitionGenes;
+ï»¿unit u_CognitionGenes;
 
 interface
 
-uses u_AgentGenome, u_AgentTypes;
+uses u_AgentGenome, u_GeneTypes, u_RuntimeTypes, u_BrainTypes;
 
 type
   TBasicCognition = class(TCognitionGene)
@@ -34,7 +34,7 @@ uses System.Math, u_EnvironmentTypes, u_SimTypes, u_Instincts;
 
 type
   TActionContinuationParams = record
-    MaxDampening: Single;       // ceiling — how much competing scores can be suppressed
+    MaxDampening: Single;       // ceiling ï¿½ how much competing scores can be suppressed
     RampRate: Single;           // dampening increase per tick of ActionProgress
     PressureWeighted: Boolean;  // if true, dampening scales with CircadianPressure ratio
   end;
@@ -43,11 +43,11 @@ const
   // Continuation dampening table: defines how strongly each action resists interruption
   // once ActionProgress > 0 (i.e. past the dig/entry phase).
   ActionContinuation: array[TAgentAction] of TActionContinuationParams = (
-    (MaxDampening: 0.0;  RampRate: 0.0;  PressureWeighted: False),  // acMove — no progressive phase
-    (MaxDampening: 0.0;  RampRate: 0.0;  PressureWeighted: False),  // acForage — no progressive phase
-    (MaxDampening: 0.95; RampRate: 0.08; PressureWeighted: True),   // acShelter — deep, scales with fatigue
-    (MaxDampening: 0.70; RampRate: 0.05; PressureWeighted: False),  // acReproduce — linear commitment ramp
-    (MaxDampening: 0.0;  RampRate: 0.0;  PressureWeighted: False)   // acIdle — nothing
+    (MaxDampening: 0.0;  RampRate: 0.0;  PressureWeighted: False),  // acMove ï¿½ no progressive phase
+    (MaxDampening: 0.0;  RampRate: 0.0;  PressureWeighted: False),  // acForage ï¿½ no progressive phase
+    (MaxDampening: 0.95; RampRate: 0.08; PressureWeighted: True),   // acShelter ï¿½ deep, scales with fatigue
+    (MaxDampening: 0.70; RampRate: 0.05; PressureWeighted: False),  // acReproduce ï¿½ linear commitment ramp
+    (MaxDampening: 0.0;  RampRate: 0.0;  PressureWeighted: False)   // acIdle ï¿½ nothing
   );
 
 const
@@ -69,7 +69,7 @@ const
   FORAGE_REFLECT_NO_GAIN_OUTCOME = -0.04;
 
   // Shelter reflection: reward when reserves are recovering while sheltered.
-  // No negative signal — flat/declining reserves while sheltered may still be
+  // No negative signal ï¿½ flat/declining reserves while sheltered may still be
   // better than the alternative, so silence is more honest than punishment.
   SHELTER_REFLECT_RECOVERY_OUTCOME = 0.04;
 
@@ -130,14 +130,14 @@ begin
   // Forage urgency fades as reserves fill.
   var reserveRatio := EnsureRange(Input.Reserves / FORAGE_RESERVE_COMFORT_LEVEL, 0.0, 1.0);
   var forageDiscount := 1.0 - (reserveRatio * (1.0 - FORAGE_HIGH_RESERVE_DISCOUNT));
-  EffectiveScores[acForage].Score := EffectiveScores[acForage].Score * forageDiscount;
+  EffectiveScores[acForage] := EffectiveScores[acForage] * forageDiscount;
 
   // When viable local forage exists, remote movement is a gamble.
   if Input.ForageReport.Count > 0 then
   begin
-    EffectiveScores[acMove].Score := EffectiveScores[acMove].Score * MOVE_LOCAL_FOOD_SUPPRESSION;
+    EffectiveScores[acMove] := EffectiveScores[acMove] * MOVE_LOCAL_FOOD_SUPPRESSION;
     if Input.ReserveDelta < 0.0 then
-      EffectiveScores[acMove].Score := EffectiveScores[acMove].Score * MOVE_NEGATIVE_DELTA_EXTRA_SUPPRESSION;
+      EffectiveScores[acMove] := EffectiveScores[acMove] * MOVE_NEGATIVE_DELTA_EXTRA_SUPPRESSION;
   end;
 end;
 
@@ -169,17 +169,20 @@ begin
 
     for var action := Low(TAgentAction) to High(TAgentAction) do
       if action <> Input.CurrentAction then
-        effectiveScores[action].Score := effectiveScores[action].Score * (1.0 - dampening);
+        effectiveScores[action] := effectiveScores[action] * (1.0 - dampening);
   end;
 
+  // Capture dampened scores for the probe
+  Result.DampenedScores := effectiveScores;
+
   var bestAction := Input.CurrentAction;
-  var bestScore := effectiveScores[bestAction].Score;
+  var bestScore := effectiveScores[bestAction];
 
   for var action := Low(TAgentAction) to High(TAgentAction) do
-    if effectiveScores[action].Score > bestScore then
+    if effectiveScores[action] > bestScore then
     begin
       bestAction := action;
-      bestScore := effectiveScores[action].Score;
+      bestScore := effectiveScores[action];
     end;
 
   // Require a modest lead for move decisions to avoid oscillation on near-ties.
@@ -193,10 +196,10 @@ begin
       if action = acMove then
         Continue;
 
-      if effectiveScores[action].Score > bestNonMoveScore then
+      if effectiveScores[action] > bestNonMoveScore then
       begin
         bestNonMoveAction := action;
-        bestNonMoveScore := effectiveScores[action].Score;
+        bestNonMoveScore := effectiveScores[action];
       end;
     end;
 
@@ -271,7 +274,7 @@ begin
   begin
     // Two cases:
     // 1. In transit (target ? location): keep heading to current target unless new is much better.
-    // 2. Just arrived (target = location): the agent chose to come here — require a strong
+    // 2. Just arrived (target = location): the agent chose to come here ï¿½ require a strong
     //    signal to leave immediately, using the local smell as the anchor.
     var anchorSignal: Single := 0.0;
     var hasAnchor := TryGetMoveOpportunity(Input.MoveReport, Input.CurrentTarget.Cell, anchorSignal);
@@ -284,9 +287,9 @@ begin
 
     if hasAnchor then
     begin
-      var newSignal: Single := effectiveScores[acMove].Score;
+      var newSignal: Single := effectiveScores[acMove];
       if not TryGetMoveOpportunity(Input.MoveReport, Result.RequestedTarget.Cell, newSignal) then
-        newSignal := effectiveScores[acMove].Score;
+        newSignal := effectiveScores[acMove];
 
       var switchThreshold := Max(anchorSignal * MOVE_TARGET_SWITCH_RATIO,
         anchorSignal + MOVE_TARGET_SWITCH_ABS_MARGIN);
@@ -298,7 +301,7 @@ begin
           Result.RequestedTarget.Cell := Input.CurrentTarget.Cell
         else
         begin
-          // Arrived but nothing strong enough to justify leaving — don't move.
+          // Arrived but nothing strong enough to justify leaving ï¿½ don't move.
           Result.RequestedAction := acIdle;
           Result.RequestedTarget.TType := ttCell;
           Result.RequestedTarget.Cell := Input.Location;
@@ -311,7 +314,7 @@ begin
   // Smell details are expected to arrive pre-sorted by the smell gene.
   // Forage execution is local-only: only distance-0 cache targets are actionable.
   // Guard: only fire when the evaluator produced a real base score (target assigned).
-  // If the evaluator returned ttNone, it found nothing worth eating — learned
+  // If the evaluator returned ttNone, it found nothing worth eating ï¿½ learned
   // decision weights alone should not override that by grabbing the first local cache.
   if (bestAction = acForage)
     and (Result.RequestedTarget.TType = ttNone) then
@@ -366,7 +369,7 @@ begin
   Result := Default(TCognitionReflectionOutput);
   Result.LearnedAction := acForage;
 
-  // Skip update if the action was downgraded — agent didn't actually forage.
+  // Skip update if the action was downgraded ï¿½ agent didn't actually forage.
   if Input.ResolvedAction <> acForage then
   begin
     Result.HasWeightUpdate := False;
@@ -383,7 +386,7 @@ begin
 
   // Molecule weight update: attribute conversion efficiency to each molecule present.
   // Efficiency = energy gained per unit consumed. Each molecule gets the overall
-  // efficiency as its outcome — the share weighting happens naturally because molecules
+  // efficiency as its outcome ï¿½ the share weighting happens naturally because molecules
   // absent from the substance get skipped (their percentage is 0).
   // Zero or near-zero gain still produces a valid (low) efficiency signal, teaching
   // the agent that those molecules are poor food sources.
@@ -457,7 +460,7 @@ begin
   Result := Default(TCognitionReflectionOutput);
   Result.LearnedAction := acShelter;
 
-  // Skip update if the action was downgraded — agent didn't actually shelter.
+  // Skip update if the action was downgraded ï¿½ agent didn't actually shelter.
   if Input.ResolvedAction <> acShelter then
   begin
     Result.HasWeightUpdate := False;
@@ -465,7 +468,7 @@ begin
   end;
 
   // Reward shelter when reserves are visibly recovering.
-  // Flat or negative delta gets silence — not a punishment.
+  // Flat or negative delta gets silence ï¿½ not a punishment.
   if Input.ReserveDelta > 0.0 then
   begin
     Result.HasWeightUpdate := True;

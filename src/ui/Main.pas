@@ -60,7 +60,7 @@ var
 implementation
 
 uses System.IOUtils, System.UITypes, Vcl.GraphUtil, Vcl.Themes,
-  u_EnvironmentLibraries, u_Serialization, u_AgentTypes,
+  u_EnvironmentLibraries, u_Serialization,
   fr_FoodEditor,
   fr_BiomeEditor,
   fr_RegionEditor,

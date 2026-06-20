@@ -3,19 +3,14 @@
 interface
 
 uses System.Generics.Collections,
-  u_AgentTypes, u_AgentGenome;
+  u_SimTypes, u_RuntimeTypes, u_BrainTypes, u_AgentGenome, u_GeneTypes;
 
 type
   TBrainSnapshot = record
     AgentId: TAgentId;
-
-    // Evaluation phase
-    ForageReport: TForageReport;
-    MoveReport: TMoveReport;
-    RawScores: TActionScores;      // scores before learning weights
-
-    // Cognition phase
-    CognitionInput: TCognitionInput; // .ActionScores are post learning weights
+    RawScores: TActionScores;
+    DampenedScores: TActionScores;   // after continuation pressure applied
+    CognitionInput: TCognitionInput;  // includes reports, weighted scores, smell, state context
     FinalAction: TAgentAction;
     FinalTarget: TTarget;
   end;

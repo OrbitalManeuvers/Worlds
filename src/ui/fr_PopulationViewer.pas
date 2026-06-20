@@ -47,7 +47,7 @@ implementation
 {$R *.dfm}
 
 uses System.Types,
-  u_AgentTypes, u_EnvironmentTypes, u_DiagnosticsHelpers;
+  u_EnvironmentTypes, u_DiagnosticsHelpers;
 
 { TPopulationViewFrame }
 procedure TPopulationViewFrame.cbLivingOnlyClick(Sender: TObject);

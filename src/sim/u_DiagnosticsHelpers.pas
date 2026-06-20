@@ -3,9 +3,9 @@ unit u_DiagnosticsHelpers;
 interface
 
 uses System.Types, System.SysUtils, System.TypInfo,
-  u_SimEventTypes, u_AgentTypes, u_AgentBrain,
+  u_SimEventTypes, u_AgentBrain,
   u_AgentGenome, u_LogTypes, u_SimPopulations, u_EnvironmentTypes,
-  u_AgentState, u_SimTypes;
+  u_AgentState, u_SimTypes, u_RuntimeTypes;
 
 (*
 
@@ -15,18 +15,6 @@ Intentions:
 *)
 
 type
-  // TBrainTraceSummary
-  _brainTraceSummary = record helper for TBrainTraceSummary
-    function AsFields: TLogFields;
-  end;
-
-  // TDecisionTraceEvent field helper
-  _decisionTraceEvent = record helper for TDecisionTraceEvent
-    function AsAction: TLogFields;
-    function AsEvaluations: TLogFields;
-    function AsHeader: TLogFields;
-  end;
-
   // TAgentMovedEvent field helper
   _agentMovedEvent = record helper for TAgentMovedEvent
     function AsFields: TLogFields;
@@ -150,6 +138,7 @@ type
 
   _ActionScore = record helper for TActionScore
     function AsFields: TLogFields;
+    function AsText: string;
   end;
 
 
@@ -253,74 +242,15 @@ end;
 { _actionScore }
 function _ActionScore.AsFields: TLogFields;
 begin
-  Result.Add('score', Score.AsText);
+  Result.Add('', Single(Self).AsText);
 end;
 
-
-
-{ _brainTraceSummary }
-function _brainTraceSummary.AsFields: TLogFields;
+function _ActionScore.AsText: string;
 begin
-  Result.Clear;
-  Result.Add('rsrv', Self.Reserves.AsText);
-  Result.Add('rsrvDel', Self.ReserveDelta.AsText);
-  Result.Add('gest', Self.ActionProgress.AsText);
-  Result.Add('hadSm', Self.HadSmellTarget.AsText);
-  Result.Add('smSig', Self.StrongestSmellSignal.AsText);
-  Result.Add('smCnt', Self.SmellCandidateCount.AsText);
-  Result.Add('topSmDst', Self.TopSmellDistance.AsText);
-  Result.Add('topSmSig', Self.TopSmellSignal.AsText);
-  Result.Add('sol', Self.SolarFlux.AsText);
-  Result.Add('solDel', Self.SolarFluxDelta.AsText);
-
+  Result := Single(Self).AsText;
 end;
 
-{ _decisionTraceEvent }
 
-function _decisionTraceEvent.AsEvaluations: TLogFields;
-begin
-  Result.Clear;
-  for var action := Low(Self.Scores) to High(Self.Scores) do
-  begin
-    Result.Add(action.AsText, Self.Scores[action].Score.AsText);
-  end;
-end;
-
-function _decisionTraceEvent.AsAction: TLogFields;
-begin
-  Result.Clear;
-  Result.Add('loc', Cell.AsText);
-  Result.Add('ac', ResolvedAction.AsText);
-
-  case ResolvedAction of
-    acMove:
-      begin
-        Result.Add('to', ResolvedTarget.AsText);
-      end;
-
-    acShelter:
-      begin
-
-      end;
-
-    acForage:
-      begin
-        Result.Add('t', ResolvedTarget.AsText);
-        Result.Add('con', ForageOutcome.Consumed.AsText);
-        Result.Add('gain', ForageOutcome.Gain.AsText);
-        var eff: Single := ForageOutcome.Gain / ForageOutcome.Consumed;
-        Result.Add('eff', eff.AsText);
-      end;
-  end;
-end;
-
-function _decisionTraceEvent.AsHeader: TLogFields;
-begin
-  Result.Clear;
-  Result.Add('a', Self.AgentId.AsText);
-  Result.Add('rsv', Self.Summary.Reserves.AsText);
-  Result.Add('rsvd', Self.Summary.ReserveDelta.AsText);
-end;
 
 // TAgentMovedEvent field helper
 function _agentMovedEvent.AsFields: TLogFields;
@@ -349,10 +279,6 @@ function _simEvent.AsHeaderFields: TLogFields;
 begin
   Result.Clear;
 
-  if Header.Kind = sekDecisionTrace then
-  begin
-//    Result := DecisionTrace.AsHeaderFields;
-  end;
 
 end;
 
@@ -368,10 +294,6 @@ begin
     sekActionResolved:
       begin
         Result.AddFields(ActionResolved.AsFields);
-      end;
-    sekDecisionTrace:
-      begin
-        Result.AddFields(DecisionTrace.AsAction);
       end;
     sekAgentBorn: ;
     sekAgentMoved:

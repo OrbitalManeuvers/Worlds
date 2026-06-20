@@ -2,7 +2,7 @@ unit u_AgentState;
 
 interface
 
-uses u_AgentTypes, u_AgentGenome, u_EnvironmentTypes, u_SimTypes;
+uses u_RunTimeTypes, u_EnvironmentTypes, u_SimTypes, u_BrainTypes, u_AgentGenome;
 
 type
   TDecisionWeights = array[TDecisionAction, TDecisionEnergy, TDecisionFoodSignal, TDecisionDayPhase] of Single;

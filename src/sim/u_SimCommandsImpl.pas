@@ -1,4 +1,4 @@
-unit u_SimCommandsImpl;
+﻿unit u_SimCommandsImpl;
 
 interface
 
@@ -25,7 +25,7 @@ type
 
 implementation
 
-uses System.Math, u_AgentState, u_AgentTypes;
+uses System.Math, u_AgentState, u_EnvironmentTypes;
 
 
 { TSimCommand }

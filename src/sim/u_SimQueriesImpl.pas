@@ -3,7 +3,7 @@ unit u_SimQueriesImpl;
 interface
 
 uses System.SysUtils,
-  u_AgentTypes, u_EnvironmentTypes, u_SimPopulations, u_SimEnvironments, u_SimQueriesIntf;
+  u_EnvironmentTypes, u_SimPopulations, u_SimEnvironments, u_SimQueriesIntf;
 
 type
   TSimQuery = class(TInterfacedObject, ISimQuery,

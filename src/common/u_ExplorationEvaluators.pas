@@ -3,7 +3,7 @@
 interface
 
 uses
-  u_SimEventTypes, u_SimPopulations, u_ExplorationTypes, u_AgentTypes;
+  u_SimEventTypes, u_SimPopulations, u_ExplorationTypes, u_SimTypes;
 
 type
   TExplorationEvaluator = class(TNoRefCountObject, ISimEventConsumer)
@@ -40,7 +40,7 @@ type
 
 implementation
 
-uses u_AgentState;
+uses u_AgentState, u_RuntimeTypes;
 
 { TExplorationEvaluator }
 

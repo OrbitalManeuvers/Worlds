@@ -67,7 +67,7 @@ implementation
 
 {$R *.dfm}
 
-uses u_SimTypes, u_AgentTypes, d_ExplorationProgressDlg;
+uses u_SimTypes, u_RuntimeTypes, u_EnvironmentTypes, d_ExplorationProgressDlg;
 
 const
   MAX_EXPLORATION_POPULATION = 500;
