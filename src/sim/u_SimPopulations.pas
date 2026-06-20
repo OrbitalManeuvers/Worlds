@@ -242,20 +242,12 @@ begin
 
   fScratch.Probe := fProbe;
   Result := TAgentBrain.Think(fAgents[aIndex], Input, fScratch);
-
-  if Assigned(fProbe) and fProbe.IsWatching(agentId) then
-    fProbe.AfterTick(agentId);
 end;
 
 procedure TSimPopulation.Reflect(aIndex: Integer; const Decision: TBrainTickOutput; const Input: TBrainReflectInput);
 begin
-  var agentId := fAgents[aIndex].AgentId;
-  if Assigned(fProbe) and fProbe.IsWatching(agentId) then
-    fProbe.BeforeTick(agentId);
-
-  fScratch.Probe := fProbe;
   TAgentBrain.Reflect(fAgents[aIndex], Decision, Input, fScratch);
-
+  var agentId := fAgents[aIndex].AgentId;
   if Assigned(fProbe) and fProbe.IsWatching(agentId) then
     fProbe.AfterTick(agentId);
 end;

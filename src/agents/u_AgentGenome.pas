@@ -52,7 +52,6 @@ type
     CircadianPressure: Single;
     Reserves: Single;
     ReserveDelta: Single;  // per-tick change in reserves; negative = losing energy, positive = gaining
-    IsNight: Boolean;
     SolarFlux: Single;     // 0.0 at night, rising through the day
     HasLocalFoodSignal: Boolean;  // food cache at distance 0
   end;

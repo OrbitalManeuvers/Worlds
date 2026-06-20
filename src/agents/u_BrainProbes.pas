@@ -12,11 +12,10 @@ type
     // Evaluation phase
     ForageReport: TForageReport;
     MoveReport: TMoveReport;
-    RawScores: TActionScores;
-    WeightedScores: TActionScores;
+    RawScores: TActionScores;      // scores before learning weights
 
     // Cognition phase
-    CognitionInput: TCognitionInput;
+    CognitionInput: TCognitionInput; // .ActionScores are post learning weights
     FinalAction: TAgentAction;
     FinalTarget: TTarget;
   end;

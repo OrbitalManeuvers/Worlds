@@ -50,7 +50,6 @@ type
   TDecisionTrace = record
     DayTick: TDayTick;
     AgentId: Integer;
-    IsNight: Boolean;
     RequestedAction: TAgentAction;
     RequestedTarget: TTarget;
     ResolvedAction: TAgentAction;
@@ -1088,12 +1087,9 @@ begin
 
   var currentSolarFlux := fEnvironment.SolarFlux;
 
-  var isNightTick := Value > High(TDaylightTicks);
-
   NotifyPhase(stpPostEnvironment);
 
   var input: TBrainTickInput;
-  input.IsNight := isNightTick;
   input.SolarFlux := currentSolarFlux;
   input.SolarFluxDelta := currentSolarFlux - previousSolarFlux;
   input.Query := fSimQuery;

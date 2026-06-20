@@ -483,11 +483,11 @@ end;
 function _agentState.AsWatchHeader: TLogFields;
 begin
   Result.Clear;
-  Result.Add('r', Self.Reserves.AsText);
-  Result.Add('d', Self.ReserveDelta.AsText);
-  Result.Add('l', Self.Location.AsText);
+  Result.Add('rsrv', Self.Reserves.AsText);
+  Result.Add('dlta', Self.ReserveDelta.AsText);
+  Result.Add('loc', Self.Location.AsText);
   Result.Add('', Self.AsWatchAction.AsFieldText);
-  Result.Add('w', Self.AsMoleculeWeights.AsFieldText);
+  Result.Add('mw', Self.AsMoleculeWeights.AsFieldText);
 
 end;
 

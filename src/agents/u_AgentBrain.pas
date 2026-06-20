@@ -25,7 +25,6 @@ type
 
   // Runtime-owned inputs for one brain decision pass.
   TBrainTickInput = record
-    IsNight: Boolean;
     SolarFlux: Single;
     SolarFluxDelta: Single;
     Query: ISimQuery;
@@ -195,7 +194,6 @@ function BuildShelterEvalInput(const State: TAgentState; const Input: TBrainTick
 begin
   Result.Reserves := State.Reserves;
   Result.ReserveDelta := State.ReserveDelta;
-  Result.IsNight := Input.IsNight;
   Result.SolarFlux := Input.SolarFlux;
   Result.CircadianPressure := State.CircadianPressure;
 
@@ -328,7 +326,7 @@ begin
   var smellGene := Input.GeneMap.Smell;
   var smellReport := smellGene.Scan(State.Location, smellParams, Input.Query, Scratch.SmellScratch);
 
-  Result.DecisionBuckets := BuildDecisionBuckets(energyLevel, smellReport, Input.IsNight);
+  Result.DecisionBuckets := BuildDecisionBuckets(energyLevel, smellReport, Input.SolarFlux <= 0);
 
   // Evaluation stage
 
@@ -396,10 +394,7 @@ begin
     var cognitionOutput := cognitionGene.Decide(cognitionInput, Scratch.EvaluatorScratch.Cognition);
 
     if Scratch.Probe.Active then
-    begin
       Scratch.Probe.S.CognitionInput := cognitionInput;
-      Scratch.Probe.S.WeightedScores := weightedScores;
-    end;
 
     Result.RequestedAction := cognitionOutput.RequestedAction;
     Result.RequestedTarget := cognitionOutput.RequestedTarget;
@@ -441,3 +436,4 @@ begin
 end;
 
 end.
+

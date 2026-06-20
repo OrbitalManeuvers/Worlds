@@ -64,7 +64,6 @@ object AgentWatchFrame: TAgentWatchFrame
     Anchors = [akLeft, akTop, akRight, akBottom]
     ShowCaption = False
     TabOrder = 2
-    ExplicitWidth = 577
     object HSplit: TSplitter
       Left = 1
       Top = 316
@@ -101,8 +100,6 @@ object AgentWatchFrame: TAgentWatchFrame
       TabOrder = 0
       OnBeforeDrawItem = WatchListBeforeDrawItem
       OnItemClick = WatchListItemClick
-      ExplicitWidth = 575
-      ExplicitHeight = 192
       object pbContent: TPaintBox
         Left = 47
         Top = 2
@@ -153,9 +150,6 @@ object AgentWatchFrame: TAgentWatchFrame
       TabOrder = 1
       Visible = False
       OnBeforeDrawItem = DetailListBeforeDrawItem
-      ExplicitLeft = 32
-      ExplicitTop = 280
-      ExplicitWidth = 369
       object pbDetailLine: TPaintBox
         AlignWithMargins = True
         Left = 42
