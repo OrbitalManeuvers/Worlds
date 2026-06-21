@@ -4,7 +4,7 @@ interface
 
 uses System.Classes, System.Generics.Collections,
   u_MulticastEvents,
-  u_SimClocks, u_SimEventTypes, u_SimTypes, u_Playlists;
+  u_SimClocks, u_SimTypes, u_Playlists;
 
 type
   TSimStopPredicate = reference to procedure (const Date: TSimDate; var CanContinue: Boolean);
@@ -17,7 +17,6 @@ type
     fRunning: Boolean;
     fCurrentSegmentIndex: Integer;
     fEndEventFired: Boolean;
-    fActiveEndEvents: TSimEventKinds;
     fOnBeforeRun: TNotifyEvent;
     fOnAfterRun: TNotifyEvent;
     fBeforeAdvance: TMulticastEvent<TNotifyEvent>;
@@ -164,7 +163,6 @@ begin
 
       fCurrentSegmentIndex := segIndex;
       fEndEventFired := False;
-      fActiveEndEvents := []; //seg.EndEvents;
       fRecording := seg.Recording;
 
       // run ticks until EndTime or EndEvents fires

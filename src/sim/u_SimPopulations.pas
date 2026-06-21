@@ -3,7 +3,7 @@
 interface
 
 uses u_SimTypes, u_AgentGenome, u_AgentState, u_AgentBrain, u_BrainProbes,
-  u_SimEventTypes, u_RuntimeTypes, u_BrainTypes;
+  u_RuntimeTypes, u_BrainTypes, u_PopulationTypes;
 
 type
   TSimPopulation = class

@@ -3,19 +3,19 @@ unit u_LocalEventLogs;
 interface
 
 uses System.Classes, System.Generics.Collections,
-  u_SimEventTypes;
+  u_SessionEventTypes;
 
 type
-  TLocalEventLog = class(TInterfacedObject, ISimEventConsumer, IEventLog)
+  TLocalEventLog = class(TInterfacedObject, ISessionEventConsumer, ISessionEventLog)
   private
-    fEvents: TList<TSimEvent>;
+    fEvents: TList<TSessionEvent>;
 
-    // ISimEventConsumer
-    procedure Consume(const aEvent: TSimEvent);
+    // ISessionEventConsumer
+    procedure Consume(const aEvent: TSessionEvent);
 
-    // IEventLog
+    // ISessionEventLog
     function GetCount: Integer;
-    function GetEvent(aIndex: Integer): TSimEvent;
+    function GetEvent(aIndex: Integer): TSessionEvent;
   public
     constructor Create;
     destructor Destroy; override;
@@ -28,7 +28,7 @@ implementation
 constructor TLocalEventLog.Create;
 begin
   inherited Create;
-  fEvents := TList<TSimEvent>.Create;
+  fEvents := TList<TSessionEvent>.Create;
 end;
 
 destructor TLocalEventLog.Destroy;
@@ -42,12 +42,12 @@ begin
   Result := fEvents.Count;
 end;
 
-function TLocalEventLog.GetEvent(aIndex: Integer): TSimEvent;
+function TLocalEventLog.GetEvent(aIndex: Integer): TSessionEvent;
 begin
   Result := fEvents[aIndex];
 end;
 
-procedure TLocalEventLog.Consume(const aEvent: TSimEvent);
+procedure TLocalEventLog.Consume(const aEvent: TSessionEvent);
 begin
   //
 end;

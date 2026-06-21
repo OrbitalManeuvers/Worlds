@@ -7,8 +7,7 @@ uses
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls,
   Vcl.ControlList, Vcl.Buttons, Vcl.StdCtrls, Vcl.Samples.Spin,
 
-  u_ControlRendering, u_LogTypes, u_SimEventTypes,
-  u_SimPopulations, u_SimTypes,
+  u_ControlRendering, u_LogTypes, u_SimPopulations, u_SimTypes,
   u_SimRuntimes, u_MulticastEvents, u_DiagnosticsIntf;
 
 const
@@ -37,7 +36,7 @@ type
     WriteIndex: Integer;
   end;
 
-  TAgentWatchFrame = class(TFrame, ISimEventConsumer, IRuntimeObserver)
+  TAgentWatchFrame = class(TFrame, IRuntimeObserver)
     WatchList: TControlList;
     edtAgentList: TEdit;
     Label2: TLabel;
@@ -73,16 +72,13 @@ type
     WatchDetails: TArray<TLogFields>;
     SubscriptionId: Integer;
   private
-    procedure Consume(const Event: TSimEvent);
     procedure UpdateAgentList;
     function IndexOf(AgentId: TAgentId): Integer;
 
   private
     { IRuntimeObserver }
-    procedure ConnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
-      AfterAdvance: TMulticastEvent<TNotifyEvent>);
-    procedure DisconnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
-      AfterAdvance: TMulticastEvent<TNotifyEvent>);
+    procedure ConnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+    procedure DisconnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
     procedure HandleAfterAdvance(Sender: TObject);
     procedure SetSelectedWatch(aWatchIndex: Integer);
     procedure UpdateWatchDetails;
@@ -157,12 +153,11 @@ begin
   HSplit.Top := DetailList.Top - 1;
 end;
 
-procedure TAgentWatchFrame.ConnectRuntime(aRuntime: TSimRuntime;
-  const aDiagnostics: ISimEventHub; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+procedure TAgentWatchFrame.ConnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
 begin
   Runtime := aRuntime;
   AfterAdvance.Subscribe(HandleAfterAdvance);
-  SubscriptionId := aDiagnostics.Subscribe(Self);
+//  SubscriptionId := aDiagnostics.Subscribe(Self);
 
   spnRowCount.MinValue := 0;
   spnRowCount.MaxValue := TICK_HISTORY_LENGTH;
@@ -180,17 +175,11 @@ begin
   end;
 end;
 
-procedure TAgentWatchFrame.DisconnectRuntime(aRuntime: TSimRuntime;
-  const aDiagnostics: ISimEventHub; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+procedure TAgentWatchFrame.DisconnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
 begin
-  aDiagnostics.Unsubscribe(SubscriptionId);
+//  aDiagnostics.Unsubscribe(SubscriptionId);
   AfterAdvance.Unsubscribe(HandleAfterAdvance);
   Runtime := nil;
-end;
-
-procedure TAgentWatchFrame.Consume(const Event: TSimEvent);
-begin
-  //
 end;
 
 procedure TAgentWatchFrame.edtAgentListKeyPress(Sender: TObject; var Key: Char);

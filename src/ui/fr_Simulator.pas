@@ -8,8 +8,8 @@ uses
   System.Generics.Collections, Vcl.Menus,
   Vcl.ExtCtrls, Vcl.ComCtrls, Vcl.Grids, Vcl.ValEdit, Vcl.Buttons,
 
-  u_SessionComposerIntf, u_SimSessions, u_SimEventTypes, u_EventLogViews,
-  fr_StepControls, fr_LogViewer, fr_ResourceVisualizer, u_SimVisualizer,
+  u_SessionComposerIntf, u_SimSessions,
+  fr_StepControls, fr_ResourceVisualizer, u_SimVisualizer,
   u_AgentGenome, u_SimPopulations,
   fr_PopulationViewer, fr_PopulationSummary,
   u_SessionParameters, u_ScratchRecorders,
@@ -51,14 +51,14 @@ type
     // consumers
     RuntimeObservers: TList<IRuntimeObserver>;
     RuntimeControllers: TList<IRuntimeController>;
-    RuntimeSubscribers: TList<IRuntimeSubscriber>;
+//    RuntimeSubscribers: TList<IRuntimeSubscriber>;
     DiagnosticsViews: TList<IDiagnosticsView>;
 
 
     // session lifetime
     procedure CreateSession;
     procedure DestroySession;
-    function BuildScratchRecorder: IScratchRecorder;
+    function BuildScratchRecorder: ISessionScratchRecorder;
 
     function BuildComposer: ISessionComposer;
     procedure ConnectViewers;
@@ -108,9 +108,9 @@ procedure TSimulatorFrame.Init;
     if Supports(aFrame, IRuntimeController, con) then
       RuntimeControllers.Add(con);
 
-    var sub: IRuntimeSubscriber;
-    if Supports(aFrame, IRuntimeSubscriber, sub) then
-      RuntimeSubscribers.Add(sub);
+//    var sub: IRuntimeSubscriber;
+//    if Supports(aFrame, IRuntimeSubscriber, sub) then
+//      RuntimeSubscribers.Add(sub);
 
     var view: IDiagnosticsView;
     if Supports(aFrame, IDiagnosticsView, view) then
@@ -122,7 +122,7 @@ begin
 
   RuntimeObservers := TList<IRuntimeObserver>.Create;
   RuntimeControllers := TList<IRuntimeController>.Create;
-  RuntimeSubscribers  := TList<IRuntimeSubscriber>.Create;
+//  RuntimeSubscribers  := TList<IRuntimeSubscriber>.Create;
   DiagnosticsViews := TList<IDiagnosticsView>.Create;
 
   { UI for controlling the session }
@@ -172,7 +172,7 @@ procedure TSimulatorFrame.Done;
 begin
   RuntimeObservers.Free;
   RuntimeControllers.Free;
-  RuntimeSubscribers.Free;
+//  RuntimeSubscribers.Free;
   DiagnosticsViews.Free;
 
   DestroySession;
@@ -205,18 +205,18 @@ begin
   ConnectViewers;
 end;
 
-function TSimulatorFrame.BuildScratchRecorder: IScratchRecorder;
+function TSimulatorFrame.BuildScratchRecorder: ISessionScratchRecorder;
 const
   SCRATCH_FILE_NAME = 'worlds_scratch.simlog';
 begin
   case LaunchRequest.CommonParams.ScratchBackend of
     sbLocalMemory:
-      Result := CreateLocalScratchRecorder;
+      Result := CreateLocalSessionScratchRecorder;
   else
     begin
       var scratchFolder := LaunchRequest.CommonParams.ScratchFolder.Trim;
       Assert((scratchFolder <> '') and TDirectory.Exists(scratchFolder));
-      Result := CreateMappedScratchRecorder(TPath.Combine(scratchFolder, SCRATCH_FILE_NAME));
+      Result := CreateSessionScratchRecorder(TPath.Combine(scratchFolder, SCRATCH_FILE_NAME));
     end;
   end;
 end;
@@ -229,22 +229,17 @@ begin
 
   // observers
   for var obs in RuntimeObservers do
-    obs.ConnectRuntime(Session.Simulator.Runtime, Session.Diagnostics, Session.Controller.AfterAdvance);
+    obs.ConnectRuntime(Session.Simulator.Runtime, Session.Controller.AfterAdvance);
 
   // controllers
   for var con in RuntimeControllers do
     con.ConnectController(Session.Controller);
 
   // event subscribers
-  for var sub in RuntimeSubscribers do
-  begin
-    var consumer: ISimEventConsumer;
-    if Supports(sub, ISimEventConsumer, consumer) then
-    begin
-      var id := Session.Diagnostics.Subscribe(consumer);
-      sub.SetSubscriptionId(id);
-    end;
-  end;
+//  for var sub in RuntimeSubscribers do
+//  begin
+//    //
+//  end;
 
 
   // connections to session controller
@@ -276,21 +271,16 @@ procedure TSimulatorFrame.DisconnectViewers;
 begin
   // observers
   for var obs in RuntimeObservers do
-    obs.DisconnectRuntime(Session.Simulator.Runtime, Session.Diagnostics, Session.Controller.AfterAdvance);
+    obs.DisconnectRuntime(Session.Simulator.Runtime, Session.Controller.AfterAdvance);
 
   // controllers
   for var con in RuntimeControllers do
     con.DisconnectController(Session.Controller);
 
   // event subscribers
-  for var sub in RuntimeSubscribers do
-  begin
-    if sub.GetSubscriptionId <> 0 then
-    begin
-      Session.Diagnostics.Unsubscribe(sub.GetSubscriptionId);
-      sub.SetSubscriptionId(0);
-    end;
-  end;
+//  for var sub in RuntimeSubscribers do
+//  begin
+//  end;
 
   DeltaVisualizer.Simulator := nil;
   Visualizer.Simulator := nil;

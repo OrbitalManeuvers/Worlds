@@ -54,8 +54,6 @@ uses
   u_ShelterGenes in 'agents\u_ShelterGenes.pas',
   u_MovementGenes in 'agents\u_MovementGenes.pas',
   u_ConverterGenes in 'agents\u_ConverterGenes.pas',
-  u_SimEventTypes in 'sim\u_SimEventTypes.pas',
-  u_SimDiagnostics in 'sim\u_SimDiagnostics.pas',
   u_ReproduceGenes in 'agents\u_ReproduceGenes.pas',
   u_SessionComposerIntf in 'sim\u_SessionComposerIntf.pas',
   u_SessionComposers in 'sim\u_SessionComposers.pas',
@@ -66,12 +64,9 @@ uses
   fr_Simulator in 'ui\fr_Simulator.pas' {SimulatorFrame: TFrame},
   u_SimpleJSON in 'common\u_SimpleJSON.pas',
   fr_StepControls in 'ui\fr_StepControls.pas' {StepperFrame: TFrame},
-  u_MappedFileSink in 'sim\u_MappedFileSink.pas',
   u_DebugLibraries in 'common\u_DebugLibraries.pas',
   u_SessionManager in 'sim\u_SessionManager.pas',
   u_DiagnosticsHelpers in 'sim\u_DiagnosticsHelpers.pas',
-  fr_LogViewer in 'ui\fr_LogViewer.pas' {LogViewer: TFrame},
-  u_EventLogViews in 'sim\u_EventLogViews.pas',
   u_ProgramSettings in 'ui\u_ProgramSettings.pas',
   u_SessionManifest in 'common\u_SessionManifest.pas',
   u_SessionTOC in 'common\u_SessionTOC.pas',
@@ -97,7 +92,8 @@ uses
   u_GeneTypes in 'common\u_GeneTypes.pas',
   u_SessionEventTypes in 'sim\u_SessionEventTypes.pas',
   u_SessionEventHubs in 'sim\u_SessionEventHubs.pas',
-  u_SessionFileSink in 'sim\u_SessionFileSink.pas';
+  u_SessionFileSink in 'sim\u_SessionFileSink.pas',
+  u_PopulationTypes in 'common\u_PopulationTypes.pas';
 
 {$R *.res}
 

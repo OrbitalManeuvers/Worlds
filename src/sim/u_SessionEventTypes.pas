@@ -31,7 +31,7 @@ type
     ParentId: TAgentId;
     Sequence: TGeneSequence;
     ParentSequence: TGeneSequence;
-    OffspringNumber: Integer;
+//    OffspringNumber: Integer;
     Location: TCellIndex;
   end;
 

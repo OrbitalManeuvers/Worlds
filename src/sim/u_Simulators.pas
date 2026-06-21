@@ -2,7 +2,7 @@ unit u_Simulators;
 
 interface
 
-uses u_SimTypes, u_SimClocks, u_SimEventTypes, u_SimRuntimes;
+uses u_SimTypes, u_SimClocks, u_SessionEventTypes, u_SimRuntimes;
 
 type
   TSimulator = class
@@ -12,7 +12,7 @@ type
     procedure ClockCallback(Sender: TObject; const NextTick: Integer; var CanContinue: Boolean);
     procedure ClockTickHandler(Sender: TObject; GlobalTick: Integer; DayTick: TDayTick);
   public
-    constructor Create(const aDiagnostics: ISimDiagnosticsSink = nil);
+    constructor Create(const aSessionEventSink: ISessionEventSink);
     destructor Destroy; override;
 
     property Runtime: TSimRuntime read fRuntime;
@@ -23,13 +23,12 @@ implementation
 
 
 { TSimulator }
-
-constructor TSimulator.Create(const aDiagnostics: ISimDiagnosticsSink);
+constructor TSimulator.Create(const aSessionEventSink: ISessionEventSink);
 begin
   inherited Create;
   fClock := TSimClock.Create(ClockCallback);
   fClock.SubscribeTick(ClockTickHandler);
-  fRuntime := TSimRuntime.Create(aDiagnostics);
+  fRuntime := TSimRuntime.Create(aSessionEventSink);
 end;
 
 destructor TSimulator.Destroy;

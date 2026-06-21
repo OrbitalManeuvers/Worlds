@@ -3,15 +3,23 @@ unit u_DiagnosticsIntf;
 interface
 
 uses System.Classes,
-  u_MulticastEvents, u_SimRuntimes, u_SimControllers, u_SimEventTypes;
+  u_MulticastEvents, u_SimRuntimes, u_SimControllers;
 
 type
+  TBeforeAfterPair = record
+    Before: TMulticastEvent<TNotifyEvent>;
+    After: TMulticastEvent<TNotifyEvent>;
+  end;
+
+  TNotifications = record
+    OnStep: TBeforeAfterPair;
+    OnRun: TBeforeAfterPair;
+  end;
+
   IRuntimeObserver = interface
     ['{3C7F0298-2DA7-4CF3-A39A-68F9A0E46713}']
-    procedure ConnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
-      AfterAdvance: TMulticastEvent<TNotifyEvent>);
-    procedure DisconnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
-      AfterAdvance: TMulticastEvent<TNotifyEvent>);
+    procedure ConnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+    procedure DisconnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
   end;
 
   IRuntimeController = interface
@@ -20,11 +28,11 @@ type
     procedure DisconnectController(aController: TSimController);
   end;
 
-  IRuntimeSubscriber = interface
-    ['{85ED171D-E633-4638-8109-C31B9251B3D2}']
-    procedure SetSubscriptionId(aValue: Integer);
-    function GetSubscriptionId: Integer;
-  end;
+//  IRuntimeSubscriber = interface
+//    ['{85ED171D-E633-4638-8109-C31B9251B3D2}']
+//    procedure SetSubscriptionId(aValue: Integer);
+//    function GetSubscriptionId: Integer;
+//  end;
 
   IDiagnosticsView = interface
     ['{A1D7F4E3-92C8-4B1A-B5F7-3E6D8C0A9B24}']

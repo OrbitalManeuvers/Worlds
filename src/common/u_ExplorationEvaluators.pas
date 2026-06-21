@@ -3,10 +3,11 @@
 interface
 
 uses
-  u_SimEventTypes, u_SimPopulations, u_ExplorationTypes, u_SimTypes;
+  u_SimPopulations, u_ExplorationTypes, u_SimTypes,
+  u_PopulationTypes;
 
 type
-  TExplorationEvaluator = class(TNoRefCountObject, ISimEventConsumer)
+  TExplorationEvaluator = class
   private const
     NOT_TRIGGERED = -1;
   private
@@ -24,7 +25,6 @@ type
     fStateConditions: TArray<Integer>;   // indices into fQuery.Conditions
 
     function IsAgentInScope(aAgentId: TAgentId): Boolean;
-    procedure Consume(const aEvent: TSimEvent);
   public
     constructor Create;
     procedure Prepare(const aQuery: TExplorationQuery);
@@ -82,77 +82,77 @@ begin
     Result := found;
 end;
 
-procedure TExplorationEvaluator.Consume(const aEvent: TSimEvent);
-begin
-  if fStopCondition <> NOT_TRIGGERED then
-    Exit;
-
-  // Track DayTick from incoming events so TickComplete can use it.
-  fDayTick := aEvent.Header.DayTick;
-
-  for var i := 0 to High(fEventConditions) do
-  begin
-    var condIndex := fEventConditions[i];
-    var cond := fQuery.Conditions[condIndex];
-
-    case cond.Kind of
-      ekBorn:
-        if aEvent.Header.Kind = sekAgentBorn then
-        begin
-          if IsAgentInScope(aEvent.AgentBorn.AgentId) then
-          begin
-            fStopCondition := condIndex;
-            Exit;
-          end;
-        end;
-
-      ekDies:
-        if aEvent.Header.Kind = sekAgentDied then
-        begin
-          if IsAgentInScope(aEvent.AgentDied.AgentId) then
-          begin
-            fStopCondition := condIndex;
-            Exit;
-          end;
-        end;
-
-      ekActionSelected:
-        if aEvent.Header.Kind = sekActionResolved then
-        begin
-          if IsAgentInScope(aEvent.ActionResolved.AgentId) then
-          begin
-            if aEvent.ActionResolved.ResolvedAction <> cond.Action.Action then
-              Continue;
-
-            // If target is specified (TType <> ttNone), also match target.
-            if cond.Action.Target.TType <> ttNone then
-            begin
-              if aEvent.ActionResolved.ResolvedTarget.TType <> cond.Action.Target.TType then
-                Continue;
-
-              case cond.Action.Target.TType of
-                ttCell:
-                  if aEvent.ActionResolved.ResolvedTarget.Cell <> cond.Action.Target.Cell then
-                    Continue;
-                ttCache:
-                  begin
-                    // Cache index -1 means "any cache of this kind"
-                    if (cond.Action.Target.Cache.Index >= 0) and
-                       (aEvent.ActionResolved.ResolvedTarget.Cache.Index <> cond.Action.Target.Cache.Index) then
-                      Continue;
-                    if aEvent.ActionResolved.ResolvedTarget.Cache.Kind <> cond.Action.Target.Cache.Kind then
-                      Continue;
-                  end;
-              end;
-            end;
-
-            fStopCondition := condIndex;
-            Exit;
-          end;
-        end;
-    end;
-  end;
-end;
+//procedure TExplorationEvaluator.Consume(const aEvent: TSimEvent);
+//begin
+//  if fStopCondition <> NOT_TRIGGERED then
+//    Exit;
+//
+//  // Track DayTick from incoming events so TickComplete can use it.
+//  fDayTick := aEvent.Header.DayTick;
+//
+//  for var i := 0 to High(fEventConditions) do
+//  begin
+//    var condIndex := fEventConditions[i];
+//    var cond := fQuery.Conditions[condIndex];
+//
+//    case cond.Kind of
+//      ekBorn:
+//        if aEvent.Header.Kind = sekAgentBorn then
+//        begin
+//          if IsAgentInScope(aEvent.AgentBorn.AgentId) then
+//          begin
+//            fStopCondition := condIndex;
+//            Exit;
+//          end;
+//        end;
+//
+//      ekDies:
+//        if aEvent.Header.Kind = sekAgentDied then
+//        begin
+//          if IsAgentInScope(aEvent.AgentDied.AgentId) then
+//          begin
+//            fStopCondition := condIndex;
+//            Exit;
+//          end;
+//        end;
+//
+//      ekActionSelected:
+//        if aEvent.Header.Kind = sekActionResolved then
+//        begin
+//          if IsAgentInScope(aEvent.ActionResolved.AgentId) then
+//          begin
+//            if aEvent.ActionResolved.ResolvedAction <> cond.Action.Action then
+//              Continue;
+//
+//            // If target is specified (TType <> ttNone), also match target.
+//            if cond.Action.Target.TType <> ttNone then
+//            begin
+//              if aEvent.ActionResolved.ResolvedTarget.TType <> cond.Action.Target.TType then
+//                Continue;
+//
+//              case cond.Action.Target.TType of
+//                ttCell:
+//                  if aEvent.ActionResolved.ResolvedTarget.Cell <> cond.Action.Target.Cell then
+//                    Continue;
+//                ttCache:
+//                  begin
+//                    // Cache index -1 means "any cache of this kind"
+//                    if (cond.Action.Target.Cache.Index >= 0) and
+//                       (aEvent.ActionResolved.ResolvedTarget.Cache.Index <> cond.Action.Target.Cache.Index) then
+//                      Continue;
+//                    if aEvent.ActionResolved.ResolvedTarget.Cache.Kind <> cond.Action.Target.Cache.Kind then
+//                      Continue;
+//                  end;
+//              end;
+//            end;
+//
+//            fStopCondition := condIndex;
+//            Exit;
+//          end;
+//        end;
+//    end;
+//  end;
+//end;
 
 procedure TExplorationEvaluator.TickComplete(const aSummary: TPopulationSummary);
 

@@ -1,4 +1,4 @@
-unit u_SessionFileSink;
+﻿unit u_SessionFileSink;
 
 {
   u_SessionFileSink — Memory-mapped file sink and reader for TSessionEvent streams.
@@ -85,6 +85,8 @@ type
     property Count: Integer read GetCount;
     property Events[aIndex: Integer]: TSessionEvent read GetEvent;
   end;
+
+function StandardSessionLogHeader: TSessionLogHeader;
 
 implementation
 

@@ -3,7 +3,7 @@ unit u_ExplorationTypes;
 interface
 
 uses System.Generics.Collections,
-  u_SimTypes, u_RuntimeTypes, u_SimEventTypes;
+  u_SimTypes, u_RuntimeTypes;
 
 type
   TExplorationConditionKind = (

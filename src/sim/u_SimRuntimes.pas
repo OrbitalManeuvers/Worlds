@@ -3,9 +3,9 @@
 interface
 
 uses System.Types,
-  u_AgentState, u_SimEventTypes, u_SimEnvironments, u_SimPopulations, u_SimClocks, u_SimQueriesIntf,
+  u_AgentState, u_SessionEventTypes, u_SimEnvironments, u_SimPopulations, u_SimClocks, u_SimQueriesIntf,
   u_SimCommandsIntf, u_AgentBrain, u_SimTypes, u_GeneTypes, u_BrainTypes,
-  u_EnvironmentTypes, u_RuntimeTypes;
+  u_EnvironmentTypes, u_RuntimeTypes, u_PopulationTypes;
 
 const
   AGENT_BITE_SIZE = 0.1;  // temporary. move to sim params/genome
@@ -64,7 +64,8 @@ type
     fRuntimeConfig: TRuntimeConfig;
     fEnvironment: TSimEnvironment;
     fPopulation: TSimPopulation;
-    fDiagnostics: ISimDiagnosticsSink;
+//    fDiagnostics: ISimDiagnosticsSink;
+    fSessionEvents: ISessionEventSink;
     fSimQuery: ISimQuery;
     fSimCommand: ISimCommand;
     fOnPhase: TRuntimePhaseEvent;
@@ -77,16 +78,21 @@ type
 
     fPopulationSummary: TPopulationSummary;
     fTickTotalReserves: Single;
+    fTotalDeaths: Integer;
+    fTotalMutations: Integer;
 
-    function BuildEventHeader(aKind: TSimEventKind; const aPhase: TSimTickPhase): TSimEventHeader;
+    function BuildEventHeader(): TSessionEventHeader;
+    procedure EmitPrePopulation;
+    procedure EmitPostPopulation;
+    procedure EmitActionResolved(const StateBeforeResolution, State: TAgentState; const Requested, Resolved: TBrainTickOutput);
+    procedure EmitAgentBorn(const OffspringState, ParentState: TAgentState);
+    procedure EmitAgentDied(const State: TAgentState; LastAction: TAgentAction);
+//    procedure EmitAgentMoved(const State: TAgentState; const FromCell, ToCell: Integer; const MoveCost: Single);
+//    procedure EmitDeltaConsumed(const State: TAgentState; const Cache: TCacheRef; const ConsumedAmount, GainAmount: Single);
+
     function BuildDeltaSpawnPlan: TArray<Integer>;
     procedure InjectDeltaAtNightfall;
     procedure HandleDeltaCleanupPolicy(const Report: TDeltaUpkeepReport);
-    procedure EmitActionResolved(const StateBeforeResolution, State: TAgentState; const Requested, Resolved: TBrainTickOutput);
-    procedure EmitAgentBorn(const OffspringState: TAgentState; const ParentAgentId: Integer);
-    procedure EmitAgentDied(const State: TAgentState; const ReservesBeforeDeath: Single);
-    procedure EmitAgentMoved(const State: TAgentState; const FromCell, ToCell: Integer; const MoveCost: Single);
-    procedure EmitDeltaConsumed(const State: TAgentState; const Cache: TCacheRef; const ConsumedAmount, GainAmount: Single);
 
     procedure BeginTickSummary;
     procedure FinalizeTickSummary;
@@ -103,7 +109,7 @@ type
     procedure NotifyPhase(const Phase: TSimTickPhase);
     procedure SetDayTick(const Value: TDayTick);
   public
-    constructor Create(const aDiagnostics: ISimDiagnosticsSink = nil);
+    constructor Create(const aSessionEventSink: ISessionEventSink);
     destructor Destroy; override;
 
     procedure ConfigureRuntime(const aConfig: TRuntimeConfig);
@@ -168,11 +174,12 @@ end;
 
 { TSimRuntime }
 
-constructor TSimRuntime.Create(const aDiagnostics: ISimDiagnosticsSink);
+constructor TSimRuntime.Create(const aSessionEventSink: ISessionEventSink);
 begin
   inherited Create;
   fRuntimeConfig := Default(TRuntimeConfig);
-  fDiagnostics := aDiagnostics;
+  fSessionEvents := aSessionEventSink;
+//  fDiagnostics := aDiagnostics;
   fDeltaPlacementCycleIndex := 0;
   fLastDeltaSpawnCount := 0;
   fDeltaCleanupGraceTicksRemaining := 0;
@@ -181,6 +188,8 @@ begin
   fSimQuery := TSimQuery.Create(fEnvironment, fPopulation);
   fSimCommand := TSimCommand.Create(fEnvironment, fPopulation);
   fPopulationSummary := Default(TPopulationSummary);
+  fTotalDeaths := 0;
+  fTotalMutations := 0;
 end;
 
 destructor TSimRuntime.Destroy;
@@ -430,93 +439,117 @@ begin
   end;
 end;
 
-function TSimRuntime.BuildEventHeader(aKind: TSimEventKind; const aPhase: TSimTickPhase): TSimEventHeader;
+function TSimRuntime.BuildEventHeader(): TSessionEventHeader;
 begin
-  Result := Default(TSimEventHeader);
-  Result.DayNumber := fCurrentGlobalTick div CLOCK_TICKS_PER_DAY;
-  Result.DayTick := fCurrentDayTick;
-  Result.Phase := aPhase;
-  Result.Kind := aKind;
+  Result := Default(TSessionEventHeader);
+  Result.GlobalTick := fCurrentGlobalTick;
+  Result.Date.DayNumber := fCurrentGlobalTick div CLOCK_TICKS_PER_DAY;
+  Result.Date.DayTick := fCurrentDayTick;
+end;
+
+procedure TSimRuntime.EmitPrePopulation;
+begin
+  var event := Default(TSessionEvent);
+  event.Header := BuildEventHeader();
+  event.EventKind := sekPrePopulation;
+  event.Prepop.PopulationSize := fPopulation.AgentCount;
+  event.Prepop.DeathsToDate := fTotalDeaths;
+  event.Prepop.MutationsToDate := fTotalMutations;
+  event.Prepop.LongestLife := Word(fPopulationSummary.LongestLife.Age);
+  event.Prepop.MostBirths := 0; // TODO: track when birth counting is added
+  fSessionEvents.Emit(event);
+end;
+
+procedure TSimRuntime.EmitPostPopulation;
+begin
+  var event := Default(TSessionEvent);
+  event.Header := BuildEventHeader();
+  event.EventKind := sekPostPopulation;
+  event.PostPop.Births := fPopulationSummary.NewBirths;
+  event.PostPop.Mutations := 0; // TODO: mutation tracking
+  event.PostPop.Deaths := fPopulationSummary.NewDeaths;
+  fSessionEvents.Emit(event);
 end;
 
 procedure TSimRuntime.EmitActionResolved(const StateBeforeResolution, State: TAgentState;
   const Requested, Resolved: TBrainTickOutput);
 begin
-  if not Assigned(fDiagnostics) then
-    Exit;
+  // don't think we need this ...?
 
-  var event := Default(TSimEvent);
-  event.Header := BuildEventHeader(sekActionResolved, stpPostAgents);
-  event.ActionResolved.AgentId := State.AgentId;
-  event.ActionResolved.RequestedAction := Requested.RequestedAction;
-  event.ActionResolved.RequestedTarget := Requested.RequestedTarget;
-  event.ActionResolved.ResolvedAction := Resolved.RequestedAction;
-  event.ActionResolved.ResolvedTarget := Resolved.RequestedTarget;
-  event.ActionResolved.Reserves := State.Reserves;
-  event.ActionResolved.ActionProgress := State.ActionProgress;
-
-  fDiagnostics.Emit(event);
+//  var event := Default(TSessionEvent);
+//  event.Header := BuildEventHeader();
+//
+//  event.ActionResolved.AgentId := State.AgentId;
+//  event.ActionResolved.RequestedAction := Requested.RequestedAction;
+//  event.ActionResolved.RequestedTarget := Requested.RequestedTarget;
+//  event.ActionResolved.ResolvedAction := Resolved.RequestedAction;
+//  event.ActionResolved.ResolvedTarget := Resolved.RequestedTarget;
+//  event.ActionResolved.Reserves := State.Reserves;
+//  event.ActionResolved.ActionProgress := State.ActionProgress;
+//
+//  fDiagnostics.Emit(event);
 end;
 
-procedure TSimRuntime.EmitAgentBorn(const OffspringState: TAgentState; const ParentAgentId: Integer);
+procedure TSimRuntime.EmitAgentBorn(const OffspringState, ParentState: TAgentState);
 begin
-  if not Assigned(fDiagnostics) then
-    Exit;
+  var event := Default(TSessionEvent);
+  event.Header := BuildEventHeader();
+  event.EventKind := sekBirth;
+  event.Birth.AgentId := OffspringState.AgentId;
+  event.Birth.ParentId := ParentState.AgentId;
+  event.Birth.Sequence := OffspringState.Genome.Sequence;
+  event.Birth.ParentSequence := ParentState.Genome.Sequence;
+  event.Birth.Location := OffspringState.Location;
 
-  var event := Default(TSimEvent);
-  event.Header := BuildEventHeader(sekAgentBorn, stpPostAgents);
-  event.AgentBorn.AgentId := OffspringState.AgentId;
-  event.AgentBorn.ParentAgentId := ParentAgentId;
-  event.AgentBorn.Cell := OffspringState.Location;
-  event.AgentBorn.InitialReserves := OffspringState.Reserves;
-  fDiagnostics.Emit(event);
+// consider adding:
+//  event.Birth.OffspringNumber := ParentState.ChildCount;
+
+  fSessionEvents.Emit(event);
 end;
 
-procedure TSimRuntime.EmitAgentDied(const State: TAgentState; const ReservesBeforeDeath: Single);
+procedure TSimRuntime.EmitAgentDied(const State: TAgentState; LastAction: TAgentAction);
 begin
-  if not Assigned(fDiagnostics) then
-    Exit;
-
-  var event := Default(TSimEvent);
-  event.Header := BuildEventHeader(sekAgentDied, stpPostAgents);
-  event.AgentDied.AgentId := State.AgentId;
-  event.AgentDied.Cell := State.Location;
-  event.AgentDied.Age := State.Age;
-  event.AgentDied.ReservesBeforeDeath := ReservesBeforeDeath;
-  fDiagnostics.Emit(event);
+  var event := Default(TSessionEvent);
+  event.Header := BuildEventHeader();
+  event.EventKind := sekDeath;
+  event.Death.AgentId := State.AgentId;
+  event.Death.Age := State.Age;
+  event.Death.Location := State.Location;
+  event.Death.LastAction := LastAction;
+  fSessionEvents.Emit(event);
 end;
 
-procedure TSimRuntime.EmitAgentMoved(const State: TAgentState; const FromCell, ToCell: Integer;
-  const MoveCost: Single);
-begin
-  if not Assigned(fDiagnostics) then
-    Exit;
+//procedure TSimRuntime.EmitAgentMoved(const State: TAgentState; const FromCell, ToCell: Integer;
+//  const MoveCost: Single);
+//begin
+//  if not Assigned(fDiagnostics) then
+//    Exit;
+//
+//  var event := Default(TSimEvent);
+//  event.Header := BuildEventHeader(sekAgentMoved, stpPostAgents);
+//  event.AgentMoved.AgentId := State.AgentId;
+//  event.AgentMoved.FromCell := FromCell;
+//  event.AgentMoved.ToCell := ToCell;
+//  event.AgentMoved.MoveCost := movecost;
+//  event.AgentMoved.Reserves := State.Reserves;
+//  fDiagnostics.Emit(event);
+//end;
 
-  var event := Default(TSimEvent);
-  event.Header := BuildEventHeader(sekAgentMoved, stpPostAgents);
-  event.AgentMoved.AgentId := State.AgentId;
-  event.AgentMoved.FromCell := FromCell;
-  event.AgentMoved.ToCell := ToCell;
-  event.AgentMoved.MoveCost := movecost;
-  event.AgentMoved.Reserves := State.Reserves;
-  fDiagnostics.Emit(event);
-end;
-
-procedure TSimRuntime.EmitDeltaConsumed(const State: TAgentState; const Cache: TCacheRef;
-  const ConsumedAmount, GainAmount: Single);
-begin
-  if not Assigned(fDiagnostics) then
-    Exit;
-
-  var event := Default(TSimEvent);
-  event.Header := BuildEventHeader(sekDeltaConsumed, stpPostAgents);
-  event.DeltaConsumed.AgentId := State.AgentId;
-  event.DeltaConsumed.Cell := State.Location;
-  event.DeltaConsumed.Cache := Cache;
-  event.DeltaConsumed.ConsumedAmount := ConsumedAmount;
-  event.DeltaConsumed.GainAmount := GainAmount;
-  fDiagnostics.Emit(event);
-end;
+//procedure TSimRuntime.EmitDeltaConsumed(const State: TAgentState; const Cache: TCacheRef;
+//  const ConsumedAmount, GainAmount: Single);
+//begin
+//  if not Assigned(fDiagnostics) then
+//    Exit;
+//
+//  var event := Default(TSimEvent);
+//  event.Header := BuildEventHeader(sekDeltaConsumed, stpPostAgents);
+//  event.DeltaConsumed.AgentId := State.AgentId;
+//  event.DeltaConsumed.Cell := State.Location;
+//  event.DeltaConsumed.Cache := Cache;
+//  event.DeltaConsumed.ConsumedAmount := ConsumedAmount;
+//  event.DeltaConsumed.GainAmount := GainAmount;
+//  fDiagnostics.Emit(event);
+//end;
 
 procedure TSimRuntime.BeginTickSummary;
 begin
@@ -643,7 +676,7 @@ begin
         fPopulationSummary.MaxReserves.Reserves := offspringState.Reserves;
       end;
 
-      EmitAgentBorn(offspringState, State.AgentId);
+      EmitAgentBorn(offspringState, State);
 
       Result.RequestedAction := acIdle;
       Exit;
@@ -757,7 +790,7 @@ begin
 
         Result.RequestedAction := acMove;
         Result.RequestedTarget := Requested.RequestedTarget;
-        EmitAgentMoved(State, moveReply.PreviousCell, moveReply.NewCell, moveCost);
+//        EmitAgentMoved(State, moveReply.PreviousCell, moveReply.NewCell, moveCost);
 
       end
       else
@@ -842,8 +875,8 @@ begin
         State.TicksSinceForage := 0;
         State.LastForageCell := State.Location;
 
-        if cacheRef.Kind = ckDelta then
-          EmitDeltaConsumed(State, cacheRef, ForageOutcome.Consumed, ForageOutcome.Gain);
+//        if cacheRef.Kind = ckDelta then
+//          EmitDeltaConsumed(State, cacheRef, ForageOutcome.Consumed, ForageOutcome.Gain);
       end
       else
       begin
@@ -911,17 +944,18 @@ begin
   end;
 
   var reservesAtTickStart := state.Reserves;
-  var reservesBeforeUpkeep := state.Reserves;
 
   if not ApplyAgentUpkeep(state^, agentInput.GeneMap) then
   begin
     // Dead agents do not think or request actions.
+    var lastAction := state.Action;
     state.ReserveDelta := state.Reserves - reservesAtTickStart;
     state.Action := acIdle;
     state.ActionAge := 0;
     state.ActionProgress := 0;
-    EmitAgentDied(state^, reservesBeforeUpkeep);
+    EmitAgentDied(state^, lastAction);
     Inc(fPopulationSummary.NewDeaths);
+    Inc(fTotalDeaths);
     Dec(fPopulationSummary.Living);
 
     // Notify environment once at transition-to-death.
@@ -939,6 +973,7 @@ begin
   if state.Reserves <= 0.0 then
   begin
     Inc(fPopulationSummary.NewDeaths);
+    Inc(fTotalDeaths);
     Dec(fPopulationSummary.Living);
   end
   else
@@ -1054,6 +1089,8 @@ begin
 
   NotifyPhase(stpPostEnvironment);
 
+  EmitPrePopulation;
+
   var input: TBrainTickInput;
   input.SolarFlux := currentSolarFlux;
   input.SolarFluxDelta := currentSolarFlux - previousSolarFlux;
@@ -1081,6 +1118,8 @@ begin
 
   // Finalize snapshot stats from inline tracking
   FinalizeTickSummary;
+
+  EmitPostPopulation;
 
   NotifyPhase(stpPostAgents);
 end;

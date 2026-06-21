@@ -3,7 +3,7 @@ unit u_SimSessions;
 interface
 
 uses System.Classes, System.Types, System.Generics.Collections,
- u_Simulators, u_SimTypes, u_SimDiagnostics, u_SimEventTypes,
+ u_Simulators, u_SimTypes,
  u_SimControllers, u_SessionParameters, u_SessionTOC,
  u_ScratchRecorders, u_SessionEventTypes;
 
@@ -20,16 +20,14 @@ type
     TSaveProgressEvent = procedure (Sender: TObject; Position: Integer) of object;
   private
     fCommonParams: TCommonSessionParameters;
-    fDiagnostics: ISimEventHub;
     fSessionEvents: ISessionEventHub;
-    fScratchRecorder: IScratchRecorder;
     fSessionScratchRecorder: ISessionScratchRecorder;
 
     fSim: TSimulator;
     fController: TSimController;
     fRecordingBoundaries: TList<TRecordingMarker>;
     fRecording: Boolean;
-    function GetEventLog: IEventLog;
+    function GetEventLog: ISessionEventLog;
     function GetScratchFileName: string;
     function GetScratchLogEnabled: Boolean;
     procedure SetRecording(const Value: Boolean);
@@ -37,7 +35,7 @@ type
 
   public
     constructor Create(const aCommonParams: TCommonSessionParameters;
-      const aScratchRecorder: IScratchRecorder);
+      const aScratchRecorder: ISessionScratchRecorder);
     destructor Destroy; override;
 
     procedure AssertScratchLogReadable;
@@ -51,9 +49,8 @@ type
     function SaveEventLog(aCallback: TSaveProgressEvent): Integer;
 
     property Controller: TSimController read fController;
-    property EventLog: IEventLog read GetEventLog;
+    property EventLog: ISessionEventLog read GetEventLog;
     property Simulator: TSimulator read fSim;
-    property Diagnostics: ISimEventHub read fDiagnostics;
 
     property Recording: Boolean read fRecording write SetRecording;
     property ScratchLogEnabled: Boolean read GetScratchLogEnabled write SetScratchLogEnabled;
@@ -61,65 +58,56 @@ type
 
 implementation
 
-uses System.SysUtils, System.IOUtils, u_MappedFileSink,
+uses System.SysUtils, System.IOUtils,
+  u_SessionFileSink,
   u_SessionEventHubs;
-
-
 
 { TSimSession }
 
 constructor TSimSession.Create(const aCommonParams: TCommonSessionParameters;
-  const aScratchRecorder: IScratchRecorder);
+  const aScratchRecorder: ISessionScratchRecorder);
 begin
   inherited Create;
   fCommonParams := aCommonParams;
   fRecordingBoundaries := TList<TRecordingMarker>.Create;
-  fScratchRecorder := aScratchRecorder;
-  Assert(Assigned(fScratchRecorder));
+  fSessionScratchRecorder := aScratchRecorder;
+  Assert(Assigned(fSessionScratchRecorder));
 
-  var hub := TSimDiagnosticsHub.Create;
-  fDiagnostics := hub;
-  fSim := TSimulator.Create(fDiagnostics as ISimDiagnosticsSink);
+  var hub := TSessionEventHub.Create;
+  fSessionEvents := hub;
+  fSessionScratchRecorder.Bind(hub);
 
+  fSim := TSimulator.Create(hub as ISessionEventSink);
   fController := TSimController.Create(fSim.Clock);
-
-  fScratchRecorder.Bind(hub);
-
-  var hub2 := TSessionEventHub.Create;
-  fSessionEvents := hub2;
-//  var recorder2: ISessionScratchRecorder;
-//  recorder2.Bind(hub2);
-
 end;
 
 destructor TSimSession.Destroy;
 begin
-  fScratchRecorder := nil;
+  fSessionScratchRecorder := nil;
 
   fController.Free;
   fController := nil;
   if Assigned(fSim) and Assigned(fSim.Runtime) then
     fSim.Runtime.OnPhase := nil;
   fSim.Free;
-  fDiagnostics := nil;
   fSessionEvents := nil;
   fRecordingBoundaries.Free;
   inherited;
 end;
 
-function TSimSession.GetEventLog: IEventLog;
+function TSimSession.GetEventLog: ISessionEventLog;
 begin
-  Result := fScratchRecorder.Log;
+  Result := fSessionScratchRecorder.Log;
 end;
 
 function TSimSession.GetScratchFileName: string;
 begin
-  Result := fScratchRecorder.ScratchFileName;
+  Result := fSessionScratchRecorder.ScratchFileName;
 end;
 
 function TSimSession.GetScratchLogEnabled: Boolean;
 begin
-  Result := fScratchRecorder.Enabled;
+  Result := fSessionScratchRecorder.Enabled;
 end;
 
 procedure TSimSession.BeginSession;
@@ -138,12 +126,12 @@ end;
 
 procedure TSimSession.SetScratchLogEnabled(const Value: Boolean);
 begin
-  fScratchRecorder.Enabled := Value;
+  fSessionScratchRecorder.Enabled := Value;
 end;
 
 procedure TSimSession.AssertScratchLogReadable;
 begin
-  fScratchRecorder.AssertReadable;
+  fSessionScratchRecorder.AssertReadable;
 end;
 
 function TSimSession.SaveEventLog(aCallback: TSaveProgressEvent): Integer;
@@ -156,7 +144,7 @@ begin
   var logFile := TFileStream.Create(fCommonParams.SessionLogFile, fmCreate);
   try
     // save space for the header
-    var header := StandardEventLogHeader();
+    var header := StandardSessionLogHeader();
     logFile.Write(header, SizeOf(header));
 
     var markerCursor := 0;
@@ -203,14 +191,14 @@ begin
 
         if currentSegment.SavedEventCount = 0 then
         begin
-          currentSegment.FirstSequence := event.Header.Sequence;
-          currentSegment.FirstDayNumber := event.Header.DayNumber;
-          currentSegment.FirstDayTick := event.Header.DayTick;
+          currentSegment.FirstSequence := event.Header.GlobalTick;
+          currentSegment.FirstDayNumber := event.Header.Date.DayNumber;
+          currentSegment.FirstDayTick := event.Header.Date.DayTick;
         end;
 
-        currentSegment.LastSequence := event.Header.Sequence;
-        currentSegment.LastDayNumber := event.Header.DayNumber;
-        currentSegment.LastDayTick := event.Header.DayTick;
+        currentSegment.LastSequence := event.Header.GlobalTick;
+        currentSegment.LastDayNumber := event.Header.Date.DayNumber;
+        currentSegment.LastDayTick := event.Header.Date.DayTick;
 
         logFile.Write(event, SizeOf(event));
         Inc(eventsWritten);
@@ -240,7 +228,7 @@ end;
 
 function TSimSession.ScratchEventCount: Integer;
 begin
-  Result := fScratchRecorder.EventCount;
+  Result := fSessionScratchRecorder.EventCount;
 end;
 
 procedure TSimSession.SetRecording(const Value: Boolean);

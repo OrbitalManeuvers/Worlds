@@ -220,8 +220,6 @@
         <DCCReference Include="agents\u_ShelterGenes.pas"/>
         <DCCReference Include="agents\u_MovementGenes.pas"/>
         <DCCReference Include="agents\u_ConverterGenes.pas"/>
-        <DCCReference Include="sim\u_SimEventTypes.pas"/>
-        <DCCReference Include="sim\u_SimDiagnostics.pas"/>
         <DCCReference Include="agents\u_ReproduceGenes.pas"/>
         <DCCReference Include="sim\u_SessionComposerIntf.pas"/>
         <DCCReference Include="sim\u_SessionComposers.pas"/>
@@ -239,16 +237,9 @@
             <FormType>dfm</FormType>
             <DesignClass>TFrame</DesignClass>
         </DCCReference>
-        <DCCReference Include="sim\u_MappedFileSink.pas"/>
         <DCCReference Include="common\u_DebugLibraries.pas"/>
         <DCCReference Include="sim\u_SessionManager.pas"/>
         <DCCReference Include="sim\u_DiagnosticsHelpers.pas"/>
-        <DCCReference Include="ui\fr_LogViewer.pas">
-            <Form>LogViewer</Form>
-            <FormType>dfm</FormType>
-            <DesignClass>TFrame</DesignClass>
-        </DCCReference>
-        <DCCReference Include="sim\u_EventLogViews.pas"/>
         <DCCReference Include="ui\u_ProgramSettings.pas"/>
         <DCCReference Include="common\u_SessionManifest.pas"/>
         <DCCReference Include="common\u_SessionTOC.pas"/>
@@ -298,6 +289,7 @@
         <DCCReference Include="sim\u_SessionEventTypes.pas"/>
         <DCCReference Include="sim\u_SessionEventHubs.pas"/>
         <DCCReference Include="sim\u_SessionFileSink.pas"/>
+        <DCCReference Include="common\u_PopulationTypes.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

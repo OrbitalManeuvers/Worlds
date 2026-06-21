@@ -7,7 +7,7 @@ uses
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ControlList,
   Vcl.StdCtrls,
 
-  u_SimRuntimes, u_MulticastEvents, u_DiagnosticsIntf, u_SimEventTypes;
+  u_SimRuntimes, u_MulticastEvents, u_DiagnosticsIntf;
 
 type
   TPopulationViewFrame = class(TFrame, IRuntimeObserver, IDiagnosticsView)
@@ -26,10 +26,8 @@ type
     procedure cbLivingOnlyClick(Sender: TObject);
   private
     { IRuntimeObserver }
-    procedure ConnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
-      AfterAdvance: TMulticastEvent<TNotifyEvent>);
-    procedure DisconnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
-      AfterAdvance: TMulticastEvent<TNotifyEvent>);
+    procedure ConnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+    procedure DisconnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
 
     { IDiagnosticsView }
     procedure BeginRun;
@@ -82,15 +80,13 @@ begin
   lblPopulationCount.Caption := Format('%.04d', [count]);
 end;
 
-procedure TPopulationViewFrame.ConnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
-  AfterAdvance: TMulticastEvent<TNotifyEvent>);
+procedure TPopulationViewFrame.ConnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
 begin
   Runtime := aRuntime;
   AfterAdvance.Subscribe(HandleAfterAdvance);
 end;
 
-procedure TPopulationViewFrame.DisconnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
-  AfterAdvance: TMulticastEvent<TNotifyEvent>);
+procedure TPopulationViewFrame.DisconnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
 begin
   Runtime := nil;
   AfterAdvance.Unsubscribe(HandleAfterAdvance);

@@ -3,9 +3,10 @@ unit u_DiagnosticsHelpers;
 interface
 
 uses System.Types, System.SysUtils, System.TypInfo,
-  u_SimEventTypes, u_AgentBrain,
+  u_AgentBrain,
   u_AgentGenome, u_LogTypes, u_SimPopulations, u_EnvironmentTypes,
-  u_AgentState, u_SimTypes, u_RuntimeTypes;
+  u_AgentState, u_SimTypes, u_RuntimeTypes,
+  u_PopulationTypes;
 
 (*
 
@@ -16,20 +17,20 @@ Intentions:
 
 type
   // TAgentMovedEvent field helper
-  _agentMovedEvent = record helper for TAgentMovedEvent
-    function AsFields: TLogFields;
-  end;
+//  _agentMovedEvent = record helper for TAgentMovedEvent
+//    function AsFields: TLogFields;
+//  end;
 
   // TActionResolvedEvent helper
-  _actionResolvedEvent = record helper for TActionResolvedEvent
-    function AsFields: TLogFields;
-  end;
+//  _actionResolvedEvent = record helper for TActionResolvedEvent
+//    function AsFields: TLogFields;
+//  end;
 
   // TSimEvent
-  _simEvent = record helper for TSimEvent
-    function AsFields: TLogFields;
-    function AsHeaderFields: TLogFields;
-  end;
+//  _simEvent = record helper for TSimEvent
+//    function AsFields: TLogFields;
+//    function AsHeaderFields: TLogFields;
+//  end;
 
   // TPopulationSummary
   _populationSummary = record helper for TPopulationSummary
@@ -253,58 +254,56 @@ end;
 
 
 // TAgentMovedEvent field helper
-function _agentMovedEvent.AsFields: TLogFields;
-begin
-  Result.Add('A', AgentId.AsText);
-  Result.Add('F', FromCell.AsText);
-  Result.Add('T', ToCell.AsText);
-  Result.Add('C', MoveCost.AsText);
-
-end;
+//function _agentMovedEvent.AsFields: TLogFields;
+//begin
+//  Result.Add('A', AgentId.AsText);
+//  Result.Add('F', FromCell.AsText);
+//  Result.Add('T', ToCell.AsText);
+//  Result.Add('C', MoveCost.AsText);
+//
+//end;
 
 
 // TActionResolvedEvent helper
-function _actionResolvedEvent.AsFields: TLogFields;
-begin
-  Result.Add('A', AgentId.AsText);
-  Result.Add('RQ', RequestedAction.AsText + '(' + RequestedTarget.AsText + ')');
-  Result.Add('RS', ResolvedAction.AsText + '(' + ResolvedTarget.AsText + ')');
-  Result.Add('E', Reserves.AsText);
-  Result.Add('AP', ActionProgress.AsText);
-end;
+//function _actionResolvedEvent.AsFields: TLogFields;
+//begin
+//  Result.Add('A', AgentId.AsText);
+//  Result.Add('RQ', RequestedAction.AsText + '(' + RequestedTarget.AsText + ')');
+//  Result.Add('RS', ResolvedAction.AsText + '(' + ResolvedTarget.AsText + ')');
+//  Result.Add('E', Reserves.AsText);
+//  Result.Add('AP', ActionProgress.AsText);
+//end;
 
 
 { _simEvent }
-function _simEvent.AsHeaderFields: TLogFields;
-begin
-  Result.Clear;
+//function _simEvent.AsHeaderFields: TLogFields;
+//begin
+//  Result.Clear;
+//end;
 
-
-end;
-
-function _simEvent.AsFields: TLogFields;
-begin
-  Result.Clear;
-
-  // first field is tick/clock info
-  Result.Add('tick', Format('%.04d [%.02d:%.03d] ',
-    [Header.Sequence, Header.DayNumber, Header.DayTick]));
-
-  case Header.Kind of
-    sekActionResolved:
-      begin
-        Result.AddFields(ActionResolved.AsFields);
-      end;
-    sekAgentBorn: ;
-    sekAgentMoved:
-      begin
-        Result.AddFields(AgentMoved.AsFields);
-      end;
-    sekDeltaConsumed: ;
-    sekAgentDied: ;
-  end;
-
-end;
+//function _simEvent.AsFields: TLogFields;
+//begin
+//  Result.Clear;
+//
+//  // first field is tick/clock info
+//  Result.Add('tick', Format('%.04d [%.02d:%.03d] ',
+//    [Header.Sequence, Header.DayNumber, Header.DayTick]));
+//
+//  case Header.Kind of
+//    sekActionResolved:
+//      begin
+//        Result.AddFields(ActionResolved.AsFields);
+//      end;
+//    sekAgentBorn: ;
+//    sekAgentMoved:
+//      begin
+//        Result.AddFields(AgentMoved.AsFields);
+//      end;
+//    sekDeltaConsumed: ;
+//    sekAgentDied: ;
+//  end;
+//
+//end;
 
 { _populationSummary }
 

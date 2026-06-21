@@ -8,7 +8,7 @@ uses System.Generics.Collections,
   Vcl.ExtCtrls, Vcl.Buttons,
 
   u_MulticastEvents,
-  u_SimEventTypes, u_ExplorationEvaluators, u_ExplorationTypes,
+  u_ExplorationEvaluators, u_ExplorationTypes,
   u_SimPopulations, u_SimControllers,
   fr_ConditionEditor, u_DiagnosticsIntf, u_SimRuntimes;
 
@@ -30,7 +30,7 @@ type
     procedure edtAgentsChange(Sender: TObject);
   private
     fRuntime: TSimRuntime;
-    fDiagnostics: ISimEventHub;
+//    fDiagnostics: ISimEventHub;
     fConditions: TObjectList<TConditionEditor>;
     fPopulation: TSimPopulation;
     fEvaluator: TExplorationEvaluator;
@@ -46,10 +46,8 @@ type
     procedure UpdateControls;
 
     { IRuntimeObserver }
-    procedure ConnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
-      AfterAdvance: TMulticastEvent<TNotifyEvent>);
-    procedure DisconnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
-      AfterAdvance: TMulticastEvent<TNotifyEvent>);
+    procedure ConnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+    procedure DisconnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
 
     { IRuntimeController }
     procedure ConnectController(aController: TSimController);
@@ -158,23 +156,21 @@ begin
   end;
 end;
 
-procedure TExplorationFrame.ConnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
-  AfterAdvance: TMulticastEvent<TNotifyEvent>);
+procedure TExplorationFrame.ConnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
 begin
   fRuntime := aRuntime;
-  fDiagnostics := aDiagnostics;
+//  fDiagnostics := aDiagnostics;
 
   fEvaluator.Population := fRuntime.Population;
-  fEvaluator.SubscriptionId := fDiagnostics.Subscribe(fEvaluator);
+//  fEvaluator.SubscriptionId := fDiagnostics.Subscribe(fEvaluator);
 
   UpdateControls;
 end;
 
-procedure TExplorationFrame.DisconnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
-  AfterAdvance: TMulticastEvent<TNotifyEvent>);
+procedure TExplorationFrame.DisconnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
 begin
-  fEvaluator.Population := nil;
-  aDiagnostics.Unsubscribe(fEvaluator.SubscriptionId);
+//  fEvaluator.Population := nil;
+//  aDiagnostics.Unsubscribe(fEvaluator.SubscriptionId);
   fEvaluator.SubscriptionId := 0;
 end;
 
