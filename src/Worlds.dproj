@@ -295,6 +295,9 @@
         <DCCReference Include="common\u_RuntimeTypes.pas"/>
         <DCCReference Include="common\u_InputTypes.pas"/>
         <DCCReference Include="common\u_GeneTypes.pas"/>
+        <DCCReference Include="sim\u_SessionEventTypes.pas"/>
+        <DCCReference Include="sim\u_SessionEventHubs.pas"/>
+        <DCCReference Include="sim\u_SessionFileSink.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

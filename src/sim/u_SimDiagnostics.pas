@@ -12,7 +12,7 @@ type
     Consumer: ISimEventConsumer;
   end;
 
-  TSimDiagnosticsHub = class(TInterfacedObject, ISimDiagnosticsSink)
+  TSimDiagnosticsHub = class(TInterfacedObject, ISimDiagnosticsSink, ISimEventHub)
   private
     fNextSequence: Integer;
     fNextSubscriptionId: Integer;

@@ -145,6 +145,12 @@ type
     procedure Consume(const Event: TSimEvent);
   end;
 
+  ISimEventHub = interface
+    ['{6F5AB9B5-C7B9-4F15-8123-48D92A6216A2}']
+    function Subscribe(const Consumer: ISimEventConsumer): Integer;
+    procedure Unsubscribe(SubscriptionId: Integer);
+  end;
+
   IEventSink = interface
     ['{E42567E7-85F6-4C87-90BE-B00699011824}']
     procedure Write(aEvent: TSimEvent);

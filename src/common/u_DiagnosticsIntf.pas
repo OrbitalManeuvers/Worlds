@@ -3,14 +3,14 @@ unit u_DiagnosticsIntf;
 interface
 
 uses System.Classes,
-  u_MulticastEvents, u_SimRuntimes, u_SimControllers, u_SimDiagnostics;
+  u_MulticastEvents, u_SimRuntimes, u_SimControllers, u_SimEventTypes;
 
 type
   IRuntimeObserver = interface
     ['{3C7F0298-2DA7-4CF3-A39A-68F9A0E46713}']
-    procedure ConnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
+    procedure ConnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
       AfterAdvance: TMulticastEvent<TNotifyEvent>);
-    procedure DisconnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
+    procedure DisconnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
       AfterAdvance: TMulticastEvent<TNotifyEvent>);
   end;
 

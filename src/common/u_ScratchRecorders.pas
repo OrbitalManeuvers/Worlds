@@ -3,7 +3,7 @@ unit u_ScratchRecorders;
 interface
 
 uses
-  u_SimEventTypes, u_SimDiagnostics;
+  u_SimEventTypes, u_SessionEventTypes;
 
 type
   IScratchRecorder = interface
@@ -13,7 +13,7 @@ type
     procedure SetEnabled(const Value: Boolean);
     function GetScratchFileName: string;
 
-    procedure Bind(const aDiagnostics: TSimDiagnosticsHub);
+    procedure Bind(const aDiagnostics: ISimEventHub);
     procedure Unbind;
 
     procedure AssertReadable;
@@ -24,18 +24,37 @@ type
     property ScratchFileName: string read GetScratchFileName;
   end;
 
+  ISessionScratchRecorder = interface
+    ['{A7E2D641-8B3F-4C1A-9D05-6E4F82B1C790}']
+    function GetLog: ISessionEventLog;
+    function GetEnabled: Boolean;
+    procedure SetEnabled(const Value: Boolean);
+    function GetScratchFileName: string;
+
+    procedure Bind(const aHub: ISessionEventHub);
+    procedure Unbind;
+
+    procedure AssertReadable;
+    function EventCount: Integer;
+
+    property Log: ISessionEventLog read GetLog;
+    property Enabled: Boolean read GetEnabled write SetEnabled;
+    property ScratchFileName: string read GetScratchFileName;
+  end;
+
 function CreateLocalScratchRecorder: IScratchRecorder;
 function CreateMappedScratchRecorder(const aScratchFileName: string): IScratchRecorder;
+function CreateSessionScratchRecorder(const aScratchFileName: string): ISessionScratchRecorder;
 
 implementation
 
 uses System.SysUtils, System.IOUtils,
-  u_LocalEventLogs, u_MappedFileSink;
+  u_LocalEventLogs, u_MappedFileSink, u_SessionFileSink;
 
 type
   TScratchRecorderBase = class(TInterfacedObject, IScratchRecorder)
   private
-    fDiagnostics: TSimDiagnosticsHub;
+    fDiagnostics: ISimEventHub;
     fSubscriptionId: Integer;
     fEnabled: Boolean;
   protected
@@ -49,7 +68,7 @@ type
   public
     destructor Destroy; override;
 
-    procedure Bind(const aDiagnostics: TSimDiagnosticsHub);
+    procedure Bind(const aDiagnostics: ISimEventHub);
     procedure Unbind;
 
     procedure AssertReadable; virtual; abstract;
@@ -83,6 +102,33 @@ type
     procedure AssertReadable; override;
   end;
 
+  TSessionScratchRecorder = class(TInterfacedObject, ISessionScratchRecorder)
+  private
+    fHub: ISessionEventHub;
+    fSubscriptionId: Integer;
+    fEnabled: Boolean;
+    fScratchFileName: string;
+    fSink: ISessionEventConsumer;
+    fLog: ISessionEventLog;
+
+    procedure Attach;
+    procedure Detach;
+  public
+    constructor Create(const aScratchFileName: string);
+    destructor Destroy; override;
+
+    function GetLog: ISessionEventLog;
+    function GetEnabled: Boolean;
+    procedure SetEnabled(const Value: Boolean);
+    function GetScratchFileName: string;
+
+    procedure Bind(const aHub: ISessionEventHub);
+    procedure Unbind;
+
+    procedure AssertReadable;
+    function EventCount: Integer;
+  end;
+
 
 
 { TScratchRecorderBase }
@@ -93,7 +139,7 @@ begin
   inherited;
 end;
 
-procedure TScratchRecorderBase.Bind(const aDiagnostics: TSimDiagnosticsHub);
+procedure TScratchRecorderBase.Bind(const aDiagnostics: ISimEventHub);
 begin
   Assert(Assigned(aDiagnostics));
   Assert(not Assigned(fDiagnostics));
@@ -247,6 +293,124 @@ end;
 function CreateMappedScratchRecorder(const aScratchFileName: string): IScratchRecorder;
 begin
   Result := TMappedScratchRecorder.Create(aScratchFileName);
+end;
+
+function CreateSessionScratchRecorder(const aScratchFileName: string): ISessionScratchRecorder;
+begin
+  Result := TSessionScratchRecorder.Create(aScratchFileName);
+end;
+
+{ TSessionScratchRecorder }
+
+constructor TSessionScratchRecorder.Create(const aScratchFileName: string);
+begin
+  inherited Create;
+  Assert(aScratchFileName.Trim <> '');
+
+  fScratchFileName := aScratchFileName;
+  if TFile.Exists(fScratchFileName) then
+    TFile.Delete(fScratchFileName);
+
+  fSink := TSessionFileSink.Create(fScratchFileName);
+  fLog := TSessionFileLog.Create(fScratchFileName);
+  fEnabled := True;
+end;
+
+destructor TSessionScratchRecorder.Destroy;
+begin
+  Unbind;
+  inherited;
+end;
+
+procedure TSessionScratchRecorder.Bind(const aHub: ISessionEventHub);
+begin
+  Assert(Assigned(aHub));
+  Assert(not Assigned(fHub));
+
+  fHub := aHub;
+  if fEnabled then
+    Attach;
+end;
+
+procedure TSessionScratchRecorder.Unbind;
+begin
+  if Assigned(fHub) then
+    Detach;
+
+  fHub := nil;
+end;
+
+procedure TSessionScratchRecorder.Attach;
+begin
+  Assert(Assigned(fHub));
+  Assert(fSubscriptionId = 0);
+
+  fSubscriptionId := fHub.Subscribe(fSink as ISessionEventConsumer);
+end;
+
+procedure TSessionScratchRecorder.Detach;
+begin
+  Assert(Assigned(fHub));
+
+  if fSubscriptionId <> 0 then
+  begin
+    fHub.Unsubscribe(fSubscriptionId);
+    fSubscriptionId := 0;
+  end;
+end;
+
+function TSessionScratchRecorder.GetLog: ISessionEventLog;
+begin
+  Result := fLog;
+end;
+
+function TSessionScratchRecorder.GetEnabled: Boolean;
+begin
+  Result := fEnabled;
+end;
+
+procedure TSessionScratchRecorder.SetEnabled(const Value: Boolean);
+begin
+  if Value = fEnabled then
+    Exit;
+
+  fEnabled := Value;
+
+  if not Assigned(fHub) then
+    Exit;
+
+  if fEnabled then
+    Attach
+  else
+    Detach;
+end;
+
+function TSessionScratchRecorder.GetScratchFileName: string;
+begin
+  Result := fScratchFileName;
+end;
+
+procedure TSessionScratchRecorder.AssertReadable;
+var
+  count: Integer;
+  header: TSessionLogHeader;
+  fileLog: TSessionFileLog;
+begin
+  Assert(Assigned(fLog));
+
+  count := fLog.Count;
+  if count = 0 then
+    Exit;
+
+  fileLog := (fLog as TSessionFileLog);
+  header := fileLog.Header;
+  Assert(header.Signature = SESSION_LOG_SIGNATURE);
+  Assert(header.EventCount = count);
+end;
+
+function TSessionScratchRecorder.EventCount: Integer;
+begin
+  Result := fLog.Count;
 end;
 
 end.

@@ -17,12 +17,6 @@ const
 // In this simulated universe, a "gene" is just an upgradable bit of agent that makes them tick. Every tick.
 
 type
-
-// ------ should begin here
-
-
-
-
   // record of an agent's gene sequence
   TGeneSequence = record
   private

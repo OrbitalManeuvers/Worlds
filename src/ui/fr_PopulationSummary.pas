@@ -8,7 +8,7 @@ uses
   Vcl.StdCtrls, Vcl.ExtCtrls,
 
   u_SimEventTypes, u_LogTypes, u_ControlRendering, u_DiagnosticsIntf,
-  u_SimRuntimes, u_MulticastEvents, u_SimDiagnostics;
+  u_SimRuntimes, u_MulticastEvents;
 
 type
   TPopulationSummaryFrame = class(TFrame, IRuntimeObserver, IDiagnosticsView)
@@ -19,9 +19,9 @@ type
     procedure pbSummary1Paint(Sender: TObject);
   private
     { IRuntimeObserver }
-    procedure ConnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
+    procedure ConnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
       AfterAdvance: TMulticastEvent<TNotifyEvent>);
-    procedure DisconnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
+    procedure DisconnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
       AfterAdvance: TMulticastEvent<TNotifyEvent>);
 
     { IDiagnosticsView }
@@ -52,7 +52,7 @@ begin
 end;
 
 procedure TPopulationSummaryFrame.ConnectRuntime(aRuntime: TSimRuntime;
-  aDiagnostics: TSimDiagnosticsHub; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+  const aDiagnostics: ISimEventHub; AfterAdvance: TMulticastEvent<TNotifyEvent>);
 begin
   Runtime := aRuntime;
   AfterAdvance.Subscribe(HandleAfterAdvance);
@@ -60,7 +60,7 @@ begin
 end;
 
 procedure TPopulationSummaryFrame.DisconnectRuntime(aRuntime: TSimRuntime;
-  aDiagnostics: TSimDiagnosticsHub; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+  const aDiagnostics: ISimEventHub; AfterAdvance: TMulticastEvent<TNotifyEvent>);
 begin
   AfterAdvance.Unsubscribe(HandleAfterAdvance);
   Runtime := nil;

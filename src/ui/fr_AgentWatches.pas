@@ -9,7 +9,7 @@ uses
 
   u_ControlRendering, u_LogTypes, u_SimEventTypes,
   u_SimPopulations, u_SimTypes,
-  u_SimRuntimes, u_MulticastEvents, u_DiagnosticsIntf, u_SimDiagnostics;
+  u_SimRuntimes, u_MulticastEvents, u_DiagnosticsIntf;
 
 const
   TICK_HISTORY_LENGTH = 5;
@@ -79,9 +79,9 @@ type
 
   private
     { IRuntimeObserver }
-    procedure ConnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
+    procedure ConnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
       AfterAdvance: TMulticastEvent<TNotifyEvent>);
-    procedure DisconnectRuntime(aRuntime: TSimRuntime; aDiagnostics: TSimDiagnosticsHub;
+    procedure DisconnectRuntime(aRuntime: TSimRuntime; const aDiagnostics: ISimEventHub;
       AfterAdvance: TMulticastEvent<TNotifyEvent>);
     procedure HandleAfterAdvance(Sender: TObject);
     procedure SetSelectedWatch(aWatchIndex: Integer);
@@ -158,7 +158,7 @@ begin
 end;
 
 procedure TAgentWatchFrame.ConnectRuntime(aRuntime: TSimRuntime;
-  aDiagnostics: TSimDiagnosticsHub; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+  const aDiagnostics: ISimEventHub; AfterAdvance: TMulticastEvent<TNotifyEvent>);
 begin
   Runtime := aRuntime;
   AfterAdvance.Subscribe(HandleAfterAdvance);
@@ -181,7 +181,7 @@ begin
 end;
 
 procedure TAgentWatchFrame.DisconnectRuntime(aRuntime: TSimRuntime;
-  aDiagnostics: TSimDiagnosticsHub; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+  const aDiagnostics: ISimEventHub; AfterAdvance: TMulticastEvent<TNotifyEvent>);
 begin
   aDiagnostics.Unsubscribe(SubscriptionId);
   AfterAdvance.Unsubscribe(HandleAfterAdvance);

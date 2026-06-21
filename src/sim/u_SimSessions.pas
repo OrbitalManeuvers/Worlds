@@ -5,7 +5,7 @@ interface
 uses System.Classes, System.Types, System.Generics.Collections,
  u_Simulators, u_SimTypes, u_SimDiagnostics, u_SimEventTypes,
  u_SimControllers, u_SessionParameters, u_SessionTOC,
- u_ScratchRecorders;
+ u_ScratchRecorders, u_SessionEventTypes;
 
 {.define mmf_scratch}
 
@@ -20,8 +20,10 @@ type
     TSaveProgressEvent = procedure (Sender: TObject; Position: Integer) of object;
   private
     fCommonParams: TCommonSessionParameters;
-    fDiagnostics: TSimDiagnosticsHub;
+    fDiagnostics: ISimEventHub;
+    fSessionEvents: ISessionEventHub;
     fScratchRecorder: IScratchRecorder;
+    fSessionScratchRecorder: ISessionScratchRecorder;
 
     fSim: TSimulator;
     fController: TSimController;
@@ -51,7 +53,7 @@ type
     property Controller: TSimController read fController;
     property EventLog: IEventLog read GetEventLog;
     property Simulator: TSimulator read fSim;
-    property Diagnostics: TSimDiagnosticsHub read fDiagnostics;
+    property Diagnostics: ISimEventHub read fDiagnostics;
 
     property Recording: Boolean read fRecording write SetRecording;
     property ScratchLogEnabled: Boolean read GetScratchLogEnabled write SetScratchLogEnabled;
@@ -59,7 +61,8 @@ type
 
 implementation
 
-uses System.SysUtils, System.IOUtils, u_MappedFileSink;
+uses System.SysUtils, System.IOUtils, u_MappedFileSink,
+  u_SessionEventHubs;
 
 
 
@@ -74,12 +77,18 @@ begin
   fScratchRecorder := aScratchRecorder;
   Assert(Assigned(fScratchRecorder));
 
-  fDiagnostics := TSimDiagnosticsHub.Create;
-
+  var hub := TSimDiagnosticsHub.Create;
+  fDiagnostics := hub;
   fSim := TSimulator.Create(fDiagnostics as ISimDiagnosticsSink);
+
   fController := TSimController.Create(fSim.Clock);
 
-  fScratchRecorder.Bind(fDiagnostics);
+  fScratchRecorder.Bind(hub);
+
+  var hub2 := TSessionEventHub.Create;
+  fSessionEvents := hub2;
+//  var recorder2: ISessionScratchRecorder;
+//  recorder2.Bind(hub2);
 
 end;
 
@@ -93,6 +102,7 @@ begin
     fSim.Runtime.OnPhase := nil;
   fSim.Free;
   fDiagnostics := nil;
+  fSessionEvents := nil;
   fRecordingBoundaries.Free;
   inherited;
 end;
