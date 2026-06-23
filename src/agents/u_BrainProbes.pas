@@ -8,7 +8,6 @@ uses System.Generics.Collections,
 type
   TBrainSnapshot = record
     AgentId: TAgentId;
-    RawScores: TActionScores;
     DampenedScores: TActionScores;   // after continuation pressure applied
     CognitionInput: TCognitionInput;  // includes reports, weighted scores, smell, state context
     FinalAction: TAgentAction;
@@ -25,15 +24,16 @@ type
     constructor Create;
     destructor Destroy; override;
 
+    // consumers call these
     procedure Watch(aAgentId: TAgentId);
     procedure Unwatch(aAgentId: TAgentId);
-    function IsWatching(aAgentId: TAgentId): Boolean;
-
-    procedure BeforeTick(aAgentId: TAgentId);
-    procedure AfterTick(aAgentId: TAgentId);
-
     function GetSnapshot(aAgentId: TAgentId): TBrainSnapshot;
 
+    function IsWatching(aAgentId: TAgentId): Boolean;
+
+    // runtime calls these
+    procedure BeforeTick(aAgentId: TAgentId);
+    procedure AfterTick(aAgentId: TAgentId);
     property Active: Boolean read fActive;
   end;
 

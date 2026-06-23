@@ -159,10 +159,10 @@ begin
   // Continuation pressure: when ActionProgress > 0, the agent is invested in a
   // progressive action (past the dig/entry phase). Dampen competing scores so that
   // only genuinely strong signals can interrupt.
-  if Input.ActionProgress > 0 then
+  if Input.CurrentActionProgress > 0 then
   begin
     var params := ActionContinuation[Input.CurrentAction];
-    var dampening := Min(params.RampRate * Input.ActionProgress, params.MaxDampening);
+    var dampening := Min(params.RampRate * Input.CurrentActionProgress, params.MaxDampening);
     if params.PressureWeighted then
       dampening := dampening * EnsureRange(
         Input.CircadianPressure / MAX_CIRCADIAN_PRESSURE, 0.0, 1.0);

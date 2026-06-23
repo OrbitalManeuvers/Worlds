@@ -99,7 +99,7 @@ type
     CurrentAction: TAgentAction;
     CurrentTarget: TTarget;
     CurrentActionAge: Integer;
-    ActionProgress: Integer;
+    CurrentActionProgress: Integer;
 
     // Smell retained for move-target anchor lookup
     Smell: TSmellReport;

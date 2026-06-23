@@ -290,6 +290,7 @@
         <DCCReference Include="sim\u_SessionEventHubs.pas"/>
         <DCCReference Include="sim\u_SessionFileSink.pas"/>
         <DCCReference Include="common\u_PopulationTypes.pas"/>
+        <DCCReference Include="ui\u_FieldRendering.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

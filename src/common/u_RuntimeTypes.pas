@@ -81,8 +81,8 @@ type
     Opportunity: Single;   // evaluator-owned quality signal
     Distance: Word;
   end;
-
   TMoveOptionArray = array[0..2] of TMoveOption;
+
   TMoveReport = record
     Count: Integer;
     Options: TMoveOptionArray;

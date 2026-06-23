@@ -172,7 +172,7 @@ begin
   Result.Location := State.Location;
   Result.CurrentAction := State.Action;
   Result.CurrentActionAge := State.ActionAge;
-  Result.ActionProgress := State.ActionProgress;
+  Result.CurrentActionProgress := State.ActionProgress;
   Result.CircadianPressure := State.CircadianPressure;
   Result.Smell := SmellReport;
   Result.ForageReport := ForageReport;

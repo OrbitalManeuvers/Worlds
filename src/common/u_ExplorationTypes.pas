@@ -6,6 +6,7 @@ uses System.Generics.Collections,
   u_SimTypes, u_RuntimeTypes;
 
 type
+
   TExplorationConditionKind = (
     // args: none
     ekBorn, ekDies,

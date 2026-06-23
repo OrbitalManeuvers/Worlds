@@ -11,7 +11,7 @@ uses
   u_SimRuntimes, u_MulticastEvents;
 
 type
-  TPopulationSummaryFrame = class(TFrame, IRuntimeObserver, IDiagnosticsView)
+  TPopulationSummaryFrame = class(TFrame, IRuntimeObserver)
     shBorder: TShape;
     pbSummary1: TPaintBox;
     pbSummary2: TPaintBox;
@@ -19,18 +19,15 @@ type
     procedure pbSummary1Paint(Sender: TObject);
   private
     { IRuntimeObserver }
-    procedure ConnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
-    procedure DisconnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
-
-    { IDiagnosticsView }
-    procedure BeginRun;
-    procedure EndRun;
+    procedure ConnectRuntime(aRuntime: TSimRuntime; aEvents: TNotificationEvents);
+    procedure DisconnectRuntime(aRuntime: TSimRuntime; aEvents: TNotificationEvents);
+    procedure HandleBeforeRun(Sender: TObject);
+    procedure HandleAfterRun(Sender: TObject);
   private
     Runtime: TSimRuntime;
     fRunning: Boolean;
     Summary1: TLogFields;
     Summary2: TLogFields;
-    procedure HandleAfterAdvance(Sender: TObject);
     procedure Reset;
   end;
 
@@ -49,26 +46,26 @@ begin
   Summary2 := Default(TLogFields);
 end;
 
-procedure TPopulationSummaryFrame.ConnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+procedure TPopulationSummaryFrame.ConnectRuntime(aRuntime: TSimRuntime; aEvents: TNotificationEvents);
 begin
   Runtime := aRuntime;
-  AfterAdvance.Subscribe(HandleAfterAdvance);
+  aEvents.OnRun.Before.Subscribe(HandleBeforeRun);
+  aEvents.OnRun.After.Subscribe(HandleAfterRun);
   Reset;
 end;
 
-procedure TPopulationSummaryFrame.DisconnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+procedure TPopulationSummaryFrame.DisconnectRuntime(aRuntime: TSimRuntime; aEvents: TNotificationEvents);
 begin
-  AfterAdvance.Unsubscribe(HandleAfterAdvance);
+  aEvents.OnRun.Before.Unsubscribe(HandleBeforeRun);
+  aEvents.OnRun.After.Unsubscribe(HandleAfterRun);
   Runtime := nil;
   Reset;
   Invalidate;
 end;
 
-procedure TPopulationSummaryFrame.HandleAfterAdvance(Sender: TObject);
+procedure TPopulationSummaryFrame.HandleAfterRun(Sender: TObject);
 begin
-  if fRunning then
-    Exit;
-
+  fRunning := False;
   if Assigned(Runtime) then
   begin
     Summary1 := Runtime.PopulationSummary.AsSummaryFields;
@@ -77,25 +74,21 @@ begin
   end;
 end;
 
-procedure TPopulationSummaryFrame.BeginRun;
+procedure TPopulationSummaryFrame.HandleBeforeRun(Sender: TObject);
 begin
   fRunning := True;
 end;
 
-procedure TPopulationSummaryFrame.EndRun;
-begin
-  fRunning := False;
-  HandleAfterAdvance(nil);
-end;
-
 procedure TPopulationSummaryFrame.pbSummary1Paint(Sender: TObject);
 begin
-  pbSummary1.Render(Summary1, clBtnFace);
+  if not fRunning then
+    pbSummary1.Render(Summary1, clBtnFace);
 end;
 
 procedure TPopulationSummaryFrame.pbSummary2Paint(Sender: TObject);
 begin
-  pbSummary2.Render(Summary2, clBtnFace);
+  if not fRunning then
+    pbSummary2.Render(Summary2, clBtnFace);
 end;
 
 end.

@@ -8,10 +8,10 @@ uses
   Vcl.ImgList, PngImageList, PngSpeedButton, Vcl.Buttons, Vcl.ExtCtrls,
   Vcl.StdCtrls,
 
-  u_SimControllers, u_SimTypes, u_DiagnosticsIntf;
+  u_SimControllers, u_SimTypes, u_DiagnosticsIntf, u_SimRuntimes;
 
 type
-  TStepperFrame = class(TFrame, IRuntimeController, IDiagnosticsView)
+  TStepperFrame = class(TFrame, IRuntimeController, IRuntimeObserver)
     btnRecord: TPngSpeedButton;
     ilController: TPngImageList;
     btnStep: TPngSpeedButton;
@@ -44,14 +44,16 @@ type
     function GetRecording: Boolean;
     function GetScratchEnabled: Boolean;
     procedure SetScratchEnabled(const Value: Boolean);
-    procedure BeginRun;
-    procedure EndRun;
+    procedure HandleAfterRun(Sender: TObject);
+
+    { IRuntimeObserver }
+    procedure ConnectRuntime(aRuntime: TSimRuntime; aEvents: TNotificationEvents);
+    procedure DisconnectRuntime(aRuntime: TSimRuntime; aEvents: TNotificationEvents);
 
     { IRuntimeController }
     procedure ConnectController(aController: TSimController);
     procedure DisconnectController(aController: TSimController);
   public
-//    property Controller: TSimController read fController write SetController;
     property Recording: Boolean read GetRecording;
     property ScratchEnabled: Boolean read GetScratchEnabled write SetScratchEnabled;
 
@@ -120,14 +122,8 @@ begin
   Result := btnScratch.Down;
 end;
 
-procedure TStepperFrame.BeginRun;
+procedure TStepperFrame.HandleAfterRun(Sender: TObject);
 begin
-  //  !! this should be replaced by IDiagnosticsView
-end;
-
-procedure TStepperFrame.EndRun;
-begin
-  //  !! this should be replaced by IDiagnosticsView
   UpdateClockDisplay;
 end;
 
@@ -169,6 +165,16 @@ end;
 procedure TStepperFrame.DisconnectController(aController: TSimController);
 begin
   SetController(nil);
+end;
+
+procedure TStepperFrame.ConnectRuntime(aRuntime: TSimRuntime; aEvents: TNotificationEvents);
+begin
+  aEvents.OnRun.After.Subscribe(HandleAfterRun);
+end;
+
+procedure TStepperFrame.DisconnectRuntime(aRuntime: TSimRuntime; aEvents: TNotificationEvents);
+begin
+  aEvents.OnRun.After.Unsubscribe(HandleAfterRun);
 end;
 
 procedure TStepperFrame.SetScratchEnabled(const Value: Boolean);

@@ -64,7 +64,6 @@ type
     fRuntimeConfig: TRuntimeConfig;
     fEnvironment: TSimEnvironment;
     fPopulation: TSimPopulation;
-//    fDiagnostics: ISimDiagnosticsSink;
     fSessionEvents: ISessionEventSink;
     fSimQuery: ISimQuery;
     fSimCommand: ISimCommand;
@@ -87,8 +86,6 @@ type
     procedure EmitActionResolved(const StateBeforeResolution, State: TAgentState; const Requested, Resolved: TBrainTickOutput);
     procedure EmitAgentBorn(const OffspringState, ParentState: TAgentState);
     procedure EmitAgentDied(const State: TAgentState; LastAction: TAgentAction);
-//    procedure EmitAgentMoved(const State: TAgentState; const FromCell, ToCell: Integer; const MoveCost: Single);
-//    procedure EmitDeltaConsumed(const State: TAgentState; const Cache: TCacheRef; const ConsumedAmount, GainAmount: Single);
 
     function BuildDeltaSpawnPlan: TArray<Integer>;
     procedure InjectDeltaAtNightfall;
@@ -179,7 +176,6 @@ begin
   inherited Create;
   fRuntimeConfig := Default(TRuntimeConfig);
   fSessionEvents := aSessionEventSink;
-//  fDiagnostics := aDiagnostics;
   fDeltaPlacementCycleIndex := 0;
   fLastDeltaSpawnCount := 0;
   fDeltaCleanupGraceTicksRemaining := 0;
@@ -474,20 +470,6 @@ end;
 procedure TSimRuntime.EmitActionResolved(const StateBeforeResolution, State: TAgentState;
   const Requested, Resolved: TBrainTickOutput);
 begin
-  // don't think we need this ...?
-
-//  var event := Default(TSessionEvent);
-//  event.Header := BuildEventHeader();
-//
-//  event.ActionResolved.AgentId := State.AgentId;
-//  event.ActionResolved.RequestedAction := Requested.RequestedAction;
-//  event.ActionResolved.RequestedTarget := Requested.RequestedTarget;
-//  event.ActionResolved.ResolvedAction := Resolved.RequestedAction;
-//  event.ActionResolved.ResolvedTarget := Resolved.RequestedTarget;
-//  event.ActionResolved.Reserves := State.Reserves;
-//  event.ActionResolved.ActionProgress := State.ActionProgress;
-//
-//  fDiagnostics.Emit(event);
 end;
 
 procedure TSimRuntime.EmitAgentBorn(const OffspringState, ParentState: TAgentState);
@@ -518,38 +500,6 @@ begin
   event.Death.LastAction := LastAction;
   fSessionEvents.Emit(event);
 end;
-
-//procedure TSimRuntime.EmitAgentMoved(const State: TAgentState; const FromCell, ToCell: Integer;
-//  const MoveCost: Single);
-//begin
-//  if not Assigned(fDiagnostics) then
-//    Exit;
-//
-//  var event := Default(TSimEvent);
-//  event.Header := BuildEventHeader(sekAgentMoved, stpPostAgents);
-//  event.AgentMoved.AgentId := State.AgentId;
-//  event.AgentMoved.FromCell := FromCell;
-//  event.AgentMoved.ToCell := ToCell;
-//  event.AgentMoved.MoveCost := movecost;
-//  event.AgentMoved.Reserves := State.Reserves;
-//  fDiagnostics.Emit(event);
-//end;
-
-//procedure TSimRuntime.EmitDeltaConsumed(const State: TAgentState; const Cache: TCacheRef;
-//  const ConsumedAmount, GainAmount: Single);
-//begin
-//  if not Assigned(fDiagnostics) then
-//    Exit;
-//
-//  var event := Default(TSimEvent);
-//  event.Header := BuildEventHeader(sekDeltaConsumed, stpPostAgents);
-//  event.DeltaConsumed.AgentId := State.AgentId;
-//  event.DeltaConsumed.Cell := State.Location;
-//  event.DeltaConsumed.Cache := Cache;
-//  event.DeltaConsumed.ConsumedAmount := ConsumedAmount;
-//  event.DeltaConsumed.GainAmount := GainAmount;
-//  fDiagnostics.Emit(event);
-//end;
 
 procedure TSimRuntime.BeginTickSummary;
 begin
@@ -790,8 +740,6 @@ begin
 
         Result.RequestedAction := acMove;
         Result.RequestedTarget := Requested.RequestedTarget;
-//        EmitAgentMoved(State, moveReply.PreviousCell, moveReply.NewCell, moveCost);
-
       end
       else
       begin
@@ -874,9 +822,6 @@ begin
 
         State.TicksSinceForage := 0;
         State.LastForageCell := State.Location;
-
-//        if cacheRef.Kind = ckDelta then
-//          EmitDeltaConsumed(State, cacheRef, ForageOutcome.Consumed, ForageOutcome.Gain);
       end
       else
       begin

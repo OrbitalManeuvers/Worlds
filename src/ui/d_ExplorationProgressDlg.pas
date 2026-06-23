@@ -29,7 +29,7 @@ type
     fOnSystemCancel: TExplorationCancelEvent;
     fRuntime: TSimRuntime;
     procedure WMStartExploration(var Msg: TMessage); message WM_START_EXPLORATION;
-    procedure HandleAfterAdvance(Sender: TObject);
+    procedure HandleAfterStep(Sender: TObject);
   public
     function Execute(aRuntime: TSimRuntime; aController: TSimController;
       aEvaluator: TExplorationEvaluator; const aQuery: TExplorationQuery): Integer;
@@ -72,7 +72,7 @@ begin
   PostMessage(Self.Handle, WM_START_EXPLORATION, 0, 0);
 end;
 
-procedure TExplorationProgressDlg.HandleAfterAdvance(Sender: TObject);
+procedure TExplorationProgressDlg.HandleAfterStep(Sender: TObject);
 begin
   if Assigned(fOnSystemCancel) then
   begin
@@ -87,7 +87,7 @@ end;
 
 procedure TExplorationProgressDlg.WMStartExploration(var Msg: TMessage);
 begin
-  fController.AfterAdvance.Subscribe(HandleAfterAdvance);
+  fController.AfterStep.Subscribe(HandleAfterStep);
   try
     fController.Run(
       procedure(const Date: TSimDate; var CanContinue: Boolean)
@@ -109,7 +109,7 @@ begin
       ModalResult := mrOk;
 
   finally
-    fController.AfterAdvance.Unsubscribe(HandleAfterAdvance);
+    fController.AfterRun.Unsubscribe(HandleAfterStep);
   end;
 end;
 

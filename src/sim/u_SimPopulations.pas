@@ -45,15 +45,18 @@ type
 
     procedure Tick(const Input: TBrainTickInput);
 
+    { debug views }
     function GetMetabolicState(aAgentId: TAgentId): TMetabolicState;
     function StatePtr(aIndex: Integer): PAgentState;
+    property Probe: TBrainProbe read fProbe;
 
     property AgentCount: Integer read GetAgentCount write SetAgentCount;
     property Agents: TArray<TAgentState> read fAgents;
-    property Probe: TBrainProbe read fProbe;
   end;
 
 implementation
+
+uses System.Generics.Collections;
 
 { TSimPopulation }
 
@@ -237,13 +240,14 @@ end;
 function TSimPopulation.Think(aIndex: Integer; const Input: TBrainTickInput): TBrainTickOutput;
 begin
   var agentId := fAgents[aIndex].AgentId;
+
+  // reserve Probe.S for this agent
   fProbe.BeforeTick(agentId);
 
   Result := TAgentBrain.Think(fAgents[aIndex], Input, fScratch);
 
   if fProbe.Active then
   begin
-    fProbe.S.RawScores := Result.Scores;
     fProbe.S.DampenedScores := Result.DampenedScores;
     fProbe.S.FinalAction := Result.RequestedAction;
     fProbe.S.FinalTarget := Result.RequestedTarget;
@@ -255,6 +259,8 @@ begin
   TAgentBrain.Reflect(fAgents[aIndex], Decision, Input, fScratch);
 
   var agentId := fAgents[aIndex].AgentId;
+
+  // release Probe.S
   fProbe.AfterTick(agentId);
 end;
 
@@ -301,5 +307,7 @@ function TSimPopulation.StatePtr(aIndex: Integer): PAgentState;
 begin
   Result := @fAgents[aIndex];
 end;
+
+
 
 end.

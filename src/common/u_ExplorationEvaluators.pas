@@ -82,6 +82,8 @@ begin
     Result := found;
 end;
 
+// leaving this here for revival once this data is available
+
 //procedure TExplorationEvaluator.Consume(const aEvent: TSimEvent);
 //begin
 //  if fStopCondition <> NOT_TRIGGERED then

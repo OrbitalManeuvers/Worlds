@@ -93,7 +93,8 @@ uses
   u_SessionEventTypes in 'sim\u_SessionEventTypes.pas',
   u_SessionEventHubs in 'sim\u_SessionEventHubs.pas',
   u_SessionFileSink in 'sim\u_SessionFileSink.pas',
-  u_PopulationTypes in 'common\u_PopulationTypes.pas';
+  u_PopulationTypes in 'common\u_PopulationTypes.pas',
+  u_FieldRendering in 'ui\u_FieldRendering.pas';
 
 {$R *.res}
 

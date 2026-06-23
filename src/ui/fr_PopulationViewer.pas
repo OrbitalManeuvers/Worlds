@@ -10,7 +10,7 @@ uses
   u_SimRuntimes, u_MulticastEvents, u_DiagnosticsIntf;
 
 type
-  TPopulationViewFrame = class(TFrame, IRuntimeObserver, IDiagnosticsView)
+  TPopulationViewFrame = class(TFrame, IRuntimeObserver)
     PopulationList: TControlList;
     lblDetail: TLabel;
     Label2: TLabel;
@@ -26,17 +26,14 @@ type
     procedure cbLivingOnlyClick(Sender: TObject);
   private
     { IRuntimeObserver }
-    procedure ConnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
-    procedure DisconnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
-
-    { IDiagnosticsView }
-    procedure BeginRun;
-    procedure EndRun;
+    procedure ConnectRuntime(aRuntime: TSimRuntime; aEvents: TNotificationEvents);
+    procedure DisconnectRuntime(aRuntime: TSimRuntime; aEvents: TNotificationEvents);
   private
     Runtime: TSimRuntime;
     fRunning: Boolean;
     DisplayList: TArray<Integer>;
-    procedure HandleAfterAdvance(Sender: TObject);
+    procedure HandleBeforeRun(Sender: TObject);
+    procedure HandleAfterRun(Sender: TObject);
     procedure BuildDisplayList;
   end;
 
@@ -80,33 +77,27 @@ begin
   lblPopulationCount.Caption := Format('%.04d', [count]);
 end;
 
-procedure TPopulationViewFrame.ConnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+procedure TPopulationViewFrame.ConnectRuntime(aRuntime: TSimRuntime; aEvents: TNotificationEvents);
 begin
   Runtime := aRuntime;
-  AfterAdvance.Subscribe(HandleAfterAdvance);
+  aEvents.OnRun.Before.Subscribe(HandleBeforeRun);
+  aEvents.OnRun.After.Subscribe(HandleAfterRun);
 end;
 
-procedure TPopulationViewFrame.DisconnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+procedure TPopulationViewFrame.DisconnectRuntime(aRuntime: TSimRuntime; aEvents: TNotificationEvents);
 begin
   Runtime := nil;
-  AfterAdvance.Unsubscribe(HandleAfterAdvance);
+  aEvents.OnRun.Before.Unsubscribe(HandleBeforeRun);
+  aEvents.OnRun.After.Unsubscribe(HandleAfterRun);
   BuildDisplayList;
 end;
 
-procedure TPopulationViewFrame.HandleAfterAdvance(Sender: TObject);
-begin
-  if fRunning then
-    Exit;
-
-  BuildDisplayList;
-end;
-
-procedure TPopulationViewFrame.BeginRun;
+procedure TPopulationViewFrame.HandleBeforeRun(Sender: TObject);
 begin
   fRunning := True;
 end;
 
-procedure TPopulationViewFrame.EndRun;
+procedure TPopulationViewFrame.HandleAfterRun(Sender: TObject);
 begin
   fRunning := False;
   BuildDisplayList;

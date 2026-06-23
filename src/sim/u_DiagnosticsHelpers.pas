@@ -6,7 +6,7 @@ uses System.Types, System.SysUtils, System.TypInfo,
   u_AgentBrain,
   u_AgentGenome, u_LogTypes, u_SimPopulations, u_EnvironmentTypes,
   u_AgentState, u_SimTypes, u_RuntimeTypes,
-  u_PopulationTypes;
+  u_PopulationTypes, u_BrainProbes;
 
 (*
 
@@ -16,22 +16,6 @@ Intentions:
 *)
 
 type
-  // TAgentMovedEvent field helper
-//  _agentMovedEvent = record helper for TAgentMovedEvent
-//    function AsFields: TLogFields;
-//  end;
-
-  // TActionResolvedEvent helper
-//  _actionResolvedEvent = record helper for TActionResolvedEvent
-//    function AsFields: TLogFields;
-//  end;
-
-  // TSimEvent
-//  _simEvent = record helper for TSimEvent
-//    function AsFields: TLogFields;
-//    function AsHeaderFields: TLogFields;
-//  end;
-
   // TPopulationSummary
   _populationSummary = record helper for TPopulationSummary
     function AsSummaryFields: TLogFields;
@@ -250,73 +234,6 @@ function _ActionScore.AsText: string;
 begin
   Result := Single(Self).AsText;
 end;
-
-
-
-// TAgentMovedEvent field helper
-//function _agentMovedEvent.AsFields: TLogFields;
-//begin
-//  Result.Add('A', AgentId.AsText);
-//  Result.Add('F', FromCell.AsText);
-//  Result.Add('T', ToCell.AsText);
-//  Result.Add('C', MoveCost.AsText);
-//
-//end;
-
-
-// TActionResolvedEvent helper
-//function _actionResolvedEvent.AsFields: TLogFields;
-//begin
-//  Result.Add('A', AgentId.AsText);
-//  Result.Add('RQ', RequestedAction.AsText + '(' + RequestedTarget.AsText + ')');
-//  Result.Add('RS', ResolvedAction.AsText + '(' + ResolvedTarget.AsText + ')');
-//  Result.Add('E', Reserves.AsText);
-//  Result.Add('AP', ActionProgress.AsText);
-//end;
-
-
-{ _simEvent }
-//function _simEvent.AsHeaderFields: TLogFields;
-//begin
-//  Result.Clear;
-//end;
-
-//function _simEvent.AsFields: TLogFields;
-//begin
-//  Result.Clear;
-//
-//  // first field is tick/clock info
-//  Result.Add('tick', Format('%.04d [%.02d:%.03d] ',
-//    [Header.Sequence, Header.DayNumber, Header.DayTick]));
-//
-//  case Header.Kind of
-//    sekActionResolved:
-//      begin
-//        Result.AddFields(ActionResolved.AsFields);
-//      end;
-//    sekAgentBorn: ;
-//    sekAgentMoved:
-//      begin
-//        Result.AddFields(AgentMoved.AsFields);
-//      end;
-//    sekDeltaConsumed: ;
-//    sekAgentDied: ;
-//  end;
-//
-//end;
-
-{ _populationSummary }
-
-//function _populationSummary.AsFields: TLogFields;
-//begin
-//  Result.Clear;
-//  Result.Add('live',         Self.Living.AsText);
-//  Result.Add('dead',         Self.TotalDeaths.AsText);
-//  Result.Add('total',        Self.TotalSlots.AsText);
-//  Result.Add('maxAge',       Self.MaxAge.AsText);
-//  Result.Add('maxReserves',  Self.MaxReserves.AsText);
-//  Result.Add('meanReserves', Self.MeanReserves.AsText);
-//end;
 
 { _metabolicState }
 function _metabolicState.AsFields: TLogFields;

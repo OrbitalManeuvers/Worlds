@@ -17,15 +17,16 @@ type
     fRunning: Boolean;
     fCurrentSegmentIndex: Integer;
     fEndEventFired: Boolean;
-    fOnBeforeRun: TNotifyEvent;
-    fOnAfterRun: TNotifyEvent;
-    fBeforeAdvance: TMulticastEvent<TNotifyEvent>;
-    fAfterAdvance: TMulticastEvent<TNotifyEvent>;
 
-    procedure BeforeRun;
-    procedure AfterRun;
-    procedure NotifyBeforeAdvance;
-    procedure NotifyAfterAdvance;
+    fBeforeRun: TMulticastEvent<TNotifyEvent>;
+    fAfterRun: TMulticastEvent<TNotifyEvent>;
+    fBeforeStep: TMulticastEvent<TNotifyEvent>;
+    fAfterStep: TMulticastEvent<TNotifyEvent>;
+
+    procedure NotifyBeforeRun;
+    procedure NotifyAfterRun;
+    procedure NotifyBeforeStep;
+    procedure NotifyAfterStep;
     function GetCurrentDate: TSimDate;
 
   public
@@ -40,13 +41,16 @@ type
     // playlist specifies stop definition, optionally provide alternate method
     procedure RunPlaylist(const aPlaylist: TPlaylist; aStop: TSimStopPredicate = nil);
 
-    // these bracket Run() and RunPlaylist()
-    property OnBeforeRun: TNotifyEvent read fOnBeforeRun write fOnBeforeRun;
-    property OnAfterRun: TNotifyEvent read fOnAfterRun write fOnAfterRun;
+//    // these bracket Run() and RunPlaylist()
+//    property OnBeforeRun: TNotifyEvent read fOnBeforeRun write fOnBeforeRun;
+//    property OnAfterRun: TNotifyEvent read fOnAfterRun write fOnAfterRun;
 
     property CurrentDate: TSimDate read GetCurrentDate;
-    property BeforeAdvance: TMulticastEvent<TNotifyEvent> read fBeforeAdvance;
-    property AfterAdvance: TMulticastEvent<TNotifyEvent> read fAfterAdvance;
+
+    property BeforeRun: TMulticastEvent<TNotifyEvent> read fBeforeRun;
+    property AfterRun: TMulticastEvent<TNotifyEvent> read fAfterRun;
+    property BeforeStep: TMulticastEvent<TNotifyEvent> read fBeforeStep;
+    property AfterStep: TMulticastEvent<TNotifyEvent> read fAfterStep;
   end;
 
 implementation
@@ -54,30 +58,23 @@ implementation
 
 { TSimController }
 
-procedure TSimController.AfterRun;
-begin
-  if Assigned(fOnAfterRun) then
-    fOnAfterRun(Self);
-end;
-
-procedure TSimController.BeforeRun;
-begin
-  if Assigned(fOnBeforeRun) then
-    fOnBeforeRun(Self);
-end;
-
 constructor TSimController.Create(aClock: TSimClock);
 begin
   inherited Create;
   fClock := aClock;
-  fBeforeAdvance := TMulticastEvent<TNotifyEvent>.Create;
-  fAfterAdvance := TMulticastEvent<TNotifyEvent>.Create;
+
+  fBeforeRun := TMulticastEvent<TNotifyEvent>.Create;
+  fAfterRun := TMulticastEvent<TNotifyEvent>.Create;
+  fBeforeStep := TMulticastEvent<TNotifyEvent>.Create;
+  fAfterStep := TMulticastEvent<TNotifyEvent>.Create;
 end;
 
 destructor TSimController.Destroy;
 begin
-  fAfterAdvance.Free;
-  fBeforeAdvance.Free;
+  fAfterStep.Free;
+  fBeforeStep.Free;
+  fAfterRun.Free;
+  fBeforeRun.Free;
 
   inherited;
 end;
@@ -88,9 +85,18 @@ begin
   Result.DayTick   := fClock.DayTick;
 end;
 
-procedure TSimController.NotifyBeforeAdvance;
+procedure TSimController.NotifyBeforeRun;
 begin
-  fBeforeAdvance.Notify(
+  fBeforeRun.Notify(
+    procedure(Handler: TNotifyEvent)
+    begin
+      Handler(Self);
+    end
+  );
+end;
+procedure TSimController.NotifyAfterRun;
+begin
+  fAfterRun.Notify(
     procedure(Handler: TNotifyEvent)
     begin
       Handler(Self);
@@ -98,9 +104,18 @@ begin
   );
 end;
 
-procedure TSimController.NotifyAfterAdvance;
+procedure TSimController.NotifyBeforeStep;
 begin
-  fAfterAdvance.Notify(
+  fBeforeStep.Notify(
+    procedure(Handler: TNotifyEvent)
+    begin
+      Handler(Self);
+    end
+  );
+end;
+procedure TSimController.NotifyAfterStep;
+begin
+  fAfterStep.Notify(
     procedure(Handler: TNotifyEvent)
     begin
       Handler(Self);
@@ -118,13 +133,13 @@ begin
 
   fRunning := True;
   fRecording := Recording;
-  BeforeRun;
+  NotifyBeforeRun;
   try
     while True do
     begin
-      NotifyBeforeAdvance;
+      NotifyBeforeStep;
       fClock.Step;
-      NotifyAfterAdvance;
+      NotifyAfterStep;
 
       date.DayNumber := fClock.DayNumber;
       date.DayTick := fClock.DayTick;
@@ -135,9 +150,9 @@ begin
         Break;
     end;
   finally
-    AfterRun;
     fRunning := False;
     fRecording := False;
+    NotifyAfterRun;
   end;
 end;
 
@@ -150,7 +165,7 @@ begin
   Assert(Assigned(aPlaylist) and (aPlaylist.Count > 0));
 
   fRunning := True;
-  BeforeRun;
+  NotifyBeforeRun;
   try
     for var segIndex := 0 to aPlaylist.Count - 1 do
     begin
@@ -168,9 +183,9 @@ begin
       // run ticks until EndTime or EndEvents fires
       while not fEndEventFired do
       begin
-        NotifyBeforeAdvance;
+        NotifyBeforeStep;
         fClock.Step;
-        NotifyAfterAdvance;
+        NotifyAfterStep;
 
         date.DayNumber := fClock.DayNumber;
         date.DayTick := fClock.DayTick;
@@ -197,14 +212,14 @@ begin
     fRunning := False;
     fRecording := False;
     fCurrentSegmentIndex := -1;
-    AfterRun;
+    NotifyAfterRun;
   end;
 end;
 
 procedure TSimController.Step(Recording: Boolean);
 begin
   Assert(not fRunning, 'TSimController.Step called while controller is already running.');
-  NotifyBeforeAdvance;
+  NotifyBeforeStep;
 
   fRecording := Recording;
   try
@@ -213,7 +228,7 @@ begin
     fRecording := False;
   end;
 
-  NotifyAfterAdvance;
+  NotifyAfterStep;
 end;
 
 

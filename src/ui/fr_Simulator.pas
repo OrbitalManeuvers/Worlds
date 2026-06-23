@@ -52,7 +52,7 @@ type
     RuntimeObservers: TList<IRuntimeObserver>;
     RuntimeControllers: TList<IRuntimeController>;
 //    RuntimeSubscribers: TList<IRuntimeSubscriber>;
-    DiagnosticsViews: TList<IDiagnosticsView>;
+//    DiagnosticsViews: TList<IDiagnosticsView>;
 
 
     // session lifetime
@@ -85,7 +85,23 @@ implementation
 
 uses System.IOUtils, Vcl.Graphics, Vcl.Themes, Vcl.Clipbrd,
   u_WorldsMessages, u_SessionManager, u_LogTypes, u_DiagnosticsHelpers,
+  u_SimControllers,
   u_SessionComposers, u_DebugSessionComposers;
+
+
+type
+  notification_block_helper = record helper for TNotificationEvents
+    procedure Init(aController: TSimController);
+  end;
+
+procedure notification_block_helper.Init(aController: TSimController);
+begin
+  Self.OnStep.Before := aController.BeforeStep;
+  Self.OnStep.After := aController.AfterStep;
+  Self.OnRun.Before := aController.BeforeRun;
+  Self.OnRun.After := aController.AfterRun;
+end;
+
 
 { TSimulatorFrame }
 
@@ -112,9 +128,9 @@ procedure TSimulatorFrame.Init;
 //    if Supports(aFrame, IRuntimeSubscriber, sub) then
 //      RuntimeSubscribers.Add(sub);
 
-    var view: IDiagnosticsView;
-    if Supports(aFrame, IDiagnosticsView, view) then
-      DiagnosticsViews.Add(view);
+//    var view: IDiagnosticsView;
+//    if Supports(aFrame, IDiagnosticsView, view) then
+//      DiagnosticsViews.Add(view);
   end;
 
 begin
@@ -123,7 +139,7 @@ begin
   RuntimeObservers := TList<IRuntimeObserver>.Create;
   RuntimeControllers := TList<IRuntimeController>.Create;
 //  RuntimeSubscribers  := TList<IRuntimeSubscriber>.Create;
-  DiagnosticsViews := TList<IDiagnosticsView>.Create;
+//  DiagnosticsViews := TList<IDiagnosticsView>.Create;
 
   { UI for controlling the session }
   Stepper := TStepperFrame.Create(Self);
@@ -173,7 +189,7 @@ begin
   RuntimeObservers.Free;
   RuntimeControllers.Free;
 //  RuntimeSubscribers.Free;
-  DiagnosticsViews.Free;
+//  DiagnosticsViews.Free;
 
   DestroySession;
 
@@ -224,22 +240,20 @@ end;
 procedure TSimulatorFrame.ConnectViewers;
 begin
   // self
-  Session.Controller.OnBeforeRun := HandleBeforeRun;
-  Session.Controller.OnAfterRun := HandleAfterRun;
+  Session.Controller.BeforeRun.Subscribe(HandleBeforeRun);
+  Session.Controller.AfterRun.Subscribe(HandleAfterRun);
+
+  // create events block for consumers to subscribe to
+  var events: TNotificationEvents;
+  events.Init(Session.Controller);
 
   // observers
   for var obs in RuntimeObservers do
-    obs.ConnectRuntime(Session.Simulator.Runtime, Session.Controller.AfterAdvance);
+    obs.ConnectRuntime(Session.Simulator.Runtime, events);
 
   // controllers
   for var con in RuntimeControllers do
     con.ConnectController(Session.Controller);
-
-  // event subscribers
-//  for var sub in RuntimeSubscribers do
-//  begin
-//    //
-//  end;
 
 
   // connections to session controller
@@ -269,18 +283,18 @@ end;
 
 procedure TSimulatorFrame.DisconnectViewers;
 begin
+  // create events block for consumers to subscribe to
+  var events: TNotificationEvents;
+  events.Init(Session.Controller);
+
   // observers
   for var obs in RuntimeObservers do
-    obs.DisconnectRuntime(Session.Simulator.Runtime, Session.Controller.AfterAdvance);
+    obs.DisconnectRuntime(Session.Simulator.Runtime, events);
 
   // controllers
   for var con in RuntimeControllers do
     con.DisconnectController(Session.Controller);
 
-  // event subscribers
-//  for var sub in RuntimeSubscribers do
-//  begin
-//  end;
 
   DeltaVisualizer.Simulator := nil;
   Visualizer.Simulator := nil;
@@ -357,8 +371,6 @@ end;
 procedure TSimulatorFrame.HandleBeforeRun(Sender: TObject);
 begin
   Session.Recording := Stepper.Recording;
-  for var view in DiagnosticsViews do
-    view.BeginRun;
 end;
 
 procedure TSimulatorFrame.HandleAfterRun(Sender: TObject);
@@ -366,8 +378,6 @@ begin
   if Assigned(Session) then
     Session.AssertScratchLogReadable;
 
-  for var view in DiagnosticsViews do
-    view.EndRun;
   if Assigned(ResViewer1) then
     ResViewer1.Invalidate;
   if Assigned(ResViewer2) then

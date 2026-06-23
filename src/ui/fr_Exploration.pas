@@ -30,7 +30,6 @@ type
     procedure edtAgentsChange(Sender: TObject);
   private
     fRuntime: TSimRuntime;
-//    fDiagnostics: ISimEventHub;
     fConditions: TObjectList<TConditionEditor>;
     fPopulation: TSimPopulation;
     fEvaluator: TExplorationEvaluator;
@@ -46,8 +45,8 @@ type
     procedure UpdateControls;
 
     { IRuntimeObserver }
-    procedure ConnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
-    procedure DisconnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+    procedure ConnectRuntime(aRuntime: TSimRuntime; aEvents: TNotificationEvents);
+    procedure DisconnectRuntime(aRuntime: TSimRuntime; aEvents: TNotificationEvents);
 
     { IRuntimeController }
     procedure ConnectController(aController: TSimController);
@@ -156,7 +155,7 @@ begin
   end;
 end;
 
-procedure TExplorationFrame.ConnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+procedure TExplorationFrame.ConnectRuntime(aRuntime: TSimRuntime; aEvents: TNotificationEvents);
 begin
   fRuntime := aRuntime;
 //  fDiagnostics := aDiagnostics;
@@ -167,7 +166,7 @@ begin
   UpdateControls;
 end;
 
-procedure TExplorationFrame.DisconnectRuntime(aRuntime: TSimRuntime; AfterAdvance: TMulticastEvent<TNotifyEvent>);
+procedure TExplorationFrame.DisconnectRuntime(aRuntime: TSimRuntime; aEvents: TNotificationEvents);
 begin
 //  fEvaluator.Population := nil;
 //  aDiagnostics.Unsubscribe(fEvaluator.SubscriptionId);

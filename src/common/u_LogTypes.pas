@@ -19,7 +19,6 @@ type
     procedure Clear;
     function AsFieldText(FromField, ToField: Integer): string; overload;
     function AsFieldText(): string; overload;
-    procedure GetPairs(Strings: TStrings);
   end;
 
 implementation
@@ -69,16 +68,16 @@ begin
   Result := Length(Fields);
 end;
 
-procedure TLogFields.GetPairs(Strings: TStrings);
-begin
-  Strings.BeginUpdate;
-  try
-    for var f in Fields do
-      Strings.AddPair(f.Name, f.Value);
-  finally
-    Strings.EndUpdate;
-  end;
-end;
+//procedure TLogFields.GetPairs(Strings: TStrings);
+//begin
+//  Strings.BeginUpdate;
+//  try
+//    for var f in Fields do
+//      Strings.AddPair(f.Name, f.Value);
+//  finally
+//    Strings.EndUpdate;
+//  end;
+//end;
 
 { TLogField }
 function TLogField.AsFieldText: string;
