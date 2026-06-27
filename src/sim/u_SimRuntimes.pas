@@ -60,7 +60,7 @@ type
     DELTA_MAX_CACHES_PER_NIGHT = 32;
   private
     fCurrentGlobalTick: Integer;
-    fCurrentDayTick: TDayTick;
+    fDate: TSimDate;
     fRuntimeConfig: TRuntimeConfig;
     fEnvironment: TSimEnvironment;
     fPopulation: TSimPopulation;
@@ -104,7 +104,8 @@ type
       const Requested: TBrainTickOutput; out ForageOutcome: TForageOutcome): TBrainTickOutput;
     procedure ProcessAgentTick(aIndex: Integer; const Input: TBrainTickInput);
     procedure NotifyPhase(const Phase: TSimTickPhase);
-    procedure SetDayTick(const Value: TDayTick);
+    procedure ClockChanged;
+//    procedure SetDayTick(const Value: TDayTick);
   public
     constructor Create(const aSessionEventSink: ISessionEventSink);
     destructor Destroy; override;
@@ -116,6 +117,7 @@ type
       const aAmounts: TCellAmountCycles);
 
     procedure AdvanceClock(const GlobalTick: Integer; const DayTick: TDayTick);
+    property Date: TSimDate read fDate;
 
     property Environment: TSimEnvironment read fEnvironment;
     property Population: TSimPopulation read fPopulation;
@@ -392,7 +394,7 @@ end;
 
 procedure TSimRuntime.InjectDeltaAtNightfall;
 begin
-  if fCurrentDayTick <> DELTA_CREATE_TICK then
+  if fDate.DayTick <> DELTA_CREATE_TICK then
     Exit;
 
   var spawnPlan := BuildDeltaSpawnPlan;
@@ -439,8 +441,7 @@ function TSimRuntime.BuildEventHeader(): TSessionEventHeader;
 begin
   Result := Default(TSessionEventHeader);
   Result.GlobalTick := fCurrentGlobalTick;
-  Result.Date.DayNumber := fCurrentGlobalTick div CLOCK_TICKS_PER_DAY;
-  Result.Date.DayTick := fCurrentDayTick;
+  Result.Date := fDate;
 end;
 
 procedure TSimRuntime.EmitPrePopulation;
@@ -986,12 +987,16 @@ begin
   end;
 
   fPopulation.ApplyStep(aIndex, resolved);
+  fPopulation.FinalizeProbe(aIndex);
 end;
 
 procedure TSimRuntime.AdvanceClock(const GlobalTick: Integer; const DayTick: TDayTick);
 begin
   fCurrentGlobalTick := GlobalTick;
-  SetDayTick(DayTick);
+  fDate.DayNumber := fCurrentGlobalTick div CLOCK_TICKS_PER_DAY;
+  fDate.DayTick := DayTick;
+  ClockChanged;
+//  SetDayTick(fDate.DayTick);
 end;
 
 procedure TSimRuntime.NotifyPhase(const Phase: TSimTickPhase);
@@ -1000,7 +1005,8 @@ begin
     fOnPhase(Self, Phase);
 end;
 
-procedure TSimRuntime.SetDayTick(const Value: TDayTick);
+//procedure TSimRuntime.SetDayTick(const Value: TDayTick);
+procedure TSimRuntime.ClockChanged;
 const
   SEED_STRIDE = 7;          // visit every 7th cache per pass — full coverage in 7 passes
   SEED_INTERVAL = 5;        // seed every 5 ticks during the seeding window
@@ -1009,11 +1015,10 @@ const
 begin
   var previousSolarFlux := fEnvironment.SolarFlux;
 
-  fCurrentDayTick := Value;
-  fEnvironment.DayTick := Value;
+  fEnvironment.DayTick := fDate.DayTick;
 
   // Strided resource seeder: plant seed amounts in caches over the first half of the day.
-  if (Value < SEED_WINDOW) and (Value mod SEED_INTERVAL = 0) then
+  if (fDate.DayTick < SEED_WINDOW) and (fDate.DayTick mod SEED_INTERVAL = 0) then
   begin
     fEnvironment.SeedResources(fSeedIndex, SEED_STRIDE, SEED_AMOUNT);
     Inc(fSeedIndex);
@@ -1021,8 +1026,8 @@ begin
       fSeedIndex := 0;
   end;
 
-  fCurrentDayTick := Value;
-  fEnvironment.DayTick := Value;
+//  fCurrentDayTick := Value;
+//  fEnvironment.DayTick := Value;
 
   // Reset per-tick event counters and snapshot accumulators
   BeginTickSummary;

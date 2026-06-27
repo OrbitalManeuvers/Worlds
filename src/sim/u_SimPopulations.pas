@@ -41,6 +41,7 @@ type
     function Think(aIndex: Integer; const Input: TBrainTickInput): TBrainTickOutput;
     procedure Reflect(aIndex: Integer; const Decision: TBrainTickOutput; const Input: TBrainReflectInput);
     procedure ApplyStep(aIndex: Integer; const Output: TBrainTickOutput);
+    procedure FinalizeProbe(aIndex: Integer);
     procedure StepAgent(aIndex: Integer; const Input: TBrainTickInput);
 
     procedure Tick(const Input: TBrainTickInput);
@@ -249,7 +250,10 @@ begin
   if fProbe.Active then
   begin
     fProbe.S.DampenedScores := Result.DampenedScores;
+    fProbe.S.CognitionInput := Result.CognitionInput;
     fProbe.S.FinalAction := Result.RequestedAction;
+//    fProbe.S.FinalActionAge :=
+//    fProbe.S.FinalActionProgress :=
     fProbe.S.FinalTarget := Result.RequestedTarget;
   end;
 end;
@@ -258,10 +262,7 @@ procedure TSimPopulation.Reflect(aIndex: Integer; const Decision: TBrainTickOutp
 begin
   TAgentBrain.Reflect(fAgents[aIndex], Decision, Input, fScratch);
 
-  var agentId := fAgents[aIndex].AgentId;
-
-  // release Probe.S
-  fProbe.AfterTick(agentId);
+  fProbe.S.ForageOutcome := Input.ForageOutcome;
 end;
 
 procedure TSimPopulation.ApplyStep(aIndex: Integer; const Output: TBrainTickOutput);
@@ -276,6 +277,14 @@ begin
 
   fAgents[aIndex].Action := Output.RequestedAction;
   fAgents[aIndex].ActionTarget := Output.RequestedTarget;
+end;
+
+procedure TSimPopulation.FinalizeProbe(aIndex: Integer);
+begin
+  var agentId := fAgents[aIndex].AgentId;
+  fProbe.S.FinalActionAge := fAgents[aIndex].ActionAge;
+  fProbe.S.FinalActionProgress := fAgents[aIndex].ActionProgress;
+  fProbe.AfterTick(agentId);
 end;
 
 procedure TSimPopulation.StepAgent(aIndex: Integer; const Input: TBrainTickInput);

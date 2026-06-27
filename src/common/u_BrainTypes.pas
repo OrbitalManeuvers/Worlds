@@ -17,20 +17,30 @@ type
     DayPhase: TDecisionDayPhase;
   end;
 
-  // Result returned by the brain to the population/sim tick routine.
-  TBrainTickOutput = record
-    RequestedAction: TAgentAction;
-    RequestedTarget: TTarget;
-    Scores: TActionScores;
-    DampenedScores: TActionScores;
-    DecisionBuckets: TDecisionBuckets;
-  end;
+  TCognitionInput = record
+    ActionScores: TActionScores;
+    Reserves: Single;
+    ReserveDelta: Single;
+    CircadianPressure: Single;
+    LastForageCell: TCellIndex;
 
+    // Agent state context for cognition decisions
+    Location: TCellIndex;
+    CurrentAction: TAgentAction;
+    CurrentTarget: TTarget;
+    CurrentActionAge: Integer;
+    CurrentActionProgress: Integer;
+
+    // Smell retained for move-target anchor lookup
+    Smell: TSmellReport;
+    ForageReport: TForageReport;
+    MoveReport: TMoveReport;
+  end;
 
   TCognitionOutput = record
     RequestedAction: TAgentAction;
     RequestedTarget: TTarget;
-    DampenedScores: TActionScores
+    DampenedScores: TActionScores;
   end;
 
   TCognitionReflectionInput = record
@@ -59,6 +69,17 @@ type
     MoleculeOutcomes: array[TMolecule] of Single;
     MoleculesPresent: TMolecules;
   end;
+
+  // Result returned by the brain to the population/sim tick routine.
+  TBrainTickOutput = record
+    RequestedAction: TAgentAction;
+    RequestedTarget: TTarget;
+    Scores: TActionScores;
+    DampenedScores: TActionScores;
+    DecisionBuckets: TDecisionBuckets;
+    CognitionInput: TCognitionInput;
+  end;
+
 
 implementation
 

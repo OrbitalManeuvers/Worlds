@@ -11,7 +11,10 @@ type
     DampenedScores: TActionScores;   // after continuation pressure applied
     CognitionInput: TCognitionInput;  // includes reports, weighted scores, smell, state context
     FinalAction: TAgentAction;
+    FinalActionAge: Integer;
+    FinalActionProgress: Integer;
     FinalTarget: TTarget;
+    ForageOutcome: TForageOutcome;
   end;
 
   TBrainProbe = class

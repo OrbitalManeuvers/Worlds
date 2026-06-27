@@ -87,26 +87,6 @@ type
   // ===================
   // Cognition Gene
   // ===================
-  TCognitionInput = record
-    ActionScores: TActionScores;
-    Reserves: Single;
-    ReserveDelta: Single;
-    CircadianPressure: Single;
-    LastForageCell: TCellIndex;
-
-    // Agent state context for cognition decisions
-    Location: TCellIndex;
-    CurrentAction: TAgentAction;
-    CurrentTarget: TTarget;
-    CurrentActionAge: Integer;
-    CurrentActionProgress: Integer;
-
-    // Smell retained for move-target anchor lookup
-    Smell: TSmellReport;
-    ForageReport: TForageReport;
-    MoveReport: TMoveReport;
-  end;
-
 
   TCognitionGene = class(TGene)
     class function Decide(const Input: TCognitionInput; var Scratch: TCognitionScratch): TCognitionOutput; virtual; abstract;

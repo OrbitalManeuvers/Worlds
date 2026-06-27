@@ -331,6 +331,7 @@ begin
     Result.RequestedAction := cognitionOutput.RequestedAction;
     Result.RequestedTarget := cognitionOutput.RequestedTarget;
     Result.DampenedScores := cognitionOutput.DampenedScores;
+    Result.CognitionInput := cognitionInput;
   end
   else
   begin

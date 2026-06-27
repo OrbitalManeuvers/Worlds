@@ -88,7 +88,6 @@ uses
   u_BrainProbes in 'agents\u_BrainProbes.pas',
   u_BrainTypes in 'common\u_BrainTypes.pas',
   u_RuntimeTypes in 'common\u_RuntimeTypes.pas',
-  u_InputTypes in 'common\u_InputTypes.pas',
   u_GeneTypes in 'common\u_GeneTypes.pas',
   u_SessionEventTypes in 'sim\u_SessionEventTypes.pas',
   u_SessionEventHubs in 'sim\u_SessionEventHubs.pas',

@@ -75,6 +75,11 @@ type
     function AsFields: TLogFields;
   end;
 
+  _brainSnapshot = record helper for TBrainSnapshot
+    function AsFinalActionStr: string;
+    function AsFinalAction: TLogFields;
+  end;
+
 implementation
 
 // DEV HACK. This needs to be formalized once the session manifest system
@@ -362,15 +367,6 @@ begin
     Result.Add('[' + i.AsText(2) + ']', sub.AsFieldText);
   end;
 
-(*
-  TSmellDetails = record
-    Cache: TCacheRef;
-    CellIndex: TCellIndex;
-    Directions: TDirections;
-    MoleculesPresent: TMolecules;
-    MoleculeStrength: array[TMolecule] of Single;
-
-*)
 end;
 
 { _smellDetails }
@@ -388,5 +384,55 @@ begin
       Result.Add(molecule_label[m], MoleculeStrength[m].AsText);
   end;
 end;
+
+{ _brainSnapshot }
+
+function _brainSnapshot.AsFinalActionStr: string;
+begin
+  Result := Self.FinalAction.AsText;
+  if Self.FinalAction in [acMove, acForage] then
+  begin
+    Result := Result + '(' + Self.FinalTarget.AsText + ')';
+    if Self.FinalAction = acForage then
+    begin
+      var outcome: TForageOutcome := Self.ForageOutcome;
+      Result := Result + Self.ForageOutcome.Gain.AsText;
+
+    end;
+  end;
+end;
+
+function _brainSnapshot.AsFinalAction: TLogFields;
+begin
+  Result.Clear;
+  var fldValue := Self.FinalAction.AsText;
+
+  if FinalAction in [acMove, acForage] then
+  begin
+    Result.Add(fldValue, '(' + Self.FinalTarget.AsText + ')');
+    if FinalAction = acForage then
+    begin
+      Result.Add('g', Self.ForageOutcome.Gain.AsText);
+      for var m := Low(TMolecule) to High(TMolecule) do
+      begin
+        var p: Integer := Self.ForageOutcome.Substance[m];
+        Result.Add(m.AsText, p.AsText(3));
+      end;
+    end;
+  end
+  else if FinalAction in [acShelter, acReproduce] then
+  begin
+    var actionStr := FinalAction.AsText;
+    var progressStr := FinalActionProgress.AsText;
+    if Self.FinalActionProgress = 0 then
+    begin
+      actionStr := 'dig:' + actionStr;
+      progressStr := Self.FinalActionAge.AsText;
+    end;
+    Result.Add(actionStr, '(' + progressStr + ')');
+  end;
+
+end;
+
 
 end.

@@ -22,11 +22,12 @@ type
     Defaults: TDefaultColors;
     FieldColors: TArray<TFieldColor>;
     LogFields: TLogFields;
-    procedure AddField(const nameStr, valueStr: string; nameIdx, valueIdx: Integer);
+    procedure AddField(const nameStr, valueStr: string; nameIdx, valueIdx: Integer); overload;
+    procedure AddField(const nameStr, valueStr: string); overload;
   end;
 
   TFieldDisplayEngine = class
-    class procedure RenderFields(const Fields: TDisplayFields; Canvas: TCanvas; R: TRect);
+    class procedure RenderFields(const Fields: TDisplayFields; Canvas: TCanvas; Dest: TRect);
   end;
 
 
@@ -42,25 +43,25 @@ const
 { TFieldDisplayEngine }
 
 class procedure TFieldDisplayEngine.RenderFields(const Fields: TDisplayFields;
-  Canvas: TCanvas; R: TRect);
+  Canvas: TCanvas; Dest: TRect);
 begin
  //
   var bitmap := TBitmap.Create;
   try
-    bitmap.Width := Max(10, R.Width);
-    bitmap.Height := Max(10, R.Height);
+    bitmap.Width := Max(10, Dest.Width);
+    bitmap.Height := Max(10, Dest.Height);
 
     // background
     bitmap.canvas.Brush.Style := bsSolid;
     bitmap.canvas.Brush.Color := Fields.Defaults.Bk;
-    bitmap.canvas.FillRect(R);
+    bitmap.canvas.FillRect(Dest);
 
     if Fields.LogFields.Count > 0 then
     begin
       bitmap.Canvas.Font.Name := FIELD_FONT_NAME;
       bitmap.Canvas.Font.Size := FIELD_FONT_SIZE;
 
-      var cellRect := R;
+      var cellRect := Dest;
       cellRect.Inflate(-1, -1);
 
       for var fieldIndex := 0 to Fields.LogFields.Count - 1 do
@@ -80,12 +81,13 @@ begin
           var contentRect := cellRect;
           var fontColor: TColor;
 
-          // draw field name
+          // draw field name. start with default color
           fontColor := Fields.Defaults.NameColor;
           if fieldIndex < Length(Fields.FieldColors) then
           begin
-            var index := Fields.FieldColors[fieldIndex].NameIndex;
-            fontColor := Fields.Palette[index];
+            var paletteIndex := Fields.FieldColors[fieldIndex].NameIndex;
+            if paletteIndex >= 0 then
+              fontColor := Fields.Palette[paletteIndex];
           end;
           bitmap.Canvas.Font.Color := fontColor;
 
@@ -98,8 +100,9 @@ begin
           fontColor := Fields.Defaults.ValueColor;
           if fieldIndex < Length(Fields.FieldColors) then
           begin
-            var index := Fields.FieldColors[fieldIndex].ValueIndex;
-            fontColor := Fields.Palette[index];
+            var paletteIndex := Fields.FieldColors[fieldIndex].ValueIndex;
+            if paletteIndex >= 0 then
+              fontColor := Fields.Palette[paletteIndex];
           end;
           bitmap.Canvas.Font.Color := fontColor;
           bitmap.Canvas.TextRect(contentRect, valueStr, [tfSingleLine,tfVerticalCenter]);
@@ -114,13 +117,11 @@ begin
     end;
 
     // xfer to display surface
-    var clipRect := Canvas.ClipRect;
-    Canvas.CopyRect(clipRect, bitmap.Canvas, R);
+    Canvas.CopyRect(Dest, bitmap.Canvas, Dest);
 
   finally
     bitmap.Free;
   end;
-
 end;
 
 { TDisplayFields }
@@ -132,6 +133,11 @@ begin
   SetLength(FieldColors, i + 1);
   FieldColors[i].NameIndex := nameIdx;
   FieldColors[i].ValueIndex := valueIdx;
+end;
+
+procedure TDisplayFields.AddField(const nameStr, valueStr: string);
+begin
+  AddField(nameStr, valueStr, -1, -1);
 end;
 
 end.

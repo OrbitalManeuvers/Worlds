@@ -284,7 +284,6 @@
         <DCCReference Include="agents\u_BrainProbes.pas"/>
         <DCCReference Include="common\u_BrainTypes.pas"/>
         <DCCReference Include="common\u_RuntimeTypes.pas"/>
-        <DCCReference Include="common\u_InputTypes.pas"/>
         <DCCReference Include="common\u_GeneTypes.pas"/>
         <DCCReference Include="sim\u_SessionEventTypes.pas"/>
         <DCCReference Include="sim\u_SessionEventHubs.pas"/>

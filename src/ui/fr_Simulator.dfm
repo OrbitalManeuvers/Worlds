@@ -18,10 +18,9 @@ inherited SimulatorFrame: TSimulatorFrame
     Top = 16
     Width = 699
     Height = 273
-    Anchors = [akTop, akRight, akBottom]
+    Anchors = [akLeft, akTop, akRight, akBottom]
     Brush.Color = clGray
     Visible = False
-    ExplicitLeft = 600
   end
   object bvBottom: TBevel
     Left = 16
